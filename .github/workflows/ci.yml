@@ -1,0 +1,253 @@
+# CI Pipeline for SCADA System - Pull Request Testing
+# This workflow runs comprehensive tests on all pull requests to ensure code quality
+# Educational Purpose: Demonstrates CI best practices for a multi-component application
+
+name: CI - Pull Request Testing
+
+on:
+  pull_request:
+    branches: [ master ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+
+# Cancel previous runs if a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Java version for Spring Boot backend
+  JAVA_VERSION: '21'
+  # Node.js version for Vue.js frontend
+  NODE_VERSION: '22'
+
+jobs:
+  # Job 1: Backend Testing (Spring Boot)
+  backend-tests:
+    name: Backend Tests (Spring Boot)
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for better caching
+
+      # Step 2: Set up Java 21 with Maven caching
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      # Step 3: Verify Maven wrapper permissions
+      - name: Make Maven wrapper executable
+        run: chmod +x ./scada-system/mvnw
+        working-directory: .
+
+      # Step 4: Run Maven tests with coverage
+      - name: Run backend tests
+        run: ./mvnw clean test -B --no-transfer-progress
+        working-directory: ./scada-system
+        env:
+          # Use H2 in-memory database for testing
+          SPRING_PROFILES_ACTIVE: test
+
+      # Step 5: Generate test report
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            scada-system/target/surefire-reports/**/*.xml
+
+      # Step 6: Upload test artifacts for debugging
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: backend-test-results
+          path: |
+            scada-system/target/surefire-reports/
+            scada-system/target/site/
+
+  # Job 2: Frontend Testing (Vue.js)
+  frontend-tests:
+    name: Frontend Tests (Vue.js)
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Node.js with npm caching
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: './frontend/package-lock.json'
+
+      # Step 3: Install dependencies
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ./frontend
+
+      # Step 4: TypeScript type checking
+      - name: TypeScript type check
+        run: npm run type-check
+        working-directory: ./frontend
+
+      # Step 5: ESLint code quality check
+      - name: ESLint code quality check
+        run: npm run lint
+        working-directory: ./frontend
+
+      # Step 6: Build production bundle
+      - name: Build production bundle
+        run: npm run build
+        working-directory: ./frontend
+
+      # Step 7: Upload build artifacts for deployment job
+      - name: Upload frontend build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+          retention-days: 1
+
+  # Job 3: Security Scanning
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Java for backend security scan
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      # Step 3: Run OWASP Dependency Check for backend
+      - name: OWASP Dependency Check (Backend)
+        run: |
+          chmod +x ./mvnw
+          ./mvnw org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=7 \
+            -DskipTestScope=false \
+            --no-transfer-progress
+        working-directory: ./scada-system
+
+      # Step 4: Set up Node.js for frontend security scan
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Step 5: Install npm-audit for frontend vulnerability check
+      - name: npm audit (Frontend)
+        run: |
+          npm ci
+          npm audit --audit-level=high
+        working-directory: ./frontend
+
+      # Step 6: Upload security scan results
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-scan-results
+          path: |
+            scada-system/target/dependency-check-report.html
+
+  # Job 4: Build Validation (Integration Test)
+  build-validation:
+    name: Full Build Validation
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+
+    steps:
+      # Step 1: Checkout source code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Java 21
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      # Step 3: Build backend JAR
+      - name: Build backend JAR
+        run: |
+          chmod +x ./mvnw
+          ./mvnw clean package -DskipTests -B --no-transfer-progress
+        working-directory: ./scada-system
+
+      # Step 4: Download frontend build artifacts
+      - name: Download frontend build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/dist/
+
+      # Step 5: Verify artifacts
+      - name: Verify build artifacts
+        run: |
+          echo "Backend JAR size:"
+          ls -lh scada-system/target/*.jar
+          echo ""
+          echo "Frontend build contents:"
+          ls -la frontend/dist/
+          echo ""
+          echo "Build validation completed successfully!"
+
+      # Step 6: Upload final artifacts
+      - name: Upload final build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: complete-build
+          path: |
+            scada-system/target/*.jar
+            frontend/dist/
+          retention-days: 3
+
+  # Job 5: PR Quality Summary
+  quality-summary:
+    name: PR Quality Summary
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, security-scan, build-validation]
+    if: always()
+
+    steps:
+      - name: PR Quality Report
+        run: |
+          echo "## Pull Request Quality Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend Tests | ${{ needs.backend-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Tests | ${{ needs.frontend-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Validation | ${{ needs.build-validation.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.backend-tests.result }}" == "success" &&
+                "${{ needs.frontend-tests.result }}" == "success" &&
+                "${{ needs.build-validation.result }}" == "success" ]]; then
+            echo "✅ **All quality checks passed!** This PR is ready for review." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some quality checks failed.** Please review the failed jobs above." >> $GITHUB_STEP_SUMMARY
+          fi

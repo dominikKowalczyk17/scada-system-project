@@ -1,0 +1,195 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database with TimescaleDB extension for time-series data
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: scada-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: scada_system
+      POSTGRES_USER: scada_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deployment/config/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - scada-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scada_user -d scada_system"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # MQTT Broker (Eclipse Mosquitto)
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    container_name: scada-mqtt
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"  # WebSocket port
+    volumes:
+      - ./deployment/config/mqtt/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./deployment/config/mqtt/passwd:/mosquitto/config/passwd:ro
+      - mqtt_data:/mosquitto/data
+      - mqtt_logs:/mosquitto/log
+    networks:
+      - scada-network
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_pub -h localhost -t test -m 'health-check' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Spring Boot Backend Application
+  backend:
+    image: openjdk:21-jre-slim
+    container_name: scada-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: production
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/scada_system
+      SPRING_DATASOURCE_USERNAME: scada_user
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      MQTT_BROKER_URL: tcp://mqtt-broker:1883
+      MQTT_USERNAME: ${MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      SERVER_PORT: 8080
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
+      LOGGING_LEVEL_ROOT: INFO
+      JAVA_OPTS: -Xmx512m -Xms256m
+    volumes:
+      - ./backend/scada-system-*.jar:/app/app.jar:ro
+      - ./deployment/config/spring/application-production.yml:/app/config/application-production.yml:ro
+      - app_logs:/app/logs
+    ports:
+      - "8080:8080"
+    networks:
+      - scada-network
+    command: ["java", "-jar", "/app/app.jar", "--spring.config.additional-location=file:/app/config/"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Nginx - Frontend and Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: scada-nginx
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./deployment/config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deployment/config/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deployment/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - scada-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching and session storage
+  redis:
+    image: redis:7-alpine
+    container_name: scada-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 128mb --maxmemory-policy allkeys-lru
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - scada-network
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a ${REDIS_PASSWORD} ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: scada-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deployment/config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - scada-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: scada-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./deployment/config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deployment/config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - scada-network
+    depends_on:
+      - prometheus
+
+networks:
+  scada-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  mqtt_data:
+    driver: local
+  mqtt_logs:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  app_logs:
+    driver: local
+  nginx_logs:
+    driver: local
