@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a web-based SCADA system for monitoring electrical power quality in home installations, developed as a **bachelor's thesis for an engineer's degree**. The system consists of a Spring Boot backend and Vue.js frontend, designed to collect and analyze electrical parameters from distributed ESP32+PZEM-004T measurement nodes via MQTT.
+This is a web-based SCADA system for monitoring electrical power quality in home installations, developed as a **bachelor's thesis for an engineer's degree**. The system consists of a Spring Boot backend and React frontend, designed to collect and analyze electrical parameters from distributed ESP32+PZEM-004T measurement nodes via MQTT.
 
 **Academic Context:**
 - Bachelor's thesis project for engineering degree
@@ -40,13 +40,12 @@ cd scada-app/scada-system
 ./mvnw clean package      # Build JAR
 ```
 
-### Frontend (Vue.js + Vite)
+### Frontend (React + Vite)
 ```bash
-cd scada-app/frontend
+cd webapp
 npm install               # Install dependencies
 npm run dev               # Development server with hot reload
 npm run build             # Production build
-npm run type-check        # TypeScript type checking
 npm run lint              # ESLint linting
 ```
 
@@ -56,14 +55,14 @@ npm run lint              # ESLint linting
 ```
 scada-system-project/
 ├── scada-app/
-│   ├── scada-system/         # Spring Boot backend (Java 21)
-│   │   ├── src/main/java/com/dkowalczyk/scadasystem/
-│   │   ├── src/main/resources/
-│   │   └── pom.xml
-│   └── frontend/             # Vue.js frontend (TypeScript)
-│       ├── src/
-│       ├── package.json
-│       └── README.md
+│   └── scada-system/         # Spring Boot backend (Java 21)
+│       ├── src/main/java/com/dkowalczyk/scadasystem/
+│       ├── src/main/resources/
+│       └── pom.xml
+├── webapp/                   # React frontend (TypeScript + Vite + shadcn/ui)
+│   ├── src/
+│   ├── package.json
+│   └── README.md
 └── project-description.md    # Detailed project requirements
 ```
 
@@ -76,16 +75,19 @@ scada-system-project/
 - WebSocket support for real-time data streaming
 
 **Frontend:**
-- Vue 3 with TypeScript
+- React 18 with TypeScript
 - Vite build tool
-- Vue Router for navigation
+- React Router for navigation
+- shadcn/ui component library with Radix UI primitives
+- TailwindCSS for styling
+- TanStack Query for data fetching
 - Node.js 20.19.0+ or 22.12.0+ required
 
 ### Key Components
 
 **Data Flow:**
 1. ESP32+PZEM-004T nodes → MQTT → Spring Integration → PostgreSQL
-2. Real-time data via WebSocket to Vue.js dashboard
+2. Real-time data via WebSocket to React dashboard
 3. Historical data analysis and IEC 61000 compliance reporting
 
 **Electrical Parameters Monitored:**
@@ -102,16 +104,19 @@ scada-system-project/
 - postgresql driver
 
 **Frontend (package.json):**
-- Vue 3.5.18+ with Vue Router
-- TypeScript support via vue-tsc
+- React 18.3+ with React Router
+- TypeScript support
 - Vite for development and building
+- shadcn/ui component library
+- TanStack Query for server state management
+- TailwindCSS for styling
 - ESLint for code quality
 
 ## Development Environment
 
 **IDE Preferences:**
 - **Backend Development**: IntelliJ IDEA Ultimate (NOT Eclipse) with Spring Boot plugin
-- **Frontend Development**: Visual Studio Code with Vue.js plugins
+- **Frontend Development**: Visual Studio Code with React/TypeScript plugins
 
 The project is designed for local development with:
 - Local MQTT broker (Eclipse Mosquitto via Docker)
