@@ -1,13 +1,8 @@
-import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import "./App.css";
-import { Button } from "./ui/Button";
+import Dashboard from "./views/Dashboard";
 
 function App() {
-  return (
-    <>
-      <Button icon={faArrowRight} size="md" />
-    </>
-  );
+  return <Dashboard />;
 }
 
 export default App;
