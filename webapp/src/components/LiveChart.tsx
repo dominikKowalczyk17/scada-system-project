@@ -35,19 +35,12 @@ export const LiveChart = () => {
       </div>
 
       <div className="relative h-48 grid-pattern rounded-lg overflow-hidden bg-background/50">
-        <svg className="w-full h-full" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-
+        <svg className="w-full h-full" preserveAspectRatio="full">
           <path
             d={dataPoints
               .map((value, index) => {
-                const x = (index / (dataPoints.length - 1)) * 100;
-                const y = ((max - value) / range) * 100;
+                const x = (index / (dataPoints.length - 1)) * 1118;
+                const y = ((max - value) / range) * 192;
                 return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
               })
               .join(' ')}
