@@ -1,15 +1,11 @@
 name: CD Pipeline
 
 on:
-  push:
-    branches: [ master ]
-  workflow_dispatch:  # Allow manual deployment
+  workflow_dispatch:  # Manual deployment only
 
 env:
   NODE_VERSION: '22'
   JAVA_VERSION: '21'
-  DEPLOY_HOST: '192.168.0.122'
-  DEPLOY_USER: 'pi'
   APP_NAME: 'scada-system'
 
 jobs:
@@ -45,10 +41,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: webapp/package-lock.json
 
       - name: Test frontend
-        working-directory: ./frontend
+        working-directory: ./webapp
         run: |
           npm ci
           npm run type-check
@@ -90,10 +86,10 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: webapp/package-lock.json
 
       - name: Build frontend
-        working-directory: ./frontend
+        working-directory: ./webapp
         run: |
           npm ci
           npm run build
@@ -110,7 +106,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: frontend/dist/
+          path: webapp/dist/
           retention-days: 30
 
   # Deploy to Raspberry Pi
@@ -142,17 +138,17 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ env.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
 
       - name: Test SSH connection
         run: |
-          ssh -i ~/.ssh/deploy_key -o ConnectTimeout=10 ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} "echo 'SSH connection successful'"
+          ssh -i ~/.ssh/deploy_key -o ConnectTimeout=10 ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "echo 'SSH connection successful'"
 
       - name: Create deployment directory
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
             sudo mkdir -p /opt/${{ env.APP_NAME }}/releases/$(date +%Y%m%d_%H%M%S)
-            sudo chown -R ${{ env.DEPLOY_USER }}:${{ env.DEPLOY_USER }} /opt/${{ env.APP_NAME }}
+            sudo chown -R ${{ secrets.RPI_USER }}:${{ secrets.RPI_USER }} /opt/${{ env.APP_NAME }}
           "
 
       - name: Upload deployment files
@@ -160,14 +156,14 @@ jobs:
           RELEASE_DIR="/opt/${{ env.APP_NAME }}/releases/$(date +%Y%m%d_%H%M%S)"
 
           # Upload artifacts
-          scp -i ~/.ssh/deploy_key -r ./artifacts/* ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:$RELEASE_DIR/
+          scp -i ~/.ssh/deploy_key -r ./artifacts/* ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:$RELEASE_DIR/
 
           # Upload Docker configurations
-          scp -i ~/.ssh/deploy_key ./docker-compose.prod.yml ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:$RELEASE_DIR/
-          scp -i ~/.ssh/deploy_key -r ./deployment/ ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }}:$RELEASE_DIR/
+          scp -i ~/.ssh/deploy_key ./docker-compose.prod.yml ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:$RELEASE_DIR/
+          scp -i ~/.ssh/deploy_key -r ./deployment/ ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:$RELEASE_DIR/
 
           # Make scripts executable
-          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
             chmod +x $RELEASE_DIR/deployment/scripts/*.sh
           "
 
@@ -175,28 +171,28 @@ jobs:
         run: |
           RELEASE_DIR="/opt/${{ env.APP_NAME }}/releases/$(date +%Y%m%d_%H%M%S)"
 
-          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
             cd $RELEASE_DIR
             ./deployment/scripts/deploy.sh
           "
 
       - name: Health check
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
             /opt/${{ env.APP_NAME }}/current/deployment/scripts/health-check.sh
           "
 
       - name: Rollback on failure
         if: failure()
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
             /opt/${{ env.APP_NAME }}/current/deployment/scripts/rollback.sh
           "
 
       - name: Cleanup old releases
         if: success()
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
             /opt/${{ env.APP_NAME }}/current/deployment/scripts/cleanup.sh
           "
 
@@ -236,13 +232,13 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ env.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
 
       - name: Verify services are running
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
             cd /opt/${{ env.APP_NAME }}/current
-            docker-compose -f docker-compose.prod.yml ps
+            docker compose -f docker-compose.prod.yml ps
 
             # Check if all services are healthy
             ./deployment/scripts/verify-deployment.sh
@@ -250,7 +246,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          ssh -i ~/.ssh/deploy_key ${{ env.DEPLOY_USER }}@${{ env.DEPLOY_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
             cd /opt/${{ env.APP_NAME }}/current
             ./deployment/scripts/integration-tests.sh
           "
@@ -259,4 +255,4 @@ jobs:
       - name: Update deployment status
         run: |
           echo "Deployment completed successfully at $(date)"
-          echo "Services verified and running on ${{ env.DEPLOY_HOST }}"
+          echo "Services verified and running on ${{ secrets.RPI_HOST }}"
