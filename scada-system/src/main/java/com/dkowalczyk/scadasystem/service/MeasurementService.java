@@ -23,8 +23,12 @@ public class MeasurementService {
     @Transactional
     public MeasurementDTO saveMeasurement(MeasurementRequest request) {
         // Konwersja DTO → Entity
+        if (request.getTimestamp() == null) {
+            throw new IllegalArgumentException("timestamp must be provided");
+        }
+        Instant timestamp = Instant.ofEpochSecond(request.getTimestamp());
         Measurement measurement = Measurement.builder()
-                .time(Instant.ofEpochSecond(request.getTimestamp()))
+                .time(timestamp)
                 .voltageRms(request.getVoltageRms())
                 .currentRms(request.getCurrentRms())
                 .powerActive(request.getPowerActive())
