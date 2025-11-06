@@ -1,0 +1,48 @@
+package com.dkowalczyk.scadasystem.model.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+
+@Data
+public class MeasurementRequest {
+
+    private Long timestamp;
+
+    @JsonProperty("voltage_rms")
+    private Float voltageRms;
+
+    @JsonProperty("current_rms")
+    private Float currentRms;
+
+    @JsonProperty("power_active")
+    private Float powerActive;
+
+    @JsonProperty("power_apparent")
+    private Float powerApparent;
+
+    @JsonProperty("power_reactive")
+    private Float powerReactive;
+
+    @JsonProperty("cos_phi")
+    private Float cosPhi;
+
+    private Float frequency;
+
+    @JsonProperty("thd_voltage")
+    private Float thdVoltage;
+
+    @JsonProperty("thd_current")
+    private Float thdCurrent;
+
+    @JsonProperty("pst_flicker")
+    private Float pstFlicker;
+
+    @JsonProperty("capacitor_uf")
+    private Float capacitorUf;
+
+    @JsonProperty("harmonics_v")
+    private Float[] harmonicsV;
+
+    @JsonProperty("harmonics_i")
+    private Float[] harmonicsI;
+}
