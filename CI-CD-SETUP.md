@@ -112,7 +112,7 @@ npm run type-check
 
 To use the deployment workflow, configure these secrets in GitHub repository settings:
 
-```
+```bash
 DEPLOY_SSH_KEY - SSH private key for Raspberry Pi access
 RPI_HOST       - Raspberry Pi IP address or hostname
 RPI_USER       - SSH username on Raspberry Pi

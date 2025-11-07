@@ -2,6 +2,8 @@
 # Runs essential quality checks on pull requests and pushes to master
 
 name: CI - Continuous Integration
+permissions:
+  contents: read
 
 on:
   pull_request:

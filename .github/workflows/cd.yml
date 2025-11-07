@@ -2,6 +2,8 @@
 # Manual deployment to Raspberry Pi production environment
 
 name: CD - Continuous Deployment
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:  # Manual deployment only
