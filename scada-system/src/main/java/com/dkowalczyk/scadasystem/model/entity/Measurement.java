@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 @Entity
 @Table(name = "measurements", indexes = {
  @Index(name = "idx_measurement_time", columnList = "time")
@@ -40,5 +42,6 @@ public class Measurement {
     private Float[] harmonicsI;
 
     @Column(updatable = false)
-    private Instant createdAt = Instant.now();
+    @CreationTimestamp
+    private Instant createdAt;
 }
