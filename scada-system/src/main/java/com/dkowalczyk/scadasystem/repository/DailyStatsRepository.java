@@ -14,13 +14,18 @@ import java.util.Optional;
  */
 public interface DailyStatsRepository extends JpaRepository<DailyStats, Long> {
 
-    // TODO(): Add method to find statistics for a specific date
-    // Method name pattern: findByDate
-    // Parameter: LocalDate date
-    // Return type: Optional<DailyStats> (Optional because date might not exist)
+    /**
+     * Find statistics for specific date.
+     * @param date the date to query
+     * @return Optional containing DailyStats if found, empty otherwise
+     */
+    Optional<DailyStats> findByDate(LocalDate date);
 
-    // TODO(): Add method to find statistics between two dates
-    // Method name pattern: findByDateBetween
-    // Parameters: LocalDate from, LocalDate to
-    // Return type: List<DailyStats> (List because multiple dates)
+    /**
+     * Find statistics for a date range (inlcusive).
+     * @param from start date (inclusive)
+     * @param to end date (inclusive)
+     * @return List of DailyStats ordered by date
+     */
+    List<DailyStats> findByDateBetweenOrderByDateAsc(LocalDate from, LocalDate to);
 }

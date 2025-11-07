@@ -1,6 +1,8 @@
 package com.dkowalczyk.scadasystem.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
@@ -8,9 +10,11 @@ public class MeasurementRequest {
 
     private Long timestamp;
 
+    @NotNull
     @JsonProperty("voltage_rms")
     private Float voltageRms;
 
+    @NotNull
     @JsonProperty("current_rms")
     private Float currentRms;
 
@@ -26,6 +30,7 @@ public class MeasurementRequest {
     @JsonProperty("cos_phi")
     private Float cosPhi;
 
+    @NotNull
     private Float frequency;
 
     @JsonProperty("thd_voltage")

@@ -23,16 +23,29 @@ public class Measurement {
     @Column(nullable = false)
     private Instant time;
 
+    @Column(nullable = false)
     private Float voltageRms;
+
+    @Column(nullable = false)
     private Float currentRms;
+    
     private Float powerActive;
+    
     private Float powerApparent;
+    
     private Float powerReactive;
+    
     private Float cosPhi;
+
+    @Column(nullable = false)
     private Float frequency;
+    
     private Float thdVoltage;
+    
     private Float thdCurrent;
+    
     private Float pstFlicker;
+    
     private Float capacitorUf;
 
     @Column(columnDefinition = "real[]")

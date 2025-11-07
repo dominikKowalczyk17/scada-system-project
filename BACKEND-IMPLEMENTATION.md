@@ -476,7 +476,7 @@ for (int i = 0; i < measurements.size() - 1; i++) {
 }
 ```
 
-**Thesis note:** "Trapezoidal rule provides O(n²) accuracy for integration, balancing computational efficiency with precision for energy billing calculations."
+**Thesis note:** "Trapezoidal rule provides second-order accuracy (O(h²) error) for integration, balancing computational efficiency with precision for energy billing calculations."
 
 #### Event Detection (Voltage Sag)
 ```java

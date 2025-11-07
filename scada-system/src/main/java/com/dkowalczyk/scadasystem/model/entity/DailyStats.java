@@ -6,6 +6,8 @@ import lombok.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 /**
  * Entity representing aggregated daily statistics of power quality measurements.
  * 
@@ -109,9 +111,11 @@ public class DailyStats {
 
     // === Audit Fields ===
 
+    @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @CreationTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }
