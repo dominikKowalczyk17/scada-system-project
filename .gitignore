@@ -16,7 +16,9 @@ Thumbs.db
 
 # Build outputs
 /webapp/build/
-/scada-app/scada-system/target/
+/webapp/dist/
+/scada-system/target/
+*.class
 
 # Environment files
 .env
