@@ -22,7 +22,7 @@ public interface DailyStatsRepository extends JpaRepository<DailyStats, Long> {
     Optional<DailyStats> findByDate(LocalDate date);
 
     /**
-     * Find statistics for a date range (inlcusive).
+     * Find statistics for a date range (inclusive).
      * @param from start date (inclusive)
      * @param to end date (inclusive)
      * @return List of DailyStats ordered by date

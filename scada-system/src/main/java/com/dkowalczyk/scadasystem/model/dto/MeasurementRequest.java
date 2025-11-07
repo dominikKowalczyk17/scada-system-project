@@ -8,6 +8,7 @@ import lombok.Data;
 @Data
 public class MeasurementRequest {
 
+    @NotNull(message = "timestamp is required")
     private Long timestamp;
 
     @NotNull
