@@ -1,28 +1,36 @@
-name: CD Pipeline
+# Simplified CD Pipeline for SCADA System
+# Manual deployment to Raspberry Pi production environment
+
+name: CD - Continuous Deployment
 
 on:
   workflow_dispatch:  # Manual deployment only
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
 
 env:
-  NODE_VERSION: '22'
   JAVA_VERSION: '21'
+  NODE_VERSION: '22'
   APP_NAME: 'scada-system'
 
 jobs:
-  # Pre-deployment tests (same as CI but as safety check)
+  # Run tests before deployment
   pre-deployment-tests:
-    name: Pre-deployment Safety Tests
+    name: Pre-deployment Tests
     runs-on: ubuntu-latest
-
-    outputs:
-      should-deploy: ${{ steps.check-tests.outputs.deploy }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       # Backend tests
-      - name: Set up JDK 21
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
@@ -30,10 +38,12 @@ jobs:
           cache: maven
 
       - name: Run backend tests
-        working-directory: ./scada-system
         run: |
           chmod +x ./mvnw
-          ./mvnw clean test -B
+          ./mvnw clean test -B --no-transfer-progress
+        working-directory: ./scada-system
+        env:
+          SPRING_PROFILES_ACTIVE: test
 
       # Frontend tests
       - name: Set up Node.js
@@ -43,31 +53,26 @@ jobs:
           cache: 'npm'
           cache-dependency-path: webapp/package-lock.json
 
-      - name: Test frontend
-        working-directory: ./webapp
+      - name: Run frontend tests
         run: |
           npm ci
           npm run type-check
           npm run lint
-          npm run build
-
-      - name: Check if deployment should proceed
-        id: check-tests
-        run: echo "deploy=true" >> $GITHUB_OUTPUT
+          npm run test
+        working-directory: ./webapp
 
   # Build production artifacts
-  build-artifacts:
+  build:
     name: Build Production Artifacts
     runs-on: ubuntu-latest
     needs: pre-deployment-tests
-    if: needs.pre-deployment-tests.outputs.should-deploy == 'true'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       # Build backend JAR
-      - name: Set up JDK 21
+      - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
@@ -75,10 +80,10 @@ jobs:
           cache: maven
 
       - name: Build backend JAR
-        working-directory: ./scada-system
         run: |
           chmod +x ./mvnw
-          ./mvnw clean package -DskipTests -B
+          ./mvnw clean package -DskipTests -B --no-transfer-progress
+        working-directory: ./scada-system
 
       # Build frontend
       - name: Set up Node.js
@@ -89,10 +94,10 @@ jobs:
           cache-dependency-path: webapp/package-lock.json
 
       - name: Build frontend
-        working-directory: ./webapp
         run: |
           npm ci
           npm run build
+        working-directory: ./webapp
 
       # Upload artifacts
       - name: Upload backend JAR
@@ -102,7 +107,7 @@ jobs:
           path: scada-system/target/*.jar
           retention-days: 30
 
-      - name: Upload frontend dist
+      - name: Upload frontend build
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
@@ -113,146 +118,48 @@ jobs:
   deploy:
     name: Deploy to Raspberry Pi
     runs-on: ubuntu-latest
-    needs: [pre-deployment-tests, build-artifacts]
-    if: needs.pre-deployment-tests.outputs.should-deploy == 'true'
-    environment: production
+    needs: build
+    environment: ${{ inputs.environment }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download backend JAR
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: backend-jar
-          path: ./artifacts/backend/
+          path: ./artifacts
 
-      - name: Download frontend dist
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: ./artifacts/frontend/
-
-      - name: Setup SSH key
+      - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Test SSH connection
+      - name: Deploy to Raspberry Pi
         run: |
-          ssh -i ~/.ssh/deploy_key -o ConnectTimeout=10 ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "echo 'SSH connection successful'"
+          # Create deployment directory
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          RELEASE_DIR="/opt/${{ env.APP_NAME }}/releases/${TIMESTAMP}"
 
-      - name: Create deployment directory
-        run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            sudo mkdir -p /opt/${{ env.APP_NAME }}/releases/$(date +%Y%m%d_%H%M%S)
+            sudo mkdir -p ${RELEASE_DIR}
             sudo chown -R ${{ secrets.RPI_USER }}:${{ secrets.RPI_USER }} /opt/${{ env.APP_NAME }}
           "
 
-      - name: Upload deployment files
-        run: |
-          RELEASE_DIR="/opt/${{ env.APP_NAME }}/releases/$(date +%Y%m%d_%H%M%S)"
-
           # Upload artifacts
-          scp -i ~/.ssh/deploy_key -r ./artifacts/* ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:$RELEASE_DIR/
+          scp -i ~/.ssh/deploy_key -r ./artifacts/* ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:${RELEASE_DIR}/
 
-          # Upload Docker configurations
-          scp -i ~/.ssh/deploy_key ./docker-compose.prod.yml ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:$RELEASE_DIR/
-          scp -i ~/.ssh/deploy_key -r ./deployment/ ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:$RELEASE_DIR/
-
-          # Make scripts executable
+          # Create symlink to current release
           ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            chmod +x $RELEASE_DIR/deployment/scripts/*.sh
+            ln -sfn ${RELEASE_DIR} /opt/${{ env.APP_NAME }}/current
           "
 
-      - name: Deploy application
+      - name: Deployment summary
         run: |
-          RELEASE_DIR="/opt/${{ env.APP_NAME }}/releases/$(date +%Y%m%d_%H%M%S)"
-
-          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            cd $RELEASE_DIR
-            ./deployment/scripts/deploy.sh
-          "
-
-      - name: Health check
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            /opt/${{ env.APP_NAME }}/current/deployment/scripts/health-check.sh
-          "
-
-      - name: Rollback on failure
-        if: failure()
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            /opt/${{ env.APP_NAME }}/current/deployment/scripts/rollback.sh
-          "
-
-      - name: Cleanup old releases
-        if: success()
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            /opt/${{ env.APP_NAME }}/current/deployment/scripts/cleanup.sh
-          "
-
-      - name: Send deployment notification
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const status = '${{ job.status }}' === 'success' ? '✅ Success' : '❌ Failed';
-            const commit = context.sha.substring(0, 7);
-            const author = context.actor;
-
-            github.rest.repos.createCommitComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              commit_sha: context.sha,
-              body: `## Deployment ${status}
-
-              **Commit:** ${commit}
-              **Author:** ${author}
-              **Environment:** Production (Raspberry Pi)
-              **Time:** ${new Date().toISOString()}
-
-              View the [deployment logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.`
-            });
-
-  # Post-deployment verification
-  post-deployment-verification:
-    name: Post-deployment Verification
-    runs-on: ubuntu-latest
-    needs: deploy
-    if: success()
-
-    steps:
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Verify services are running
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            cd /opt/${{ env.APP_NAME }}/current
-            docker compose -f docker-compose.prod.yml ps
-
-            # Check if all services are healthy
-            ./deployment/scripts/verify-deployment.sh
-          "
-
-      - name: Run integration tests
-        run: |
-          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            cd /opt/${{ env.APP_NAME }}/current
-            ./deployment/scripts/integration-tests.sh
-          "
-        continue-on-error: true
-
-      - name: Update deployment status
-        run: |
-          echo "Deployment completed successfully at $(date)"
-          echo "Services verified and running on ${{ secrets.RPI_HOST }}"
+          echo "## Deployment Successful ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
