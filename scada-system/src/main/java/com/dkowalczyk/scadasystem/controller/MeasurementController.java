@@ -4,8 +4,10 @@ import com.dkowalczyk.scadasystem.model.dto.*;
 import com.dkowalczyk.scadasystem.service.MeasurementService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -14,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/measurements")
 @RequiredArgsConstructor
+@Validated
 public class MeasurementController {
 
     private final MeasurementService measurementService;
@@ -49,7 +52,7 @@ public class MeasurementController {
     public ResponseEntity<List<MeasurementDTO>> getHistory(
             @RequestParam(required = false) Long from,
             @RequestParam(required = false) Long to,
-            @RequestParam(defaultValue = "100") @Max(1000) int limit) {
+            @RequestParam(defaultValue = "100") @Positive @Max(1000) int limit) {
 
         Instant fromTime = from != null ? Instant.ofEpochSecond(from) : Instant.now().minusSeconds(3600);
         Instant toTime = to != null ? Instant.ofEpochSecond(to) : Instant.now();
