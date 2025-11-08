@@ -9,7 +9,7 @@ This document explains **WHY** we implement each component, **WHAT** problem it 
 ## Table of Contents
 
 1. [Architectural Overview](#architectural-overview)
-2. [Database Design](#database-design)
+2. [Database Design ](#database-design)
 3. [Why Database Migrations](#why-database-migrations)
 4. [Statistics and Aggregation](#statistics-and-aggregation)
 5. [Power Quality Monitoring](#power-quality-monitoring)
@@ -697,24 +697,6 @@ docker-compose down -v && docker-compose up -d
 
 ---
 
-## Questions for Your Thesis Defense
-
-Be prepared to answer:
-
-**Q: Why did you choose PostgreSQL over NoSQL?**
-A: "Power quality measurements are highly structured with defined relationships. PostgreSQL provides ACID guarantees critical for billing data, and SQL aggregations (AVG, SUM) are simpler than NoSQL equivalents. Additionally, PostgreSQL can be extended with TimescaleDB for time-series optimization if needed."
-
-**Q: Why separate daily_stats table instead of calculating on-demand?**
-A: "Pre-aggregation provides O(1) query performance for dashboard widgets. Calculating from 86,400 raw measurements per day would create unacceptable latency for user experience. This follows the principle of trading storage space for query speed."
-
-**Q: Why Flyway migrations instead of Hibernate ddl-auto?**
-A: "Flyway provides version-controlled schema evolution with full history tracking. Hibernate ddl-auto can drop columns with production data and doesn't provide rollback mechanisms. For a system handling billing data, we need reproducible, auditable database changes."
-
-**Q: What is Total Harmonic Distortion and why do you monitor it?**
-A: "THD measures the deviation of voltage/current waveforms from pure sinusoids. High THD causes transformer heating, neutral conductor overload, and equipment malfunction. IEC 61000-3-2 limits THD to 8% for voltage and 5% for current. Our system detects violations for preventive maintenance."
-
----
-
 ## Summary
 
 This backend implements a **production-grade SCADA system** following industry best practices:
@@ -764,6 +746,7 @@ Every component has a clear **business justification** tied to real-world power 
 - `db/migration/V2__Create_daily_stats_table.sql`
 
 **Status:** **100% COMPLETE**
+
 - ✅ PostgreSQL database running (Docker)
 - ✅ Flyway migrations applied
 - ✅ Table `measurements` stores real-time data
