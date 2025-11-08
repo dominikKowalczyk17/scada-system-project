@@ -26,11 +26,8 @@ public class StatsService {
      * Most common query for homeowner dashboard.
      */
     public Optional<StatsDTO> getTodayStats() {
-        // TODO(): Implement this method
-        // Hints:
-        // 1. Get today's date with LocalDate.now()
-        // 2. Call getStatsForDate(date)
-        throw new UnsupportedOperationException("TODO: Implement getTodayStats");
+        LocalDate today = LocalDate.now();
+        return getStatsForDate(today);
     }
 
     /**
@@ -38,14 +35,13 @@ public class StatsService {
      * For trend graphs (last 7 days, last 30 days).
      */
     public List<StatsDTO> getLastDaysStats(int days) {
-        // TODO(): Implement this method
-        // Hints:
-        // 1. Calculate 'from' date: LocalDate.now().minusDays(days - 1)
-        // 2. Calculate 'to' date: LocalDate.now()
-        // 3. Query repository.findByDateBetween(from, to)
-        // 4. Convert each entity to DTO using: new StatsDTO(entity)
-        // 5. Use Java streams: .stream().map(StatsDTO::new).toList()
-        throw new UnsupportedOperationException("TODO: Implement getLastDaysStats");
+        LocalDate from = LocalDate.now().minusDays(days - 1);
+        LocalDate to = LocalDate.now();
+
+        return repository.findByDateBetweenOrderByDateAsc(from, to)
+                .stream()
+                .map(StatsDTO::new)
+                .toList();
     }
 
     /**
@@ -53,11 +49,15 @@ public class StatsService {
      * For historical lookup.
      */
     public Optional<StatsDTO> getStatsForDate(LocalDate date) {
-        // TODO(): Implement this method
-        // Hints:
-        // 1. Query repository.findByDate(date)
-        // 2. Use Optional.map() to convert entity to DTO
-        // 3. Example: repository.findByDate(date).map(StatsDTO::new)
-        throw new UnsupportedOperationException("TODO: Implement getStatsForDate");
+        return repository.findByDate(date)
+                .map(StatsDTO::new);
+    }
+
+    public StatsDTO calculateDailyStats() {
+        // This method would calculate stats from measurements
+        // For now, return empty stats - to be implemented later
+        return StatsDTO.builder()
+                .date(LocalDate.now())
+                .build();
     }
 }

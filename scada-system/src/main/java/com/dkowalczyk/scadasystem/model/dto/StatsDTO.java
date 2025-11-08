@@ -4,7 +4,10 @@ import java.time.LocalDate;
 
 import com.dkowalczyk.scadasystem.model.entity.DailyStats;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * DTO for daily statistics API responses.
@@ -13,6 +16,9 @@ import lombok.Data;
  * a clean JSON structure for the frontend dashboard.
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class StatsDTO {
 
     private LocalDate date;

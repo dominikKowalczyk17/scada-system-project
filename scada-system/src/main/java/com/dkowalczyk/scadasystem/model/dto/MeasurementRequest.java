@@ -40,12 +40,6 @@ public class MeasurementRequest {
     @JsonProperty("thd_current")
     private Float thdCurrent;
 
-    @JsonProperty("pst_flicker")
-    private Float pstFlicker;
-
-    @JsonProperty("capacitor_uf")
-    private Float capacitorUf;
-
     @JsonProperty("harmonics_v")
     private Float[] harmonicsV;
 

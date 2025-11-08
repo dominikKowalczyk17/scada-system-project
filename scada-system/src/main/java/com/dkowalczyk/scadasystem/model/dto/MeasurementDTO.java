@@ -17,8 +17,6 @@ public class MeasurementDTO {
     private Float frequency;
     private Float thdVoltage;
     private Float thdCurrent;
-    private Float pstFlicker;
-    private Float capacitorUf;
     private Float[] harmonicsV;
     private Float[] harmonicsI;
 }

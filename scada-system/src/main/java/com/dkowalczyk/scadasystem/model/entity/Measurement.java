@@ -41,17 +41,13 @@ public class Measurement {
     private Float frequency;
     
     private Float thdVoltage;
-    
-    private Float thdCurrent;
-    
-    private Float pstFlicker;
-    
-    private Float capacitorUf;
 
-    @Column(columnDefinition = "real[]")
+    private Float thdCurrent;
+
+    @Column(name = "harmonics_v", columnDefinition = "real[]")
     private Float[] harmonicsV;
 
-    @Column(columnDefinition = "real[]")
+    @Column(name = "harmonics_i", columnDefinition = "real[]")
     private Float[] harmonicsI;
 
     @Column(updatable = false)

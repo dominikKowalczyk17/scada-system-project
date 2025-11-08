@@ -727,3 +727,506 @@ This backend implements a **production-grade SCADA system** following industry b
 - ✅ **Testability:** Unit and integration tests
 
 Every component has a clear **business justification** tied to real-world power quality monitoring requirements.
+
+---
+
+# IMPLEMENTATION STATUS
+
+**Last Updated:** 2025-11-08
+
+---
+
+## ✅ IMPLEMENTED AND WORKING
+
+### 1. MQTT Integration ✅
+**Files:**
+- `config/MqttConfig.java`
+- `service/MqttMessageHandler.java`
+
+**Status:** **100% COMPLETE**
+- ✅ MQTT broker connection (Mosquitto localhost:1883)
+- ✅ Topic subscription: `scada/measurements/#`
+- ✅ JSON parsing from ESP32
+- ✅ QoS 1 delivery guarantee
+- ✅ Auto-reconnect on connection loss
+
+**Tested:** ✅ Manual MQTT publish → saved to database
+
+---
+
+### 2. Database Layer ✅
+**Files:**
+- `model/entity/Measurement.java`
+- `model/entity/DailyStats.java`
+- `repository/MeasurementRepository.java`
+- `repository/DailyStatsRepository.java`
+- `db/migration/V1__Create_measurements_table.sql`
+- `db/migration/V2__Create_daily_stats_table.sql`
+
+**Status:** **100% COMPLETE**
+- ✅ PostgreSQL database running (Docker)
+- ✅ Flyway migrations applied
+- ✅ Table `measurements` stores real-time data
+- ✅ Table `daily_stats` schema ready (not populated yet)
+- ✅ Indexes on `time` column for performance
+
+**Tested:** ✅ Data persists correctly in database
+
+---
+
+### 3. Service Layer - Core ✅
+**Files:**
+- `service/MeasurementService.java`
+- `service/WebSocketService.java`
+
+**Status:** **100% COMPLETE**
+- ✅ `saveMeasurement()` - MQTT → Database
+- ✅ `getLatestMeasurement()` - latest reading
+- ✅ `getHistory(from, to, limit)` - time-range queries
+- ✅ WebSocket broadcasting after save
+
+**Tested:** ✅ MQTT message → DB → WebSocket broadcast working
+
+---
+
+### 4. REST API - Basic Endpoints ✅
+**Files:**
+- `controller/MeasurementController.java`
+- `controller/HealthController.java`
+
+**Endpoints:**
+```
+GET  /health                              ✅ WORKING
+GET  /api/measurements/latest             ✅ WORKING
+GET  /api/measurements/history?from=X&to=Y&limit=100  ✅ WORKING
+POST /api/measurements                    ✅ WORKING (for testing)
+```
+
+**Tested:** ✅ All endpoints return correct data
+
+---
+
+### 5. WebSocket - Real-time Push ✅
+**Files:**
+- `config/WebSocketConfig.java`
+- `service/WebSocketService.java`
+
+**Status:** **100% COMPLETE**
+- ✅ WebSocket endpoint: `/ws/measurements`
+- ✅ STOMP protocol with SockJS fallback
+- ✅ Topic: `/topic/measurements`
+- ✅ Broadcasts every new measurement
+
+**Current payload:**
+```json
+{
+  "id": 1,
+  "time": "2025-11-08T12:28:47Z",
+  "voltageRms": 230.5,
+  "currentRms": 5.2,
+  "powerActive": 1196.0,
+  "frequency": 50.1,
+  "thdVoltage": 2.3,
+  "thdCurrent": 5.1,
+  "cosPhi": 0.99,
+  "harmonicsV": [230.5, 4.8, 2.3, 1.1, 0.8, 0.5, 0.3, 0.2],
+  "harmonicsI": [2.15, 0.11, 0.06, 0.03, 0.02, 0.01, 0.01, 0.01]
+}
+```
+
+**Note:** Needs to be extended with `waveform` field (see TODO)
+
+---
+
+### 6. Configuration ✅
+**Files:**
+- `config/CorsConfig.java`
+- `config/JpaConfig.java`
+- `config/AsyncConfig.java`
+
+**Status:** **100% COMPLETE**
+
+---
+
+### 7. Exception Handling ✅
+**Files:**
+- `exception/GlobalExceptionHandler.java`
+- `exception/MeasurementNotFoundException.java`
+- `exception/ValidationException.java`
+
+**Status:** **100% COMPLETE**
+
+---
+
+### 8. Utilities ✅
+**Files:**
+- `util/MathUtils.java`
+- `util/DateTimeUtils.java`
+- `util/Constants.java`
+
+**Status:** **100% COMPLETE**
+
+---
+
+## ⚠️ PARTIALLY IMPLEMENTED
+
+### 1. StatsService ⚠️
+**File:** `service/StatsService.java`
+
+**What works:**
+- ✅ `getTodayStats()` - retrieves from `daily_stats` table
+- ✅ `getLastDaysStats(n)` - retrieves last N days
+- ✅ `getStatsForDate(date)` - specific date
+
+**What doesn't work:**
+- ❌ `calculateDailyStats()` - **STUB IMPLEMENTATION**
+  ```java
+  public StatsDTO calculateDailyStats() {
+      // This method would calculate stats from measurements
+      // For now, return empty stats - to be implemented later
+      return StatsDTO.builder()
+              .date(LocalDate.now())
+              .build();
+  }
+  ```
+
+**Impact:** Cannot generate daily statistics yet
+
+---
+
+### 2. StatsController ⚠️
+**File:** `controller/StatsController.java`
+
+**What works:**
+- ✅ Endpoint `GET /api/stats/daily` exists
+
+**What doesn't work:**
+- ❌ Returns empty data (because `calculateDailyStats()` is stub)
+- ❌ Missing endpoints: `/last-7-days`, `/last-30-days`, `/range`
+
+**Impact:** Frontend cannot get historical statistics
+
+---
+
+## ❌ NOT IMPLEMENTED
+
+### 1. DataAggregationService ❌
+**File:** `service/DataAggregationService.java`
+
+**Current state:** Empty class
+```java
+public class DataAggregationService {
+}
+```
+
+**Needed:** Scheduled job to calculate daily statistics at midnight
+
+**Impact:** No automatic aggregation of daily stats
+
+---
+
+## 🔴 TODO - MUST HAVE (for MVP Dashboard)
+
+### 1. WaveformService - Voltage Waveform Reconstruction
+**Priority:** 🔴 CRITICAL
+**Estimated time:** 2-3 hours
+
+**What:** Reconstruct voltage waveform from 8 harmonics for real-time visualization
+
+**Why needed:** Dashboard needs to show voltage waveform graph to visualize harmonics impact
+
+**Implementation:**
+```java
+@Service
+public class WaveformService {
+
+    /**
+     * Reconstruct voltage waveform from harmonics (inverse FFT)
+     * Formula: V(t) = H₁·sin(ω·t) + H₂·sin(2ω·t) + ... + H₈·sin(8ω·t)
+     */
+    public float[] reconstructWaveform(Float[] harmonics, int samples) {
+        float[] waveform = new float[samples];
+        float frequency = 50.0f; // Hz
+        float omega = 2.0f * (float)Math.PI * frequency;
+        float period = 1.0f / frequency; // 20ms
+
+        for (int i = 0; i < samples; i++) {
+            float t = (i / (float)samples) * period;
+            float value = 0;
+
+            for (int h = 0; h < Math.min(harmonics.length, 8); h++) {
+                if (harmonics[h] != null) {
+                    value += harmonics[h] * Math.sin((h + 1) * omega * t);
+                }
+            }
+            waveform[i] = value;
+        }
+        return waveform;
+    }
+}
+```
+
+**Files to create:**
+- `service/WaveformService.java`
+
+---
+
+### 2. DashboardController - Main Dashboard Endpoint
+**Priority:** 🔴 CRITICAL
+**Estimated time:** 1-2 hours
+
+**What:** Single endpoint returning all data needed for dashboard
+
+**Endpoint:**
+```
+GET /api/dashboard/current
+```
+
+**Response:**
+```json
+{
+  "current": {
+    "voltage": 230.5,
+    "current": 5.2,
+    "powerActive": 1196.0,
+    "frequency": 50.1,
+    "thdVoltage": 2.3,
+    "cosPhi": 0.99,
+    "timestamp": 1699453200
+  },
+  "waveform": [0, 45.2, 89.5, ...],  // 200 points
+  "recentHistory": [ /* last 50 measurements */ ]
+}
+```
+
+**Files to create:**
+- `controller/DashboardController.java`
+- `model/dto/DashboardDTO.java`
+
+---
+
+### 3. WebSocket - Add Waveform to Broadcast
+**Priority:** 🔴 CRITICAL
+**Estimated time:** 1 hour
+
+**What:** Extend WebSocket payload to include waveform data
+
+**Current:** Basic measurement data only
+**Needed:** Add `waveform` field (200 points)
+
+**Changes:**
+1. Add `waveform` field to `MeasurementDTO`
+2. Calculate waveform in `MeasurementService.saveMeasurement()`
+3. Broadcast includes waveform automatically
+
+---
+
+### 4. MeasurementService - Recent History Query
+**Priority:** 🔴 CRITICAL
+**Estimated time:** 30 minutes
+
+**What:** Method to get last N measurements for dashboard mini-graphs
+
+**Add to `MeasurementService`:**
+```java
+public List<MeasurementDTO> getRecentHistory(int limit) {
+    return repository.findTopNByOrderByTimeDesc(limit)
+        .stream()
+        .map(this::toDTO)
+        .toList();
+}
+```
+
+---
+
+### 5. MeasurementRepository - Add Query
+**Priority:** 🔴 CRITICAL
+**Estimated time:** 15 minutes
+
+**Add to `MeasurementRepository`:**
+```java
+@Query("SELECT m FROM Measurement m ORDER BY m.time DESC LIMIT :limit")
+List<Measurement> findTopNByOrderByTimeDesc(@Param("limit") int limit);
+```
+
+---
+
+## 🟡 TODO - SHOULD HAVE (for Historical Stats)
+
+### 6. StatsService - Implement calculateDailyStats()
+**Priority:** 🟡 HIGH
+**Estimated time:** 3-4 hours
+
+**What:** Calculate daily statistics from raw measurements
+
+**Calculations needed:**
+- AVG, MIN, MAX voltage
+- AVG, MIN, MAX current
+- Total energy (kWh) - integrate power over time
+- AVG THD voltage/current
+- AVG frequency, power factor
+- Event counts: voltage sags (<207V), swells (>253V), THD violations (>8%)
+- Data completeness (%)
+
+**Add to `MeasurementRepository`:**
+```java
+List<Measurement> findByTimeBetween(Instant from, Instant to);
+```
+
+---
+
+### 7. DataAggregationService - Scheduled Job
+**Priority:** 🟡 HIGH
+**Estimated time:** 1 hour
+
+**What:** Automatic daily statistics calculation
+
+**Implementation:**
+```java
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class DataAggregationService {
+
+    private final StatsService statsService;
+
+    @Scheduled(cron = "0 5 0 * * *")  // 00:05 every day
+    public void aggregateDailyStats() {
+        LocalDate yesterday = LocalDate.now().minusDays(1);
+        statsService.calculateDailyStats(yesterday);
+    }
+}
+```
+
+**Also add to main class:**
+```java
+@SpringBootApplication
+@EnableScheduling  // ← ADD THIS
+public class ScadaSystemApplication { }
+```
+
+---
+
+### 8. StatsController - Historical Endpoints
+**Priority:** 🟡 MEDIUM
+**Estimated time:** 1 hour
+
+**Add endpoints:**
+```
+GET /api/stats/last-7-days
+GET /api/stats/last-30-days
+GET /api/stats/range?from=2025-11-01&to=2025-11-08
+```
+
+---
+
+## 🟢 TODO - NICE TO HAVE (Optional)
+
+### 9. MeasurementValidator - Data Validation
+**Priority:** 🟢 LOW
+**Estimated time:** 1 hour
+
+**What:** Validate measurements from ESP32
+
+**Checks:**
+- Voltage: 100-300V
+- Current: 0-100A
+- Frequency: 45-55 Hz
+- Timestamp: not in future, not older than 1 hour
+
+---
+
+### 10. Configuration Properties
+**Priority:** 🟢 LOW
+**Estimated time:** 30 minutes
+
+**What:** Externalize configuration
+
+**Example:**
+```properties
+waveform.samples=200
+waveform.max-harmonics=8
+monitoring.voltage.min=207
+monitoring.voltage.max=253
+```
+
+---
+
+## 📊 IMPLEMENTATION PROGRESS
+
+### Overall Backend Status: **65% Complete**
+
+**By Priority:**
+- 🔴 **MUST HAVE:** 5 tasks (Dashboard real-time) - **0/5 done**
+- 🟡 **SHOULD HAVE:** 3 tasks (Historical stats) - **0/3 done**
+- 🟢 **NICE TO HAVE:** 2 tasks (Polish) - **0/2 done**
+
+**By Component:**
+- ✅ MQTT Integration: **100%**
+- ✅ Database: **100%**
+- ✅ Basic API: **100%**
+- ⚠️ Dashboard API: **0%** (not started)
+- ⚠️ Statistics: **40%** (queries work, calculations missing)
+- ⚠️ WebSocket: **80%** (works but missing waveform)
+
+---
+
+## 📐 TECHNICAL SPECIFICATIONS
+
+### ESP32 → Backend Communication
+- **Protocol:** MQTT over WiFi
+- **Broker:** Eclipse Mosquitto (localhost:1883)
+- **Topic:** `scada/measurements/node1`
+- **Interval:** Every 3 seconds
+- **Payload:** JSON with 8 harmonics
+
+**JSON format:**
+```json
+{
+  "timestamp": 1699453200,
+  "voltage_rms": 230.5,
+  "current_rms": 5.2,
+  "power_active": 1196.0,
+  "power_apparent": 1205.0,
+  "power_reactive": 150.0,
+  "cos_phi": 0.99,
+  "frequency": 50.1,
+  "thd_voltage": 2.3,
+  "thd_current": 5.1,
+  "harmonics_v": [230.5, 4.8, 2.3, 1.1, 0.8, 0.5, 0.3, 0.2],
+  "harmonics_i": [2.15, 0.11, 0.06, 0.03, 0.02, 0.01, 0.01, 0.01]
+}
+```
+
+### Backend → Frontend Communication
+
+**1. WebSocket (Real-time):**
+- Endpoint: `ws://localhost:8080/ws/measurements`
+- Topic: `/topic/measurements`
+- Frequency: Every 3 seconds
+
+**2. REST API:**
+- Dashboard: `GET /api/dashboard/current`
+- History: `GET /api/measurements/history?from=X&to=Y`
+- Stats: `GET /api/stats/last-7-days`
+
+---
+
+## 🎯 NEXT STEPS
+
+**Recommended order:**
+
+1. **WaveformService** (2h) - Foundation for visualization
+2. **DashboardController + DTO** (2h) - Single endpoint for frontend
+3. **WebSocket + waveform** (1h) - Real-time waveform updates
+4. **Repository queries** (30min) - Support methods
+5. **Test with ESP32 mock** (1h) - Verify full flow
+6. **StatsService calculations** (4h) - Historical data
+7. **DataAggregationService** (1h) - Automation
+8. **Historical endpoints** (1h) - Frontend charts
+
+**Total estimated time:** ~12-15 hours for complete backend
+
+---
+
+**End of Implementation Status**
