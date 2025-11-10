@@ -38,8 +38,6 @@ public class MeasurementService {
                 .frequency(request.getFrequency())
                 .thdVoltage(request.getThdVoltage())
                 .thdCurrent(request.getThdCurrent())
-                .pstFlicker(request.getPstFlicker())
-                .capacitorUf(request.getCapacitorUf())
                 .harmonicsV(request.getHarmonicsV())
                 .harmonicsI(request.getHarmonicsI())
                 .build();
@@ -84,8 +82,6 @@ public class MeasurementService {
                 .frequency(entity.getFrequency())
                 .thdVoltage(entity.getThdVoltage())
                 .thdCurrent(entity.getThdCurrent())
-                .pstFlicker(entity.getPstFlicker())
-                .capacitorUf(entity.getCapacitorUf())
                 .harmonicsV(entity.getHarmonicsV())
                 .harmonicsI(entity.getHarmonicsI())
                 .build();

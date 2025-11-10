@@ -23,23 +23,32 @@ public class Measurement {
     @Column(nullable = false)
     private Instant time;
 
-    private Float voltageRms;
-    private Float currentRms;
-    private Float powerActive;
-    private Float powerApparent;
-    private Float powerReactive;
-    private Float cosPhi;
-    private Float frequency;
-    private Float thdVoltage;
-    private Float thdCurrent;
-    private Float pstFlicker;
-    private Float capacitorUf;
+    @Column(nullable = false)
+    private Double voltageRms;
 
-    @Column(columnDefinition = "real[]")
-    private Float[] harmonicsV;
+    @Column(nullable = false)
+    private Double currentRms;
 
-    @Column(columnDefinition = "real[]")
-    private Float[] harmonicsI;
+    private Double powerActive;
+
+    private Double powerApparent;
+
+    private Double powerReactive;
+
+    private Double cosPhi;
+
+    @Column(nullable = false)
+    private Double frequency;
+
+    private Double thdVoltage;
+
+    private Double thdCurrent;
+
+    @Column(name = "harmonics_v")
+    private Double[] harmonicsV;
+
+    @Column(name = "harmonics_i")
+    private Double[] harmonicsI;
 
     @Column(updatable = false)
     @CreationTimestamp

@@ -8,17 +8,15 @@ import java.time.Instant;
 public class MeasurementDTO {
     private Long id;
     private Instant time;
-    private Float voltageRms;
-    private Float currentRms;
-    private Float powerActive;
-    private Float powerApparent;
-    private Float powerReactive;
-    private Float cosPhi;
-    private Float frequency;
-    private Float thdVoltage;
-    private Float thdCurrent;
-    private Float pstFlicker;
-    private Float capacitorUf;
-    private Float[] harmonicsV;
-    private Float[] harmonicsI;
+    private Double voltageRms;
+    private Double currentRms;
+    private Double powerActive;
+    private Double powerApparent;
+    private Double powerReactive;
+    private Double cosPhi;
+    private Double frequency;
+    private Double thdVoltage;
+    private Double thdCurrent;
+    private Double[] harmonicsV;
+    private Double[] harmonicsI;
 }

@@ -23,3 +23,13 @@ Thumbs.db
 # Environment files
 .env
 .env.local
+
+# Docker volumes
+mosquitto/data/
+mosquitto/log/
+
+# Deployment files (environment-specific, not committed)
+deployment/rpi/
+deployment/*/application.properties
+deployment/*/scada-system.service
+deployment/*/rpi-setup.sh
