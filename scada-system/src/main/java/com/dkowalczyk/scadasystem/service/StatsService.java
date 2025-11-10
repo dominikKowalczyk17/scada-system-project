@@ -35,6 +35,10 @@ public class StatsService {
      * For trend graphs (last 7 days, last 30 days).
      */
     public List<StatsDTO> getLastDaysStats(int days) {
+        if (days < 1) {
+            throw new IllegalArgumentException("days parameter must be at least 1, got: " + days);
+        }
+
         LocalDate from = LocalDate.now().minusDays(days - 1);
         LocalDate to = LocalDate.now();
 

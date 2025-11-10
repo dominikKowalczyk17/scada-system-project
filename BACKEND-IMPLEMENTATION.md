@@ -174,11 +174,11 @@ CREATE TABLE measurements (
 
     -- Additional
     capacitor_uf DOUBLE PRECISION,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    -- Index for fast time-based queries
-    INDEX idx_measurements_time (time DESC)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Index for fast time-based queries
+CREATE INDEX idx_measurements_time ON measurements (time DESC);
 ```
 
 **Why this index?**
@@ -1028,7 +1028,16 @@ public List<MeasurementDTO> getRecentHistory(int limit) {
 
 **Add to `MeasurementRepository`:**
 ```java
-@Query("SELECT m FROM Measurement m ORDER BY m.time DESC LIMIT :limit")
+// Option 1: Using Spring Data pagination (recommended)
+Page<Measurement> findAllByOrderByTimeDesc(Pageable pageable);
+
+// Usage example:
+// PageRequest pageRequest = PageRequest.of(0, limit);
+// Page<Measurement> results = repository.findAllByOrderByTimeDesc(pageRequest);
+// List<Measurement> measurements = results.getContent();
+
+// Option 2: Using native SQL query with LIMIT (if pagination is not needed)
+@Query(value = "SELECT * FROM measurements ORDER BY time DESC LIMIT :limit", nativeQuery = true)
 List<Measurement> findTopNByOrderByTimeDesc(@Param("limit") int limit);
 ```
 
