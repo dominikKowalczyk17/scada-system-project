@@ -137,26 +137,61 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts
+
+          # Add RPI host to known_hosts (with retry)
+          for i in {1..3}; do
+            if ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts 2>&1; then
+              echo "✓ SSH host key added successfully"
+              break
+            else
+              echo "⚠ Attempt $i failed, retrying in 5s..."
+              sleep 5
+            fi
+          done
+
+          # Verify SSH key format
+          if ! ssh-keygen -l -f ~/.ssh/deploy_key > /dev/null 2>&1; then
+            echo "❌ Invalid SSH key format"
+            exit 1
+          fi
 
       - name: Deploy to Raspberry Pi
         run: |
-          # Create deployment directory
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          RELEASE_DIR="/opt/${{ env.APP_NAME }}/releases/${TIMESTAMP}"
-
+          # Stop service before deployment
           ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            sudo mkdir -p ${RELEASE_DIR}
-            sudo chown -R ${{ secrets.RPI_USER }}:${{ secrets.RPI_USER }} /opt/${{ env.APP_NAME }}
+            sudo systemctl stop ${{ env.APP_NAME }}.service || true
           "
 
-          # Upload artifacts
-          scp -i ~/.ssh/deploy_key -r ./artifacts/* ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:${RELEASE_DIR}/
+          # Deploy backend JAR
+          scp -i ~/.ssh/deploy_key ./artifacts/backend-jar/*.jar \
+            ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:/opt/${{ env.APP_NAME }}/backend/
 
-          # Create symlink to current release
+          # Deploy frontend (if exists)
+          if [ -d ./artifacts/frontend-dist ]; then
+            ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
+              sudo rm -rf /opt/${{ env.APP_NAME }}/frontend/*
+            "
+            scp -i ~/.ssh/deploy_key -r ./artifacts/frontend-dist/* \
+              ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:/opt/${{ env.APP_NAME }}/frontend/
+          fi
+
+          # Restart service
           ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
-            ln -sfn ${RELEASE_DIR} /opt/${{ env.APP_NAME }}/current
+            sudo systemctl start ${{ env.APP_NAME }}.service
+            sudo systemctl status ${{ env.APP_NAME }}.service --no-pager
           "
+
+      - name: Health check
+        run: |
+          echo "Waiting for application to start..."
+          sleep 15
+
+          # Check health endpoint
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
+            curl -f http://localhost:8080/health || exit 1
+          "
+
+          echo "✓ Health check passed!"
 
       - name: Deployment summary
         run: |
