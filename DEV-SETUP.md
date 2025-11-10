@@ -4,9 +4,9 @@ This guide explains how to set up your local development environment for the SCA
 
 ## Prerequisites
 
-- **Java 21** (already installed)
+- **Java 17** (already installed)
 - **Maven** (included via Maven wrapper `./mvnw`)
-- **Docker Desktop** for Windows (download from https://www.docker.com/products/docker-desktop)
+- **Docker Desktop** for Windows (download from [Docker Desktop] (https://www.docker.com/products/docker-desktop))
 - **Git** (for version control)
 
 ## Quick Start (5 minutes)
@@ -54,7 +54,7 @@ cd scada-system
 2. **Spring Boot starts:** Loads all beans and configurations
 3. **MQTT connects:** Subscribes to `scada/measurements/#` topic
 4. **WebSocket enabled:** Listens on `/ws/measurements`
-5. **REST API ready:** Available at http://localhost:8080
+5. **REST API ready:** Available at [http://localhost:8080](http://localhost:8080)
 
 ### Step 3: Verify Setup
 

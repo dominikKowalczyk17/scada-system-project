@@ -70,7 +70,7 @@ docker-compose down -v
 ### Project Structure
 ```
 scada-system-project/
-├── scada-system/                 # Spring Boot backend (Java 21)
+├── scada-system/                 # Spring Boot backend (Java 17)
 │   ├── src/main/java/com/dkowalczyk/scadasystem/
 │   │   ├── config/              # MQTT, WebSocket, CORS, JPA config
 │   │   ├── controller/          # REST API endpoints
@@ -108,7 +108,7 @@ scada-system-project/
 ### Technology Stack
 
 **Backend:**
-- Spring Boot 3.5.6 with Java 21
+- Spring Boot 3.5.6 with Java 17
 - Spring Integration for MQTT/WebSocket communication
 - Spring Data JPA with PostgreSQL
 - Flyway for database migrations
@@ -188,7 +188,7 @@ ESP32 (WiFi) → Mosquitto Broker (RPI:1883) → Spring Boot Backend
 - **Frontend Development**: Visual Studio Code with React/TypeScript plugins
 
 **Required Software:**
-- Java 21 (OpenJDK)
+- Java 17 (OpenJDK)
 - Node.js 20.19.0+ or 22.12.0+
 - Docker Desktop (for local PostgreSQL + Mosquitto)
 - Maven 3.9+ (included via Maven wrapper)
