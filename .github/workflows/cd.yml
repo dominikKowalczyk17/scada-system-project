@@ -166,7 +166,8 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
 
           # Add RPI Tailscale IP to known_hosts
-          ssh-keyscan -H ${{ env.RPI_TAILSCALE_IP }} >> ~/.ssh/known_hosts 2>&1
+          ssh-keyscan -H ${{ env.RPI_TAILSCALE_IP }} >> 2>/dev/null | sort -u - ~/.ssh/known_hosts | uniq > ~/.ssh/known_hosts.tmp
+          mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts
 
           # Verify SSH key format
           if ! ssh-keygen -l -f ~/.ssh/deploy_key > /dev/null 2>&1; then
