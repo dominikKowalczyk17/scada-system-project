@@ -297,9 +297,11 @@ All database schema changes are managed via Flyway migrations in `scada-system/s
 **Continuous Deployment (cd.yml):**
 - Manual trigger only (workflow_dispatch)
 - Pre-deployment tests
+- Automatic JAR versioning with `github.run_number` (e.g., `scada-system-0.0.152.jar`)
+- Tailscale VPN for secure deployment without exposing SSH to internet
+- Versioned deployments with rollback support (keeps last 5 JARs)
 - Build artifacts (JAR + frontend dist)
-- Deploy to Raspberry Pi via SSH
-- Blue-green deployment with rollback capability
+- Deploy to Raspberry Pi via SSH over Tailscale
 - Health checks and post-deployment verification
 
 **See CI-CD-SETUP.md for complete pipeline documentation.**
@@ -317,6 +319,10 @@ All database schema changes are managed via Flyway migrations in `scada-system/s
 5. **Vitest over Jest:** Frontend uses Vitest (optimized for Vite) for faster test execution
 
 6. **IEC 61000 Standards:** Power quality monitoring follows international standards for voltage limits, THD thresholds, and harmonic analysis
+
+7. **Tailscale VPN for Deployment:** CD pipeline uses Tailscale for secure connectivity without port forwarding or exposing SSH to internet
+
+8. **Automatic JAR Versioning:** Deployments use `github.run_number` for versioning (e.g., `0.0.152`) with symlink strategy for easy rollbacks
 
 ## Presentation/Demo Setup
 

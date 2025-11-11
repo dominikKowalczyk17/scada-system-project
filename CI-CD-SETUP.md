@@ -113,12 +113,13 @@ npm run type-check
 To use the deployment workflow, configure these secrets in GitHub repository settings:
 
 ```bash
-DEPLOY_SSH_KEY - SSH private key for Raspberry Pi access
-RPI_HOST       - Raspberry Pi IP address or hostname
-RPI_USER       - SSH username on Raspberry Pi
+DEPLOY_SSH_KEY       - SSH private key for Raspberry Pi access
+RPI_USER             - SSH username on Raspberry Pi (e.g., 'pi')
+TAILSCALE_CLIENT_ID  - Tailscale OAuth client ID (or use TAILSCALE_AUTHKEY)
+TAILSCALE_SECRET     - Tailscale OAuth secret (or use TAILSCALE_AUTHKEY)
 ```
 
-**Note:** The warnings in CD workflow are expected - these secrets need to be configured in your GitHub repository settings before deployment will work.
+**Note:** The deployment uses Tailscale VPN for secure connectivity without exposing SSH to the internet. RPI must have Tailscale installed and connected.
 
 ## Test Coverage
 
@@ -209,6 +210,42 @@ describe('MyComponent', () => {
 - Frontend tests: ~2-5 seconds (with Vitest)
 - Full CI pipeline: ~3-5 minutes
 
+## Deployment Features
+
+### Automatic JAR Versioning
+The CD pipeline automatically versions JARs using GitHub Actions run number:
+- **Version format**: `0.0.<run_number>` (e.g., `scada-system-0.0.152.jar`)
+- **Symlink strategy**: `current.jar` → `scada-system-0.0.152.jar`
+- **Rollback support**: Previous versions kept on RPI (last 5 versions)
+- **Traceability**: Version number corresponds to GitHub Actions run number
+
+**How it works:**
+1. Build step sets version: `./mvnw versions:set -DnewVersion=0.0.${RUN_NUMBER}`
+2. Deployment creates versioned JAR on RPI
+3. Symlink `current.jar` updated to point to new version
+4. Systemd service uses `current.jar` (always points to latest)
+5. Old JARs cleaned up (keeps last 5 for rollback)
+
+### Tailscale VPN Deployment
+The CD pipeline uses Tailscale for secure connectivity:
+- **No port forwarding**: RPI doesn't expose SSH to internet
+- **Private network**: GitHub Actions connects via Tailscale VPN
+- **Automatic**: Tailscale GitHub Action handles connection
+- **Secure**: OAuth-based authentication
+
+**Setup requirements:**
+1. Install Tailscale on RPI: `curl -fsSL https://tailscale.com/install.sh | sh`
+2. Connect RPI to Tailscale: `sudo tailscale up`
+3. Create OAuth client in Tailscale admin console
+4. Add `TAILSCALE_CLIENT_ID` and `TAILSCALE_SECRET` to GitHub Secrets
+5. RPI gets private IP (e.g., `100.121.244.61`)
+
+**Benefits:**
+- ✅ No firewall/NAT configuration needed
+- ✅ Secure encrypted connection
+- ✅ Works from anywhere (GitHub Actions servers)
+- ✅ No public IP exposure
+
 ## Further Improvements
 
 Consider adding later:
@@ -218,3 +255,4 @@ Consider adding later:
 - Performance benchmarks
 - Docker container builds
 - Automated dependency updates (Dependabot)
+- Blue-green deployment with health check rollback

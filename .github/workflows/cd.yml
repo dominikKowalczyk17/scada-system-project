@@ -21,6 +21,7 @@ env:
   NODE_VERSION: '22'
   APP_NAME: 'scada-system'
   RPI_TAILSCALE_IP: '100.121.244.61'  # RPI Tailscale IP
+  VERSION: '0.0.${{ github.run_number }}'  # Automatic versioning
 
 jobs:
   # Run tests before deployment
@@ -82,10 +83,15 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build backend JAR
+      - name: Build backend JAR with version
         run: |
           chmod +x ./mvnw
+          # Set version dynamically
+          ./mvnw versions:set -DnewVersion=${{ env.VERSION }} -B
           ./mvnw clean package -DskipTests -B --no-transfer-progress
+
+          # Verify JAR was created with correct name
+          ls -lh target/scada-system-${{ env.VERSION }}.jar
         working-directory: ./scada-system
 
       # Build frontend
@@ -177,9 +183,27 @@ jobs:
             sudo systemctl stop ${{ env.APP_NAME }}.service || true
           "
 
-          # Deploy backend JAR
+          # Deploy versioned backend JAR
+          JAR_NAME="${{ env.APP_NAME }}-${{ env.VERSION }}.jar"
+
+          echo "Deploying ${JAR_NAME}..."
           scp -i ~/.ssh/deploy_key ./artifacts/backend-jar/*.jar \
-            ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }}:/opt/${{ env.APP_NAME }}/backend/
+            ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }}:/opt/${{ env.APP_NAME }}/backend/${JAR_NAME}
+
+          # Create/update symlink to current version
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
+            cd /opt/${{ env.APP_NAME }}/backend/
+            ln -sf ${JAR_NAME} current.jar
+            echo '✓ Symlink updated: current.jar -> ${JAR_NAME}'
+            ls -lh current.jar
+          "
+
+          # Cleanup old JARs (keep last 5 versions)
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
+            cd /opt/${{ env.APP_NAME }}/backend/
+            echo 'Cleaning up old JARs (keeping last 5)...'
+            ls -t ${{ env.APP_NAME }}-*.jar | tail -n +6 | xargs -r rm -v
+          "
 
           # Deploy frontend (if exists)
           if [ -d ./artifacts/frontend-dist ]; then
@@ -212,6 +236,8 @@ jobs:
         run: |
           echo "## Deployment Successful ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ env.VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Time:** $(date)" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**JAR:** scada-system-${{ env.VERSION }}.jar" >> $GITHUB_STEP_SUMMARY
