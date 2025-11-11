@@ -20,6 +20,8 @@ env:
   JAVA_VERSION: '17'
   NODE_VERSION: '22'
   APP_NAME: 'scada-system'
+  RPI_TAILSCALE_IP: '100.121.244.61'  # RPI Tailscale IP
+  VERSION: '0.0.${{ github.run_number }}'  # Automatic versioning
 
 jobs:
   # Run tests before deployment
@@ -81,10 +83,15 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build backend JAR
+      - name: Build backend JAR with version
         run: |
           chmod +x ./mvnw
+          # Set version dynamically
+          ./mvnw versions:set -DnewVersion=${{ env.VERSION }} -B
           ./mvnw clean package -DskipTests -B --no-transfer-progress
+
+          # Verify JAR was created with correct name
+          ls -lh target/scada-system-${{ env.VERSION }}.jar
         working-directory: ./scada-system
 
       # Build frontend
@@ -132,22 +139,35 @@ jobs:
         with:
           path: ./artifacts
 
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_SECRET }}
+          tags: tag:ci
+
+      - name: Verify Tailscale connectivity
+        run: |
+          echo "Testing Tailscale connection to RPI..."
+          tailscale status
+
+          # Ping RPI via Tailscale
+          if ping -c 3 ${{ env.RPI_TAILSCALE_IP }}; then
+            echo "✓ RPI reachable via Tailscale"
+          else
+            echo "❌ Cannot reach RPI via Tailscale"
+            exit 1
+          fi
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-          # Add RPI host to known_hosts (with retry)
-          for i in {1..3}; do
-            if ssh-keyscan -H ${{ secrets.RPI_HOST }} >> ~/.ssh/known_hosts 2>&1; then
-              echo "✓ SSH host key added successfully"
-              break
-            else
-              echo "⚠ Attempt $i failed, retrying in 5s..."
-              sleep 5
-            fi
-          done
+          # Add RPI Tailscale IP to known_hosts
+          ssh-keyscan -H ${{ env.RPI_TAILSCALE_IP }} 2>/dev/null | sort -u - ~/.ssh/known_hosts | uniq > ~/.ssh/known_hosts.tmp
+          mv ~/.ssh/known_hosts.tmp ~/.ssh/known_hosts
 
           # Verify SSH key format
           if ! ssh-keygen -l -f ~/.ssh/deploy_key > /dev/null 2>&1; then
@@ -155,28 +175,48 @@ jobs:
             exit 1
           fi
 
+          echo "✓ SSH configured for Tailscale connection"
+
       - name: Deploy to Raspberry Pi
         run: |
           # Stop service before deployment
-          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
             sudo systemctl stop ${{ env.APP_NAME }}.service || true
           "
 
-          # Deploy backend JAR
+          # Deploy versioned backend JAR
+          JAR_NAME="${{ env.APP_NAME }}-${{ env.VERSION }}.jar"
+
+          echo "Deploying ${JAR_NAME}..."
           scp -i ~/.ssh/deploy_key ./artifacts/backend-jar/*.jar \
-            ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:/opt/${{ env.APP_NAME }}/backend/
+            ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }}:/opt/${{ env.APP_NAME }}/backend/${JAR_NAME}
+
+          # Create/update symlink to current version
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
+            cd /opt/${{ env.APP_NAME }}/backend/
+            ln -sf ${JAR_NAME} current.jar
+            echo '✓ Symlink updated: current.jar -> ${JAR_NAME}'
+            ls -lh current.jar
+          "
+
+          # Cleanup old JARs (keep last 5 versions)
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
+            cd /opt/${{ env.APP_NAME }}/backend/
+            echo 'Cleaning up old JARs (keeping last 5)...'
+            ls -t ${{ env.APP_NAME }}-*.jar | tail -n +6 | xargs -r rm -v
+          "
 
           # Deploy frontend (if exists)
           if [ -d ./artifacts/frontend-dist ]; then
-            ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
+            ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
               sudo rm -rf /opt/${{ env.APP_NAME }}/frontend/*
             "
             scp -i ~/.ssh/deploy_key -r ./artifacts/frontend-dist/* \
-              ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }}:/opt/${{ env.APP_NAME }}/frontend/
+              ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }}:/opt/${{ env.APP_NAME }}/frontend/
           fi
 
           # Restart service
-          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
             sudo systemctl start ${{ env.APP_NAME }}.service
             sudo systemctl status ${{ env.APP_NAME }}.service --no-pager
           "
@@ -186,8 +226,8 @@ jobs:
           echo "Waiting for application to start..."
           sleep 15
 
-          # Check health endpoint
-          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ secrets.RPI_HOST }} "
+          # Check health endpoint via Tailscale
+          ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
             curl -f http://localhost:8080/health || exit 1
           "
 
@@ -197,6 +237,8 @@ jobs:
         run: |
           echo "## Deployment Successful ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ env.VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
           echo "**Time:** $(date)" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**JAR:** scada-system-${{ env.VERSION }}.jar" >> $GITHUB_STEP_SUMMARY
