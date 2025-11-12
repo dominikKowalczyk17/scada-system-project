@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+
 @RestController
 @RequestMapping("/api/stats")
 @RequiredArgsConstructor
@@ -19,7 +21,6 @@ public class StatsController {
      */
     @GetMapping("/daily")
     public ResponseEntity<StatsDTO> getDailyStats() {
-        StatsDTO stats = statsService.calculateDailyStats();
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.of(statsService.getStatsForDate(LocalDate.now()));
     }
 }
