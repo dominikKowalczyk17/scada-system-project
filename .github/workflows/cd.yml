@@ -238,14 +238,33 @@ jobs:
       - name: Health check
         run: |
           echo "Waiting for application to start..."
-          sleep 15
 
-          # Check health endpoint via Tailscale
+          # Retry health check up to 12 times (60 seconds total)
+          # Spring Boot needs time to: connect to PostgreSQL, MQTT, run migrations, etc.
           ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
-            curl -f http://localhost:8080/health || exit 1
-          "
+            MAX_RETRIES=12
+            RETRY_DELAY=5
 
-          echo "✓ Health check passed!"
+            for i in \$(seq 1 \$MAX_RETRIES); do
+              echo \"Health check attempt \$i/\$MAX_RETRIES...\"
+
+              if curl -f -s http://localhost:8080/health > /dev/null 2>&1; then
+                echo \"✓ Health check passed!\"
+                curl -s http://localhost:8080/health | jq . || curl -s http://localhost:8080/health
+                exit 0
+              fi
+
+              if [ \$i -lt \$MAX_RETRIES ]; then
+                echo \"⏳ Application not ready yet, waiting \${RETRY_DELAY}s...\"
+                sleep \$RETRY_DELAY
+              fi
+            done
+
+            echo \"❌ Health check failed after \$MAX_RETRIES attempts\"
+            echo \"Checking application logs:\"
+            sudo journalctl -u ${{ env.APP_NAME }}.service -n 30 --no-pager
+            exit 1
+          "
 
       - name: Deployment summary
         run: |
