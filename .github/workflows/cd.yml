@@ -165,17 +165,23 @@ jobs:
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-          # Add RPI Tailscale IP to known_hosts (remove existing entry first to prevent duplicates)
+          # Add RPI Tailscale IP to known_hosts (only if not already present)
+          # Tailscale IPs are static, so no need to re-add on every deployment
           touch ~/.ssh/known_hosts
-          ssh-keygen -R ${{ env.RPI_TAILSCALE_IP }} 2>/dev/null || true
 
-          # Scan and add host key (fail if ssh-keyscan fails)
-          if ! ssh-keyscan -H ${{ env.RPI_TAILSCALE_IP }} >> ~/.ssh/known_hosts; then
-            echo "❌ Failed to scan SSH host key for ${{ env.RPI_TAILSCALE_IP }}"
-            exit 1
+          # Check if host already in known_hosts, add only if absent
+          if ! ssh-keygen -F ${{ env.RPI_TAILSCALE_IP }} > /dev/null 2>&1; then
+            echo "Adding ${{ env.RPI_TAILSCALE_IP }} to known_hosts..."
+
+            if ! ssh-keyscan -H ${{ env.RPI_TAILSCALE_IP }} >> ~/.ssh/known_hosts; then
+              echo "❌ Failed to scan SSH host key for ${{ env.RPI_TAILSCALE_IP }}"
+              exit 1
+            fi
+
+            echo "✓ SSH host key added to known_hosts"
+          else
+            echo "✓ SSH host key already present in known_hosts"
           fi
-
-          echo "✓ SSH host key added to known_hosts"
 
           # Verify SSH key format
           if ! ssh-keygen -l -f ~/.ssh/deploy_key > /dev/null 2>&1; then
