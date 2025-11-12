@@ -21,7 +21,6 @@ public class StatsController {
      */
     @GetMapping("/daily")
     public ResponseEntity<StatsDTO> getDailyStats() {
-        StatsDTO stats = statsService.calculateDailyStats(LocalDate.now());
-        return ResponseEntity.ok(stats);
+        return ResponseEntity.of(statsService.getStatsForDate(LocalDate.now()));
     }
 }

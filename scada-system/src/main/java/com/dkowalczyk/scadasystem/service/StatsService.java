@@ -1,11 +1,13 @@
 package com.dkowalczyk.scadasystem.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
@@ -105,30 +107,43 @@ public class StatsService {
                 .toList();
         double totalEnergyKwh = MathUtils.calculateEnergy(sortedMeasurements);
 
-        // === Event Counters ===
-        int voltageSagCount = (int) measurements.stream()
-                .filter(m -> m.getVoltageRms() < Constants.VOLTAGE_SAG_THRESHOLD)
-                .count();
+        // === Event Counters (IEC 61000-4-30 compliant) ===
+        // Events must have minimum duration to be counted as valid
+        int voltageSagCount = countEventsWithDuration(
+                sortedMeasurements,
+                m -> m.getVoltageRms() < Constants.VOLTAGE_SAG_THRESHOLD,
+                Constants.SAG_MIN_DURATION_MS / 1000.0
+        );
 
-        int voltageSwellCount = (int) measurements.stream()
-                .filter(m -> m.getVoltageRms() > Constants.VOLTAGE_SWELL_THRESHOLD)
-                .count();
+        int voltageSwellCount = countEventsWithDuration(
+                sortedMeasurements,
+                m -> m.getVoltageRms() > Constants.VOLTAGE_SWELL_THRESHOLD,
+                Constants.SAG_MIN_DURATION_MS / 1000.0  // Same duration threshold as sag
+        );
 
-        int interruptionCount = (int) measurements.stream()
-                .filter(m -> m.getVoltageRms() < Constants.VOLTAGE_INTERRUPTION_THRESHOLD)
-                .count();
+        int interruptionCount = countEventsWithDuration(
+                sortedMeasurements,
+                m -> m.getVoltageRms() < Constants.VOLTAGE_INTERRUPTION_THRESHOLD,
+                Constants.VOLTAGE_INTERRUPTION_MIN_DURATION_SECONDS
+        );
 
-        int thdViolationsCount = (int) measurements.stream()
-                .filter(m -> m.getThdVoltage() > Constants.VOLTAGE_THD_LIMIT)
-                .count();
+        int thdViolationsCount = countEventsWithDuration(
+                sortedMeasurements,
+                m -> m.getThdVoltage() > Constants.VOLTAGE_THD_LIMIT,
+                0.01  // 10ms minimum duration for THD violations
+        );
 
-        int frequencyDevCount = (int) measurements.stream()
-                .filter(m -> m.getFrequency() < Constants.FREQUENCY_MIN || m.getFrequency() > Constants.FREQUENCY_MAX)
-                .count();
+        int frequencyDevCount = countEventsWithDuration(
+                sortedMeasurements,
+                m -> m.getFrequency() < Constants.FREQUENCY_MIN || m.getFrequency() > Constants.FREQUENCY_MAX,
+                0.01  // 10ms minimum duration
+        );
 
-        int powerFactorPenaltyCount = (int) measurements.stream()
-                .filter(m -> m.getCosPhi() < Constants.MIN_POWER_FACTOR)
-                .count();
+        int powerFactorPenaltyCount = countEventsWithDuration(
+                sortedMeasurements,
+                m -> m.getCosPhi() < Constants.MIN_POWER_FACTOR,
+                0.01  // 10ms minimum duration
+        );
 
         // === Data Quality ===
         int measurementCount = measurements.size();
@@ -200,5 +215,72 @@ public class StatsService {
                 .measurementCount(measurementCount)
                 .dataCompleteness(dataCompleteness)
                 .build();
+    }
+
+    /**
+     * Count events that satisfy a condition for at least the minimum duration.
+     *
+     * Algorithm:
+     * 1. Iterate through chronologically sorted measurements
+     * 2. Detect event start when condition becomes true
+     * 3. Continue tracking while condition remains true
+     * 4. Detect event end when condition becomes false
+     * 5. Calculate event duration
+     * 6. If duration >= minDurationSeconds, count as 1 event
+     * 7. Continue from next measurement
+     *
+     * Example: 10-second voltage sag with 3s sampling interval
+     * - Measurements at t=0s, 3s, 6s, 9s all have V < threshold
+     * - Duration = 9s - 0s = 9s
+     * - If minDuration = 0.01s (10ms), this counts as 1 event
+     *
+     * This complies with IEC 61000-4-30 which requires minimum duration thresholds.
+     *
+     * @param measurements List of measurements sorted by time (ascending)
+     * @param condition Predicate to test for event condition (e.g., voltage < threshold)
+     * @param minDurationSeconds Minimum duration in seconds to count as valid event
+     * @return Number of events meeting the duration threshold
+     */
+    private int countEventsWithDuration(List<Measurement> measurements,
+                                         Predicate<Measurement> condition,
+                                         double minDurationSeconds) {
+        if (measurements.isEmpty()) {
+            return 0;
+        }
+
+        int eventCount = 0;
+        Instant eventStart = null;
+
+        for (int i = 0; i < measurements.size(); i++) {
+            Measurement current = measurements.get(i);
+            boolean inEvent = condition.test(current);
+
+            if (inEvent && eventStart == null) {
+                // Event starts
+                eventStart = current.getTime();
+            } else if (!inEvent && eventStart != null) {
+                // Event ends - calculate duration
+                Instant eventEnd = current.getTime();
+                double durationSeconds = Duration.between(eventStart, eventEnd).toMillis() / 1000.0;
+
+                if (durationSeconds >= minDurationSeconds) {
+                    eventCount++;
+                }
+
+                eventStart = null;  // Reset for next event
+            }
+        }
+
+        // Handle case where event is still active at end of measurements
+        if (eventStart != null) {
+            Measurement lastMeasurement = measurements.get(measurements.size() - 1);
+            double durationSeconds = Duration.between(eventStart, lastMeasurement.getTime()).toMillis() / 1000.0;
+
+            if (durationSeconds >= minDurationSeconds) {
+                eventCount++;
+            }
+        }
+
+        return eventCount;
     }
 }

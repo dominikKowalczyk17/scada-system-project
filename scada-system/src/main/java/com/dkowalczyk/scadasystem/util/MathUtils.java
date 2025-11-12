@@ -87,7 +87,8 @@ public class MathUtils {
 
             double avgPower = (current.getPowerActive() + next.getPowerActive()) / 2.0;
 
-            long deltaTimeSeconds = Duration.between(current.getTime(), next.getTime()).getSeconds();
+            Duration interval = Duration.between(current.getTime(), next.getTime());
+            double deltaTimeSeconds = interval.toMillis() / 1000.0;
 
             // Energy for this segment (watt-seconds)
             totalEnergyWattSeconds += avgPower * deltaTimeSeconds;

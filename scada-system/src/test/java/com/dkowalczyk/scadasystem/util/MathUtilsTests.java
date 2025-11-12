@@ -309,4 +309,58 @@ public class MathUtilsTests {
         // Then: Should return 0.001 kWh
         assertEquals(0.001, result, DELTA);
     }
+
+    @Test
+    void testCalculateEnergy_fractionalSeconds_withJitter() {
+        // Given: Measurements with fractional seconds (simulating clock jitter)
+        // This test catches regressions if Duration.getSeconds() is used instead of toMillis()
+        // Interval: 2.5 seconds between measurements
+        // Power: 1000W constant
+        // Expected energy: 1000W × 2.5s = 2500 Ws = 0.000694... kWh
+        Instant time1 = Instant.parse("2025-11-11T10:00:00.000Z");
+        Instant time2 = Instant.parse("2025-11-11T10:00:02.500Z");  // 2.5 seconds later
+
+        List<Measurement> measurements = List.of(
+                Measurement.builder().time(time1).powerActive(1000.0).build(),
+                Measurement.builder().time(time2).powerActive(1000.0).build()
+        );
+
+        // When: Calculate energy
+        double result = MathUtils.calculateEnergy(measurements);
+
+        // Then: Should return ~0.000694 kWh (2500 Ws / 3,600,000)
+        // If Duration.getSeconds() was used, it would return 2s instead of 2.5s
+        // Expected: 1000W × 2.5s / 3600000 = 0.000694444...
+        assertEquals(0.000694444, result, 0.000001);
+    }
+
+    @Test
+    void testCalculateEnergy_multipleSegments_withJitter() {
+        // Given: Multiple measurements with varying fractional intervals
+        // Segment 1: 0s -> 2.3s, avg power = (1000 + 1100) / 2 = 1050W
+        // Segment 2: 2.3s -> 5.7s, avg power = (1100 + 1200) / 2 = 1150W
+        // Segment 3: 5.7s -> 9.1s, avg power = (1200 + 1300) / 2 = 1250W
+        Instant time1 = Instant.parse("2025-11-11T10:00:00.000Z");
+        Instant time2 = Instant.parse("2025-11-11T10:00:02.300Z");
+        Instant time3 = Instant.parse("2025-11-11T10:00:05.700Z");
+        Instant time4 = Instant.parse("2025-11-11T10:00:09.100Z");
+
+        List<Measurement> measurements = List.of(
+                Measurement.builder().time(time1).powerActive(1000.0).build(),
+                Measurement.builder().time(time2).powerActive(1100.0).build(),
+                Measurement.builder().time(time3).powerActive(1200.0).build(),
+                Measurement.builder().time(time4).powerActive(1300.0).build()
+        );
+
+        // When: Calculate energy
+        double result = MathUtils.calculateEnergy(measurements);
+
+        // Then: Calculate expected energy
+        // Segment 1: 1050W × 2.3s = 2415 Ws
+        // Segment 2: 1150W × 3.4s = 3910 Ws
+        // Segment 3: 1250W × 3.4s = 4250 Ws
+        // Total: 10575 Ws = 0.002937... kWh
+        double expectedKwh = 10575.0 / 3_600_000.0;
+        assertEquals(expectedKwh, result, 0.000001);
+    }
 }

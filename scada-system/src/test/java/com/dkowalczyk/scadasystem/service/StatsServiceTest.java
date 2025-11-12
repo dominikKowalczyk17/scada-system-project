@@ -269,117 +269,137 @@ class StatsServiceTest {
     }
 
     @Test
-    @DisplayName("calculateDailyStats() should count voltage sag events correctly")
+    @DisplayName("calculateDailyStats() should count voltage sag events correctly with duration")
     void calculateDailyStats_shouldCountVoltageSags_correctly() {
-        // Given: Measurements with voltage sags (< 207V = 90% of 230V)
+        // Given: Two separate voltage sag events with sufficient duration (> 10ms)
+        // Event 1: sag at t=0s, 3s (duration = 3s) -> counts as 1 event
+        // Event 2: sag at t=9s, 12s (duration = 3s) -> counts as 1 event
+        // Total: 2 events
         List<Measurement> measurements = List.of(
-                createMeasurement(testDate, 0, 205.0, 1000.0, 50.0, 0.95, 5.0), // SAG
-                createMeasurement(testDate, 3, 230.0, 1500.0, 50.0, 0.95, 5.0), // Normal
-                createMeasurement(testDate, 6, 200.0, 1200.0, 50.0, 0.95, 5.0)  // SAG
+                createMeasurement(testDate, 0, 205.0, 1000.0, 50.0, 0.95, 5.0),  // SAG start event 1
+                createMeasurement(testDate, 3, 205.0, 1000.0, 50.0, 0.95, 5.0),  // SAG continues
+                createMeasurement(testDate, 6, 230.0, 1500.0, 50.0, 0.95, 5.0),  // Normal (event 1 ends)
+                createMeasurement(testDate, 9, 200.0, 1200.0, 50.0, 0.95, 5.0),  // SAG start event 2
+                createMeasurement(testDate, 12, 200.0, 1200.0, 50.0, 0.95, 5.0), // SAG continues
+                createMeasurement(testDate, 15, 230.0, 1500.0, 50.0, 0.95, 5.0)  // Normal (event 2 ends)
         );
         mockRepositoryCalls(measurements);
 
         // When: Calculate daily stats
         StatsDTO result = statsService.calculateDailyStats(testDate);
 
-        // Then: Should count 2 voltage sags
+        // Then: Should count 2 separate voltage sag events
         assertThat(result.getVoltageSagCount()).isEqualTo(2);
         assertThat(result.getVoltageSwellCount()).isZero();
         verify(dailyStatsRepository).save(any(DailyStats.class));
     }
 
     @Test
-    @DisplayName("calculateDailyStats() should count voltage swell events correctly")
+    @DisplayName("calculateDailyStats() should count voltage swell events correctly with duration")
     void calculateDailyStats_shouldCountVoltageSwells_correctly() {
-        // Given: Measurements with voltage swells (> 253V = 110% of 230V)
+        // Given: One continuous voltage swell event (> 253V = 110% of 230V)
+        // Event: swell at t=3s, 6s (duration = 3s) -> counts as 1 event
         List<Measurement> measurements = List.of(
-                createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.95, 5.0), // Normal
-                createMeasurement(testDate, 3, 254.0, 1500.0, 50.0, 0.95, 5.0), // SWELL
-                createMeasurement(testDate, 6, 255.0, 1200.0, 50.0, 0.95, 5.0)  // SWELL
+                createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.95, 5.0),  // Normal
+                createMeasurement(testDate, 3, 254.0, 1500.0, 50.0, 0.95, 5.0),  // SWELL starts
+                createMeasurement(testDate, 6, 255.0, 1200.0, 50.0, 0.95, 5.0),  // SWELL continues
+                createMeasurement(testDate, 9, 230.0, 1000.0, 50.0, 0.95, 5.0)   // Normal (event ends)
         );
         mockRepositoryCalls(measurements);
 
         // When: Calculate daily stats
         StatsDTO result = statsService.calculateDailyStats(testDate);
 
-        // Then: Should count 2 voltage swells
-        assertThat(result.getVoltageSwellCount()).isEqualTo(2);
+        // Then: Should count 1 voltage swell event (continuous)
+        assertThat(result.getVoltageSwellCount()).isEqualTo(1);
         assertThat(result.getVoltageSagCount()).isZero();
         verify(dailyStatsRepository).save(any(DailyStats.class));
     }
 
     @Test
-    @DisplayName("calculateDailyStats() should count interruption events correctly")
+    @DisplayName("calculateDailyStats() should count interruption events correctly with duration")
     void calculateDailyStats_shouldCountInterruptions_correctly() {
-        // Given: Measurements with interruptions (< 23V = 10% of 230V)
+        // Given: One continuous interruption event (< 23V = 10% of 230V, duration > 0.01s)
+        // Event: interruption at t=3s, 6s (duration = 3s) -> counts as 1 event
         List<Measurement> measurements = List.of(
-                createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.95, 5.0), // Normal
-                createMeasurement(testDate, 3, 20.0, 0.0, 50.0, 0.0, 5.0),      // INTERRUPTION
-                createMeasurement(testDate, 6, 15.0, 0.0, 50.0, 0.0, 5.0)       // INTERRUPTION
+                createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.95, 5.0),  // Normal
+                createMeasurement(testDate, 3, 20.0, 0.0, 50.0, 0.0, 5.0),       // INTERRUPTION starts
+                createMeasurement(testDate, 6, 15.0, 0.0, 50.0, 0.0, 5.0),       // INTERRUPTION continues
+                createMeasurement(testDate, 9, 230.0, 1000.0, 50.0, 0.95, 5.0)   // Normal (event ends)
         );
         mockRepositoryCalls(measurements);
 
         // When: Calculate daily stats
         StatsDTO result = statsService.calculateDailyStats(testDate);
 
-        // Then: Should count 2 interruptions
-        assertThat(result.getInterruptionCount()).isEqualTo(2);
+        // Then: Should count 1 continuous interruption event
+        assertThat(result.getInterruptionCount()).isEqualTo(1);
         verify(dailyStatsRepository).save(any(DailyStats.class));
     }
 
     @Test
-    @DisplayName("calculateDailyStats() should count THD violations correctly")
+    @DisplayName("calculateDailyStats() should count THD violations correctly with duration")
     void calculateDailyStats_shouldCountThdViolations_correctly() {
-        // Given: Measurements with THD violations (> 8.0%)
+        // Given: One continuous THD violation event (> 8.0%)
+        // Event: THD violation at t=3s, 6s (duration = 3s) -> counts as 1 event
         List<Measurement> measurements = List.of(
-                createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.95, 5.0), // Normal
-                createMeasurement(testDate, 3, 230.0, 1500.0, 50.0, 0.95, 9.0), // THD violation
-                createMeasurement(testDate, 6, 230.0, 1200.0, 50.0, 0.95, 10.0) // THD violation
+                createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.95, 5.0),   // Normal
+                createMeasurement(testDate, 3, 230.0, 1500.0, 50.0, 0.95, 9.0),   // THD violation starts
+                createMeasurement(testDate, 6, 230.0, 1200.0, 50.0, 0.95, 10.0),  // THD violation continues
+                createMeasurement(testDate, 9, 230.0, 1000.0, 50.0, 0.95, 5.0)    // Normal (event ends)
         );
         mockRepositoryCalls(measurements);
 
         // When: Calculate daily stats
         StatsDTO result = statsService.calculateDailyStats(testDate);
 
-        // Then: Should count 2 THD violations
-        assertThat(result.getThdViolationsCount()).isEqualTo(2);
+        // Then: Should count 1 continuous THD violation event
+        assertThat(result.getThdViolationsCount()).isEqualTo(1);
         verify(dailyStatsRepository).save(any(DailyStats.class));
     }
 
     @Test
-    @DisplayName("calculateDailyStats() should count frequency deviations correctly")
+    @DisplayName("calculateDailyStats() should count frequency deviations correctly with duration")
     void calculateDailyStats_shouldCountFrequencyDeviations_correctly() {
-        // Given: Measurements with frequency deviations (< 49.5 or > 50.5 Hz)
+        // Given: Two separate frequency deviation events (< 49.5 or > 50.5 Hz)
+        // Event 1: low frequency at t=0s (duration = 0s but single measurement at end)
+        // Event 2: high frequency at t=6s, 9s (duration = 3s) -> counts as 1 event
         List<Measurement> measurements = List.of(
-                createMeasurement(testDate, 0, 230.0, 1000.0, 49.4, 0.95, 5.0), // Low frequency
-                createMeasurement(testDate, 3, 230.0, 1500.0, 50.0, 0.95, 5.0), // Normal
-                createMeasurement(testDate, 6, 230.0, 1200.0, 50.6, 0.95, 5.0)  // High frequency
+                createMeasurement(testDate, 0, 230.0, 1000.0, 49.4, 0.95, 5.0),  // Low frequency event
+                createMeasurement(testDate, 3, 230.0, 1500.0, 50.0, 0.95, 5.0),  // Normal
+                createMeasurement(testDate, 6, 230.0, 1200.0, 50.6, 0.95, 5.0),  // High frequency starts
+                createMeasurement(testDate, 9, 230.0, 1200.0, 50.6, 0.95, 5.0),  // High frequency continues
+                createMeasurement(testDate, 12, 230.0, 1500.0, 50.0, 0.95, 5.0)  // Normal (event 2 ends)
         );
         mockRepositoryCalls(measurements);
 
         // When: Calculate daily stats
         StatsDTO result = statsService.calculateDailyStats(testDate);
 
-        // Then: Should count 2 frequency deviations
+        // Then: Should count 2 frequency deviation events
         assertThat(result.getFrequencyDevCount()).isEqualTo(2);
         verify(dailyStatsRepository).save(any(DailyStats.class));
     }
 
     @Test
-    @DisplayName("calculateDailyStats() should count power factor penalties correctly")
+    @DisplayName("calculateDailyStats() should count power factor penalties correctly with duration")
     void calculateDailyStats_shouldCountPowerFactorPenalties_correctly() {
-        // Given: Measurements with low power factor (< 0.85)
+        // Given: Two separate low power factor events (< 0.85)
+        // Event 1: low PF at t=0s (duration = 0s but single measurement at end)
+        // Event 2: low PF at t=6s, 9s (duration = 3s) -> counts as 1 event
         List<Measurement> measurements = List.of(
-                createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.80, 5.0), // Low PF
-                createMeasurement(testDate, 3, 230.0, 1500.0, 50.0, 0.95, 5.0), // Normal
-                createMeasurement(testDate, 6, 230.0, 1200.0, 50.0, 0.75, 5.0)  // Low PF
+                createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.80, 5.0),  // Low PF event 1
+                createMeasurement(testDate, 3, 230.0, 1500.0, 50.0, 0.95, 5.0),  // Normal
+                createMeasurement(testDate, 6, 230.0, 1200.0, 50.0, 0.75, 5.0),  // Low PF event 2 starts
+                createMeasurement(testDate, 9, 230.0, 1200.0, 50.0, 0.78, 5.0),  // Low PF continues
+                createMeasurement(testDate, 12, 230.0, 1500.0, 50.0, 0.95, 5.0)  // Normal (event 2 ends)
         );
         mockRepositoryCalls(measurements);
 
         // When: Calculate daily stats
         StatsDTO result = statsService.calculateDailyStats(testDate);
 
-        // Then: Should count 2 power factor penalties
+        // Then: Should count 2 power factor penalty events
         assertThat(result.getPowerFactorPenaltyCount()).isEqualTo(2);
         verify(dailyStatsRepository).save(any(DailyStats.class));
     }
