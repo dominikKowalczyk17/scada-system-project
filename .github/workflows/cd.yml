@@ -238,11 +238,14 @@ jobs:
       - name: Health check
         run: |
           echo "Waiting for application to start..."
+          echo "Spring Boot on RPI4 needs ~160s to start (PostgreSQL, MQTT, migrations)"
 
-          # Retry health check up to 12 times (60 seconds total)
-          # Spring Boot needs time to: connect to PostgreSQL, MQTT, run migrations, etc.
+          # Wait initial startup time, then retry a few times
           ssh -i ~/.ssh/deploy_key ${{ secrets.RPI_USER }}@${{ env.RPI_TAILSCALE_IP }} "
-            MAX_RETRIES=12
+            echo \"⏳ Waiting 180 seconds for Spring Boot startup...\"
+            sleep 180
+
+            MAX_RETRIES=5
             RETRY_DELAY=5
 
             for i in \$(seq 1 \$MAX_RETRIES); do
@@ -260,9 +263,9 @@ jobs:
               fi
             done
 
-            echo \"❌ Health check failed after \$MAX_RETRIES attempts\"
+            echo \"❌ Health check failed after 180s + \$MAX_RETRIES retries\"
             echo \"Checking application logs:\"
-            sudo journalctl -u ${{ env.APP_NAME }}.service -n 30 --no-pager
+            sudo journalctl -u ${{ env.APP_NAME }}.service -n 50 --no-pager
             exit 1
           "
 
