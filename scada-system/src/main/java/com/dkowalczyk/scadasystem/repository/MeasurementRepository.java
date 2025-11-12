@@ -18,6 +18,14 @@ public interface MeasurementRepository extends JpaRepository<Measurement, Long> 
     Optional<Measurement> findTopByOrderByTimeDesc();
 
     /**
+     * Znajdź 100 ostatnich pomiarów dla dashboardu (recent history).
+     * Spring automatycznie generuje query z LIMIT 100.
+     *
+     * @return Lista ostatnich 100 pomiarów posortowana od najnowszego
+     */
+    List<Measurement> findTop100ByOrderByTimeDesc();
+
+    /**
      * Historia pomiarów w zakresie czasowym
      */
     List<Measurement> findByTimeBetweenOrderByTimeDesc(

@@ -27,7 +27,7 @@ This is a web-based SCADA system for monitoring electrical power quality in home
 - Bachelor's thesis project for engineering degree
 - Educational/demonstration SCADA system with 1000 PLN budget constraint
 - Focus on learning objectives and practical implementation of SCADA concepts
-- Hardware implementation includes 3 ESP32+PZEM-004T measurement nodes integrated in single enclosure
+- Hardware implementation includes 3 ESP32 measurement nodes with custom circuit (SCT013 current sensor + TV16 voltage transformer) integrated in single enclosure
 - Load simulation capabilities for educational power quality demonstrations
 
 ## Development Commands
@@ -141,7 +141,7 @@ scada-system-project/
 ### Key Components
 
 **Data Flow:**
-1. ESP32+PZEM-004T nodes → MQTT (Mosquitto) → Spring Integration → PostgreSQL
+1. ESP32 nodes (with SCT013 + TV16 sensors) → MQTT (Mosquitto) → Spring Integration → PostgreSQL
 2. Real-time data via WebSocket to React dashboard
 3. Historical data analysis and IEC 61000 compliance reporting
 
@@ -245,7 +245,7 @@ See CI-CD-SETUP.md for CI/CD pipeline details.
 
 **Hardware Setup:**
 - Raspberry Pi 4B WiFi 4GB RAM + 32GB microSD (existing equipment)
-- 3x ESP32-WROOM-32 development boards with PZEM-004T modules
+- 1x ESP32-WROOM-32 development board with custom measurement circuit from elektroda.pl (SCT013 current sensor + TV16 voltage transformer)
 - Single project enclosure for integrated demonstration system
 - Load simulation components: LED bulb, small motor, phone charger, electronic voltage regulator
 - Educational laboratory safety standards (not industrial installation)
@@ -340,7 +340,7 @@ For presentations or demos without access to external WiFi:
 
 Key features:
 - Fully wireless setup
-- Real measurements from PZEM-004T circuit
+- Real measurements from elektroda.pl custom circuit (SCT013 + TV16)
 - Production-ready architecture (same as home deployment)
 - Portable and demo-ready
 - 15-minute setup time on-site

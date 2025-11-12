@@ -43,17 +43,18 @@
                 │ "SCADA-Demo"            │ "SCADA-Demo"
                 │                         │
         ┌───────▼──────────┐     ┌────────▼─────────────┐
-        │  Raspberry Pi 4B │     │ ESP32 + PZEM-004T    │
-        │                  │     │ Measurement Circuit  │
-        │  Static IP:      │     │                      │
-        │  192.168.137.100 │     │  DHCP IP:            │
+        │  Raspberry Pi 4B │     │ ESP32 + SCT013       │
+        │                  │     │ + TV16 Circuit       │
+        │  Static IP:      │     │ (elektroda.pl)       │
+        │  192.168.137.100 │     │                      │
+        │                  │     │  DHCP IP:            │
         │                  │     │  192.168.137.xxx     │
-        │                  │     │                      │
-        │ Services:        │     │ → Publishes to:      │
-        │ • PostgreSQL     │◄────┤   MQTT               │
-        │ • Mosquitto MQTT │     │   192.168.137.100    │
-        │ • Spring Boot    │     │   :1883              │
-        │ • Frontend       │     │   Topic:             │
+        │ Services:        │     │                      │
+        │ • PostgreSQL     │     │ → Publishes to:      │
+        │ • Mosquitto MQTT │◄────┤   MQTT               │
+        │ • Spring Boot    │     │   192.168.137.100    │
+        │ • Frontend       │     │   :1883              │
+        │                  │     │   Topic:             │
         │                  │     │   scada/measurements │
         └──────────────────┘     │   /node1             │
                                  └──────────────────────┘
@@ -61,7 +62,7 @@
 
 ### Data Flow
 
-1. **ESP32** reads electrical parameters from PZEM-004T circuit (elektroda.pl)
+1. **ESP32** reads electrical parameters from custom measurement circuit (SCT013 + TV16 from elektroda.pl)
 2. **ESP32** sends JSON measurements via MQTT over WiFi to **Raspberry Pi**
 3. **Spring Boot** on RPI receives MQTT, saves to **PostgreSQL**
 4. **Spring Boot** broadcasts data via **WebSocket** to frontend
@@ -80,7 +81,7 @@
 - ✅ Laptop charger
 - ✅ Raspberry Pi 4B (4GB RAM) with microSD card (OS + project installed)
 - ✅ Raspberry Pi power supply (USB-C 5V/3A official recommended)
-- ✅ ESP32 development board + PZEM-004T circuit (in enclosure)
+- ✅ ESP32 development board + custom measurement circuit from elektroda.pl (SCT013 + TV16 in enclosure)
 - ✅ ESP32 power source (USB power bank or USB charger)
 
 **Optional:**
@@ -307,9 +308,9 @@ const char* mqtt_server = "192.168.137.100";  // RPI static IP
 const int mqtt_port = 1883;
 const char* mqtt_topic = "scada/measurements/node1";
 
-// Pin definitions for PZEM-004T circuit
-#define PIN_VOLTAGE 34  // GPIO34 (ADC1_6)
-#define PIN_CURRENT 35  // GPIO35 (ADC1_7)
+// Pin definitions for elektroda.pl circuit (SCT013 + TV16)
+#define PIN_VOLTAGE 34  // GPIO34 (ADC1_6) - TV16 voltage transformer
+#define PIN_CURRENT 35  // GPIO35 (ADC1_7) - SCT013 current sensor
 
 // Timing
 #define PUBLISH_INTERVAL 3000  // 3 seconds
@@ -331,7 +332,7 @@ void setup() {
     Serial.printf("MQTT Broker: %s:%d\n", mqtt_server, mqtt_port);
     Serial.printf("MQTT Topic: %s\n", mqtt_topic);
 
-    // Configure ADC for PZEM readings
+    // Configure ADC for elektroda.pl circuit readings
     analogReadResolution(12);  // 12-bit resolution (0-4095)
     analogSetAttenuation(ADC_11db);  // 0-3.3V range
 
@@ -427,7 +428,7 @@ void loop() {
 }
 
 void publishMeasurement() {
-    // Read from PZEM-004T circuit
+    // Read from elektroda.pl circuit (SCT013 + TV16)
     float voltage = readVoltage();
     float current = readCurrent();
 
@@ -489,7 +490,7 @@ void publishMeasurement() {
 }
 
 float readVoltage() {
-    // Read voltage from PZEM-004T circuit (elektroda.pl)
+    // Read voltage from elektroda.pl circuit (TV16 transformer)
     int adc = analogRead(PIN_VOLTAGE);
     float voltage_adc = (adc / 4095.0) * 3.3;  // Convert to voltage
 
@@ -503,7 +504,7 @@ float readVoltage() {
 }
 
 float readCurrent() {
-    // Read current from PZEM-004T circuit (elektroda.pl)
+    // Read current from elektroda.pl circuit (SCT013 sensor)
     int adc = analogRead(PIN_CURRENT);
     float current_adc = (adc / 4095.0) * 3.3;  // Convert to voltage
 
@@ -1019,7 +1020,7 @@ docker exec -it scada-postgres psql -U energyuser -d energy_monitor -c \
 > "Good morning/afternoon. Today I'll demonstrate my bachelor thesis project - a SCADA system for monitoring electrical power quality in home installations."
 >
 > "The system consists of three main components:"
-> 1. **ESP32 microcontroller** with PZEM-004T measurement circuit (show hardware)
+> 1. **ESP32 microcontroller** with custom measurement circuit from elektroda.pl (SCT013 + TV16) (show hardware)
 > 2. **Raspberry Pi backend** running Spring Boot, PostgreSQL, and MQTT broker
 > 3. **Web dashboard** for real-time monitoring (show on screen)
 >
@@ -1089,7 +1090,7 @@ Point to dashboard THD values:
 > A: "For production, we'd enable MQTT authentication, TLS encryption, and Spring Security for the API. This demo disables authentication for simplicity."
 
 **Q: "How accurate are the measurements?"**
-> A: "PZEM-004T has ±1% accuracy for voltage and current. Calibration is performed against a certified reference meter. The elektroda.pl circuit provides proper isolation and signal conditioning."
+> A: "The custom elektroda.pl circuit with SCT013 current sensor and TV16 voltage transformer provides good measurement accuracy. Calibration is performed against a certified reference meter for voltage and current readings. The circuit provides proper isolation and signal conditioning for safe ESP32 interfacing."
 
 ---
 

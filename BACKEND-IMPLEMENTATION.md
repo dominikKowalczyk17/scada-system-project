@@ -900,40 +900,53 @@ POST /api/measurements                    ✅ WORKING (for testing)
 
 ---
 
-## ❌ NOT IMPLEMENTED (See Issue #31)
+## ✅ IMPLEMENTED (Issue #31 - Complete)
 
-### 1. WaveformService ❌
+### 1. WaveformService ✅
 **Priority:** 🔴 CRITICAL
 
-**Status:** Not started
+**Status:** ✅ Completed
 
-**Needed:**
-- Voltage waveform reconstruction from 8 harmonics
-- 200 sample points for visualization
-- Real-time calculation on measurement save
+**Implemented:**
+- Voltage/current waveform reconstruction from 8 harmonics using Fourier synthesis
+- 200 sample points per cycle for smooth visualization
+- Real-time calculation in `MeasurementService.saveMeasurement()`
+- Comprehensive unit tests (6 test cases)
 
-**Impact:** Dashboard cannot show waveform visualization
+**Files:**
+- `service/WaveformService.java`
+- `util/MathUtils.java` (reconstructWaveform method)
+- `model/dto/WaveformDTO.java`
+- `test/service/WaveformServiceTest.java`
 
 ---
 
-### 2. DashboardController ❌
+### 2. DashboardController ✅
 **Priority:** 🔴 CRITICAL
 
-**Status:** Not started
+**Status:** ✅ Completed
 
-**Needed:**
-- Single comprehensive endpoint: `GET /api/dashboard/current`
-- Returns: current measurement + waveform + recent history
+**Implemented:**
+- Dashboard endpoint: `GET /api/dashboard`
+- Returns: `DashboardDTO` with measurement + waveforms + history
+- WebSocket real-time: `/topic/dashboard` broadcasts `RealtimeDashboardDTO`
+- Optimized for real-time (waveforms without heavy history)
 
-**Impact:** Frontend needs to make multiple API calls instead of one
+**Files:**
+- `controller/DashboardController.java`
+- `model/dto/DashboardDTO.java` (REST API - full data)
+- `model/dto/RealtimeDashboardDTO.java` (WebSocket - lightweight)
+- `service/WebSocketService.java` (broadcastRealtimeDashboard)
 
 ---
 
 ## 🔴 TODO - MUST HAVE (for MVP Dashboard)
 
-### 1. WaveformService - Voltage Waveform Reconstruction
+**Note:** Issue #31 completed - see "✅ IMPLEMENTED (Issue #31 - Complete)" section above.
+
+### ~~1. WaveformService - Voltage Waveform Reconstruction~~ ✅
 **Priority:** 🔴 CRITICAL
-**Estimated time:** 2-3 hours
+**Status:** ✅ COMPLETED (Issue #31)
 
 **What:** Reconstruct voltage waveform from 8 harmonics for real-time visualization
 
