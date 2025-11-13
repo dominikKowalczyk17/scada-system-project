@@ -71,7 +71,7 @@ CREATE INDEX idx_measurements_time ON measurements (time DESC);
 CREATE INDEX idx_measurements_sensor_time ON measurements (sensor_id, time DESC);
 
 -- Add comment to table for database documentation
-COMMENT ON TABLE measurements IS 'Time-series storage of electrical power quality measurements from ESP32+PZEM-004T sensors. Follows IEC 61000 standards for power quality monitoring.';
+COMMENT ON TABLE measurements IS 'Time-series storage of electrical power quality measurements from ESP32 sensors with custom elektroda.pl circuit (SCT013 current sensor + TV16 voltage transformer). Follows IEC 61000 standards for power quality monitoring.';
 
 -- Add comments to critical columns
 COMMENT ON COLUMN measurements.time IS 'Measurement timestamp from sensor (NOT database insertion time)';
