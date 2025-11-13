@@ -2,11 +2,15 @@ package com.dkowalczyk.scadasystem.service;
 
 import com.dkowalczyk.scadasystem.model.dto.*;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
+import com.dkowalczyk.scadasystem.model.event.MeasurementSavedEvent;
 import com.dkowalczyk.scadasystem.repository.MeasurementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Instant;
 import java.util.*;
@@ -20,7 +24,36 @@ public class MeasurementService {
     private final MeasurementRepository repository;
     private final WebSocketService webSocketService;
     private final WaveformService waveformService;
+    private final ApplicationEventPublisher eventPublisher;
 
+    /**
+     * Helper method to reconstruct voltage and current waveforms from harmonics.
+     * <p>
+     * WHY EXTRACTED: This logic is reused in both getDashboardData() and broadcastAfterCommit()
+     * to avoid code duplication.
+     */
+    private WaveformDTO reconstructWaveforms(Measurement measurement) {
+        double frequency = measurement.getFrequency() != null ? measurement.getFrequency() : 50.0;
+        double[] voltageWaveform = waveformService.reconstructWaveform(
+                measurement.getHarmonicsV(), frequency, 200);
+        double[] currentWaveform = waveformService.reconstructWaveform(
+                measurement.getHarmonicsI(), frequency, 200);
+
+        return WaveformDTO.builder()
+                .voltage(voltageWaveform)
+                .current(currentWaveform)
+                .build();
+    }
+
+    /**
+     * Saves a new measurement to the database and triggers WebSocket broadcast.
+     * <p>
+     * WHY SEPARATE EVENT PUBLISHING:
+     * - WebSocket broadcasts happen AFTER transaction commit via @TransactionalEventListener
+     * - This keeps the transaction short (only database write)
+     * - Expensive waveform reconstruction doesn't block the transaction
+     * - If transaction rolls back, no broadcasts are sent (data consistency)
+     */
     @Transactional
     public MeasurementDTO saveMeasurement(MeasurementRequest request) {
         // Konwersja DTO → Entity
@@ -51,29 +84,23 @@ public class MeasurementService {
         // Konwersja Entity → DTO
         MeasurementDTO dto = toDTO(saved);
 
-        // Broadcast przez WebSocket (stary - dla kompatybilności)
-        webSocketService.broadcastMeasurement(dto);
-
-        // Broadcast real-time dashboard z przebiegami
-        double frequency = saved.getFrequency() != null ? saved.getFrequency() : 50.0;
-        double[] voltageWaveform = waveformService.reconstructWaveform(
-                saved.getHarmonicsV(), frequency, 200);
-        double[] currentWaveform = waveformService.reconstructWaveform(
-                saved.getHarmonicsI(), frequency, 200);
-
-        WaveformDTO waveforms = WaveformDTO.builder()
-                .voltage(voltageWaveform)
-                .current(currentWaveform)
-                .build();
-
-        RealtimeDashboardDTO realtimeDashboard = RealtimeDashboardDTO.builder()
-                .latestMeasurement(dto)
-                .waveforms(waveforms)
-                .build();
-
-        webSocketService.broadcastRealtimeDashboard(realtimeDashboard);
+        // Publish event - listener will broadcast after transaction commits
+        eventPublisher.publishEvent(new MeasurementSavedEvent(this, saved, dto));
 
         return dto;
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void broadcastAfterCommit(MeasurementSavedEvent event) {
+        // Broadcast poza transakcją
+        WaveformDTO waveforms = reconstructWaveforms(event.getMeasurement());
+        webSocketService.broadcastMeasurement(event.getDto());
+
+        RealtimeDashboardDTO realtimeDashboard = RealtimeDashboardDTO.builder()
+                .latestMeasurement(event.getDto())
+                .waveforms(waveforms)
+                .build();
+        webSocketService.broadcastRealtimeDashboard(realtimeDashboard);
     }
 
     public Optional<MeasurementDTO> getLatestMeasurement() {
@@ -109,16 +136,7 @@ public class MeasurementService {
         MeasurementDTO latestDTO = toDTO(latest);
 
         // 2. Rekonstruuj przebiegi z harmonicznych
-        double frequency = latest.getFrequency() != null ? latest.getFrequency() : 50.0;
-        double[] voltageWaveform = waveformService.reconstructWaveform(
-                latest.getHarmonicsV(), frequency, 200);
-        double[] currentWaveform = waveformService.reconstructWaveform(
-                latest.getHarmonicsI(), frequency, 200);
-
-        WaveformDTO waveforms = WaveformDTO.builder()
-                .voltage(voltageWaveform)
-                .current(currentWaveform)
-                .build();
+        WaveformDTO waveforms = reconstructWaveforms(latest);
 
         // 3. Pobierz ostatnie 100 pomiarów (historia)
         List<MeasurementDTO> recentHistory = repository.findTop100ByOrderByTimeDesc()
