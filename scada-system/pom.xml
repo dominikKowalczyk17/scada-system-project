@@ -79,6 +79,13 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- OpenAPI/Swagger Documentation -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.6.0</version>
+        </dependency>
+
         <!-- Flyway Database Migrations -->
         <dependency>
             <groupId>org.flywaydb</groupId>
