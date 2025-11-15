@@ -215,7 +215,7 @@ The generator simulates realistic power quality events:
 ```
 
 **Solution:**
-- Double-check WIFI_SSID and WIFI_PASSWORD in `main.cpp`
+- Double-check WIFI_SSID and WIFI_PASSWORD in `include/config.h`
 - Ensure WiFi network is 2.4GHz (ESP32 doesn't support 5GHz)
 - Try moving ESP32 closer to router
 

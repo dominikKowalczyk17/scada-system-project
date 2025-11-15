@@ -19,6 +19,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - "How do you prefer to handle database migrations?"
 - "Which deployment approach do you want to use?"
 
+**Code Style Preferences:**
+- **NO EMOJIS IN CODE**: Do not use emojis (✅, ⚠️, 🔥, etc.) in source code files (.java, .ts, .cpp, etc.)
+- Emojis are acceptable in documentation (.md files) and user-facing messages
+- Use plain text symbols for code comments and serial output (e.g., "[OK]", "[WARN]", "[ERROR]" instead of ✓, ⚠️, ✗)
+
 ## Project Overview
 
 This is a web-based SCADA system for monitoring electrical power quality in home installations, developed as a **bachelor's thesis for an engineer's degree**. The system consists of a Spring Boot backend and React frontend, designed to collect and analyze electrical parameters from ESP32 based circuit based on this circuit https://www.elektroda.pl/rtvforum/topic3929533.html, measurement nodes via MQTT.
@@ -354,4 +359,4 @@ Key features:
 - **Desktop/energy-monitor-plan.md** - Initial project planning (Polish)
 - **Desktop/energy-monitor-structure.md** - Detailed Spring Boot structure (Polish)
 - **Desktop/energy-monitor-devops.md** - DevOps implementation plan (Polish)
-- aktualizuj zawsze pliki .md po zakończeniu jakiegoś issue żeby mieć zawsze aktualną dokumentacje i stan projektu
+- Zawsze aktualizuj pliki .md po zakończeniu każdego issue, żeby dokumentacja i stan projektu były aktualne.

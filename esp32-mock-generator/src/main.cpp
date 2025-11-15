@@ -19,6 +19,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <time.h>
 #include "config.h"  // WiFi and MQTT credentials (gitignored)
 
 // ============================================================================
@@ -32,6 +33,11 @@ const char* MQTT_CLIENT_ID = "esp32-mock-node1";
 
 // Measurement interval
 const unsigned long MEASUREMENT_INTERVAL = 3000;  // 3 seconds
+
+// NTP Configuration (for real timestamps instead of millis())
+const char* NTP_SERVER = "pool.ntp.org";
+const long GMT_OFFSET_SEC = 3600;       // GMT+1 (Poland winter time)
+const int DAYLIGHT_OFFSET_SEC = 3600;   // +1 hour for daylight saving time
 
 // ============================================================================
 // IEC 61000 Standard Values
@@ -133,10 +139,31 @@ void connectWiFi() {
     Serial.println(" ✓");
     Serial.printf("  IP Address: %s\n", WiFi.localIP().toString().c_str());
     Serial.printf("  Signal: %d dBm\n", WiFi.RSSI());
+
+    // Synchronize time with NTP server
+    Serial.printf("→ Synchronizing time with NTP server... ");
+    configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+
+    // Wait for time to be set (max 10 seconds)
+    int ntpAttempts = 0;
+    while (time(nullptr) < 1000000000 && ntpAttempts < 20) {
+      delay(500);
+      Serial.print(".");
+      ntpAttempts++;
+    }
+
+    if (time(nullptr) >= 1000000000) {
+      Serial.println(" ✓");
+      time_t now = time(nullptr);
+      Serial.printf("  Current time: %s", ctime(&now));
+    } else {
+      Serial.println(" ✗ FAILED!");
+      Serial.println("   ⚠️  NTP sync failed - timestamps may be incorrect");
+    }
   } else {
     Serial.println(" ✗ FAILED!");
     Serial.println("\n⚠️  WiFi connection failed!");
-    Serial.println("   Please check WIFI_SSID and WIFI_PASSWORD in code");
+    Serial.println("   Please check WIFI_SSID and WIFI_PASSWORD in include/config.h");
     while (1) { delay(1000); }  // Halt
   }
 }
@@ -252,7 +279,7 @@ void generateAndPublishMeasurement() {
   // -------------------------------------------------------------------------
   JsonDocument doc;
 
-  doc["timestamp"] = millis() / 1000;  // Unix timestamp (seconds)
+  doc["timestamp"] = (unsigned long)time(nullptr);  // Unix timestamp (seconds) from NTP
   doc["voltage_rms"] = round(voltage * 10) / 10.0;
   doc["current_rms"] = round(current * 100) / 100.0;
   doc["power_active"] = round(powerActive * 10) / 10.0;
