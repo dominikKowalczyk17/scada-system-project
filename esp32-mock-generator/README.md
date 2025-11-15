@@ -25,34 +25,43 @@ Generates realistic electrical measurement data following IEC 61000 power qualit
 
 ## Configuration
 
-### 1. WiFi Settings
+**IMPORTANT:** WiFi credentials are stored in `include/config.h` which is gitignored to protect your credentials.
 
-Edit `src/main.cpp` and update:
+### 1. Create config.h
 
-```cpp
-const char* WIFI_SSID = "YOUR_WIFI_SSID";          // Your WiFi network name
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";  // Your WiFi password
+Copy the example configuration:
+
+```bash
+cd esp32-mock-generator
+cp include/config.h.example include/config.h
 ```
 
-### 2. MQTT Broker IP
+### 2. Edit config.h
+
+Edit `include/config.h` with your credentials:
+
+```cpp
+// WiFi Configuration (IMPORTANT: ESP32 only supports 2.4GHz WiFi!)
+const char* WIFI_SSID = "YourWiFi_2.4G";      // Your WiFi SSID
+const char* WIFI_PASSWORD = "YourPassword";    // WiFi password
+
+// MQTT Broker Configuration
+const char* MQTT_BROKER_IP = "192.168.1.XX";  // Your PC or RPI IP
+const int MQTT_PORT = 1883;
+```
 
 **For Development (Arch Linux PC):**
 
 Find your PC's IP address:
 ```bash
-ip addr | grep inet
+ip addr | grep "inet " | grep -v 127.0.0.1
 ```
 
-Update `main.cpp`:
-```cpp
-const char* MQTT_BROKER_IP = "192.168.1.50";  // Your PC's IP
-```
+Use that IP in `MQTT_BROKER_IP` (e.g., `192.168.1.44`)
 
 **For Presentation (Laptop Hotspot → RPI):**
 
-```cpp
-const char* MQTT_BROKER_IP = "192.168.137.100";  // RPI static IP in hotspot
-```
+Use RPI static IP: `192.168.137.100`
 
 ## Installation & Upload
 

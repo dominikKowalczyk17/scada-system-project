@@ -19,20 +19,14 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include "config.h"  // WiFi and MQTT credentials (gitignored)
 
 // ============================================================================
-// CONFIGURATION - CHANGE THESE FOR YOUR SETUP
+// CONFIGURATION
 // ============================================================================
+// WiFi and MQTT broker settings are in include/config.h (gitignored)
+// Copy include/config.h.example to include/config.h and fill in your credentials
 
-// WiFi Configuration
-const char* WIFI_SSID = "YOUR_WIFI_SSID";          // Your home WiFi SSID
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";  // Your home WiFi password
-
-// MQTT Broker Configuration
-// FOR DEVELOPMENT (Arch PC): Use your PC's local IP (check with: ip addr)
-// FOR PRESENTATION (RPI): Use 192.168.137.100 (RPI static IP in hotspot)
-const char* MQTT_BROKER_IP = "192.168.1.100";  // ← CHANGE THIS to your PC IP!
-const int MQTT_PORT = 1883;
 const char* MQTT_TOPIC = "scada/measurements/node1";
 const char* MQTT_CLIENT_ID = "esp32-mock-node1";
 
