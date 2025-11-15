@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * Service responsible for automated daily statistics aggregation.
  * Runs scheduled job at 00:05 every day to calculate previous day's statistics.
- *
+ * <p>
  * Thread-safe implementation using ReadWriteLock for concurrent access to status fields.
  */
 @Service
@@ -32,7 +32,7 @@ public class DataAggregationService {
     /**
      * Runs every day at 00:05 (5 minutes after midnight).
      * Aggregates yesterday's measurements into daily_stats table.
-     *
+     * <p>
      * Retry logic:
      * - If calculation fails, error is logged but application continues
      * - Next scheduled run will retry (won't re-calculate already successful days)
@@ -63,21 +63,26 @@ public class DataAggregationService {
                 lock.writeLock().unlock();
             }
 
-            log.info("✅ Daily stats calculated successfully for {} - {} measurements processed, {:.1f}% data completeness",
+            Integer rawMeasurementCount = stats.getMeasurementCount();
+            Double rawDataCompleteness = stats.getDataCompleteness();
+            int measurementCount = rawMeasurementCount != null ? rawMeasurementCount : 0;
+            double dataCompleteness = rawDataCompleteness != null ? rawDataCompleteness : 0;
+
+            log.info("Daily stats calculated successfully for {} - {} measurements processed, {:.1f}% data completeness",
                     yesterday,
-                    stats.getMeasurementCount(),
-                    stats.getDataCompleteness() * 100);
+                    measurementCount,
+                    dataCompleteness * 100);
 
             // Log quality warnings if data completeness is low
-            if (stats.getDataCompleteness() < 0.95) {
-                log.warn("⚠️ Low data completeness for {}: {:.1f}% (expected ≥95%)",
-                        yesterday, stats.getDataCompleteness() * 100);
+            if (dataCompleteness < 0.95) {
+                log.warn("Low data completeness for {}: {:.1f}% (expected ≥95%)",
+                        yesterday, dataCompleteness * 100);
             }
 
             // Log power quality events if any occurred
             if (stats.getVoltageSagCount() > 0 || stats.getVoltageSwellCount() > 0 ||
-                stats.getThdViolationsCount() > 0) {
-                log.info("📊 Power quality events on {}: {} sags, {} swells, {} THD violations",
+                    stats.getThdViolationsCount() > 0) {
+                log.info("Power quality events on {}: {} sags, {} swells, {} THD violations",
                         yesterday,
                         stats.getVoltageSagCount(),
                         stats.getVoltageSwellCount(),
@@ -93,8 +98,8 @@ public class DataAggregationService {
                 lock.writeLock().unlock();
             }
 
-            log.error("❌ Failed to calculate daily stats for {}: {}", yesterday, e.getMessage(), e);
-            log.error("💡 Stats for {} can be recalculated by calling calculateStatsForDate({})",
+            log.error("Failed to calculate daily stats for {}: {}", yesterday, e.getMessage(), e);
+            log.error("Stats for {} can be recalculated by calling calculateStatsForDate({})",
                     yesterday, yesterday);
         }
     }
@@ -110,7 +115,7 @@ public class DataAggregationService {
      * @return calculated statistics
      */
     public StatsDTO calculateStatsForDate(LocalDate date) {
-        log.info("📅 Manual aggregation triggered for {}", date);
+        log.info("Manual aggregation triggered for {}", date);
         return statsService.calculateDailyStats(date);
     }
 
