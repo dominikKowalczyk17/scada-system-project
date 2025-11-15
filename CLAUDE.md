@@ -354,3 +354,4 @@ Key features:
 - **Desktop/energy-monitor-plan.md** - Initial project planning (Polish)
 - **Desktop/energy-monitor-structure.md** - Detailed Spring Boot structure (Polish)
 - **Desktop/energy-monitor-devops.md** - DevOps implementation plan (Polish)
+- aktualizuj zawsze pliki .md po zakończeniu jakiegoś issue żeby mieć zawsze aktualną dokumentacje i stan projektu
