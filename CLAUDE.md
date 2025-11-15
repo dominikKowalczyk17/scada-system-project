@@ -175,8 +175,11 @@ ESP32 (WiFi) → Mosquitto Broker (RPI:1883) → Spring Boot Backend
 - React 18.3+ with React Router
 - TypeScript support
 - Vite for development and building
-- shadcn/ui component library
-- TanStack Query for server state management
+- shadcn/ui component library (Radix UI primitives)
+- **TanStack Query (React Query)** for server state management
+- **Axios** for HTTP client
+- **Recharts** for data visualization (chosen for React-native API, TypeScript support, and ease of use)
+- **Native WebSocket API** for real-time updates (no STOMP/SockJS needed)
 - TailwindCSS for styling
 - ESLint for code quality
 - Vitest + React Testing Library (testing)
@@ -267,22 +270,37 @@ All database schema changes are managed via Flyway migrations in `scada-system/s
 
 ## Implementation Status
 
-**Completed (✅):**
+**Backend - Completed (✅ 95%):**
 - MQTT Integration (MqttConfig, MqttMessageHandler)
 - Database layer (Measurement, DailyStats entities)
 - Flyway migrations
-- REST API (MeasurementController, StatsController, HealthController)
-- WebSocket real-time broadcasting
-- Basic service layer (MeasurementService, WebSocketService)
-- Exception handling
+- REST API (MeasurementController, StatsController, HealthController, DashboardController)
+- WebSocket real-time broadcasting (/ws/measurements → /topic/dashboard)
+- Service layer (MeasurementService, WebSocketService, StatsService, WaveformService)
+- DataAggregationService (scheduled daily job at 00:05)
+- Exception handling & validation
 - Utilities (Constants, DateTimeUtils, MathUtils)
 - CI/CD pipeline (GitHub Actions)
-- Testing framework (JUnit + Vitest)
+- Testing framework (JUnit 5 + H2 in-memory tests)
+- ESP32 Mock Data Generator (PlatformIO firmware)
 
-**In Progress (⚠️):**
-- StatsService calculations (stub implementation)
-- DataAggregationService (scheduled job)
-- Frontend dashboard components
+**Frontend - In Progress (⚠️ 10%):**
+- ✅ Basic project structure (React + TypeScript + Vite)
+- ✅ shadcn/ui components setup
+- ✅ Dashboard layout mockup (hardcoded data)
+- ✅ Vitest testing framework
+- ⚠️ **In Progress (Issue #42):**
+  - TanStack Query (React Query) integration
+  - Backend API connection (GET /api/dashboard)
+  - WebSocket real-time updates (ws://backend:8080/ws/measurements)
+  - Recharts data visualization
+  - Loading states & error handling
+- 🔴 **To Do:**
+  - Waveform chart (voltage/current sinusoid)
+  - Harmonics bar chart visualization
+  - Historical data view
+  - Statistics dashboard
+  - Settings & configuration page
 
 **See BACKEND-IMPLEMENTATION.md for detailed implementation status and architecture explanations.**
 
