@@ -4,10 +4,23 @@ import { HarmonicsChart } from "@/components/HarmonicsChart";
 import { Activity, Zap, Loader2, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 const Dashboard = () => {
   const [time, setTime] = useState(new Date());
   const { data: dashboardData, isLoading, isError } = useDashboardData();
+
+  // WebSocket connection for real-time updates
+  const { isConnected } = useWebSocket({
+    url: import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws/measurements',
+    topic: '/topic/dashboard',
+    onMessage: (data) => {
+      console.log('[Dashboard] Real-time update received:', data.latest_measurement.voltage_rms);
+    },
+    onError: (error) => {
+      console.error('[Dashboard] WebSocket error:', error);
+    },
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -56,9 +69,11 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-success animate-pulse" />
+                <Activity
+                  className={`w-5 h-5 ${isConnected ? "text-success animate-pulse" : "text-muted-foreground"}`}
+                />
                 <span className="text-sm text-muted-foreground">
-                  System Online
+                  {isConnected ? "Live Updates" : "Connecting..."}
                 </span>
               </div>
               <div className="text-right">

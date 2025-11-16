@@ -3,12 +3,14 @@ import { api } from '../lib/api';
 import type { RealtimeDashboardDTO } from '../types/api';
 
 /**
- * Hook to fetch dashboard data from backend
+ * Hook to fetch initial dashboard data from backend.
  *
- * Fetches from GET /api/dashboard
+ * Fetches from GET /api/dashboard once on mount.
+ * Real-time updates are handled by WebSocket (useWebSocket hook).
+ *
  * - Includes latest measurement
  * - Includes waveform data (200 points for voltage/current)
- * - Auto-refetches every 5 seconds as fallback (WebSocket is primary)
+ * - No polling - WebSocket provides real-time updates
  *
  * @returns React Query result with dashboard data, loading, and error states
  */
@@ -19,7 +21,9 @@ export function useDashboardData() {
       const response = await api.get<RealtimeDashboardDTO>('/api/dashboard');
       return response.data;
     },
-    refetchInterval: 5000, // Refetch every 5 seconds as fallback
-    staleTime: 3000,        // Data considered fresh for 3 seconds
+    // No polling - WebSocket updates cache in real-time
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
