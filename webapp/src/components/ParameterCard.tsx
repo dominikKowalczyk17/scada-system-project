@@ -1,6 +1,7 @@
 import { Card } from "@/ui/Card";
 import { cn } from "@/lib/utils";
 import { StatusIndicator } from "./StatusIndicator";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface ParameterCardProps {
   title: string;
@@ -13,11 +14,11 @@ interface ParameterCardProps {
 }
 
 export const ParameterCard = ({ title, value, unit, status, min, max, trend = "stable" }: ParameterCardProps) => {
-  const trendIcons = {
-    up: "—",
-    down: "˜",
-    stable: "’",
-  };
+  const TrendIcon = {
+    up: TrendingUp,
+    down: TrendingDown,
+    stable: Minus,
+  }[trend];
 
   const trendColors = {
     up: "text-success",
@@ -35,7 +36,7 @@ export const ParameterCard = ({ title, value, unit, status, min, max, trend = "s
       <div className="flex items-baseline gap-2 mb-3">
         <span className="text-4xl font-bold font-mono tabular-nums text-foreground">{value}</span>
         <span className="text-xl text-muted-foreground">{unit}</span>
-        <span className={cn("text-2xl ml-auto", trendColors[trend])}>{trendIcons[trend]}</span>
+        <TrendIcon className={cn("w-6 h-6 ml-auto", trendColors[trend])} />
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">

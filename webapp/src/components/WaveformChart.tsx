@@ -39,17 +39,20 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
         </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={400}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey="time"
               label={{
                 value: "Time (ms)",
                 position: "insideBottom",
                 offset: -5,
+                style: { fill: "#9ca3af" },
               }}
               tickFormatter={(value) => value.toFixed(1)}
+              stroke="#6b7280"
+              tick={{ fill: "#9ca3af" }}
             />
             <YAxis
               yAxisId="voltage"
@@ -58,8 +61,11 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 value: "Voltage (V)",
                 angle: -90,
                 position: "insideLeft",
+                style: { fill: "#9ca3af" },
               }}
               domain={["auto", "auto"]}
+              stroke="#6b7280"
+              tick={{ fill: "#9ca3af" }}
             />
             <YAxis
               yAxisId="current"
@@ -68,22 +74,28 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 value: "Current (A)",
                 angle: 90,
                 position: "insideRight",
+                style: { fill: "#9ca3af" },
               }}
               domain={["auto", "auto"]}
+              stroke="#6b7280"
+              tick={{ fill: "#9ca3af" }}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
+                backgroundColor: "#1f2937",
+                border: "1px solid #374151",
+                borderRadius: "6px",
               }}
+              labelStyle={{ color: "#9ca3af" }}
+              itemStyle={{ color: "#e5e7eb" }}
               formatter={(value: number) => value.toFixed(2)}
             />
-            <Legend />
+            <Legend wrapperStyle={{ color: "#9ca3af" }} />
             <Line
               yAxisId="voltage"
               type="monotone"
               dataKey="voltage"
-              stroke="hsl(var(--chart-1))"
+              stroke="#3b82f6"
               strokeWidth={2}
               dot={false}
               name="Voltage (V)"
@@ -92,7 +104,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
               yAxisId="current"
               type="monotone"
               dataKey="current"
-              stroke="hsl(var(--chart-2))"
+              stroke="#f59e0b"
               strokeWidth={2}
               dot={false}
               name="Current (A)"

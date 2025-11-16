@@ -46,51 +46,53 @@ export function HarmonicsChart({
         </p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={400}>
           <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey="harmonic"
               label={{
                 value: "Harmonic Order",
                 position: "insideBottom",
                 offset: -5,
+                style: { fill: "#9ca3af" },
               }}
+              stroke="#6b7280"
+              tick={{ fill: "#9ca3af" }}
             />
             <YAxis
+              scale="log"
+              domain={[0.1, "auto"]}
               label={{
-                value: "Amplitude",
+                value: "Amplitude (logarithmic scale)",
                 angle: -90,
                 position: "insideLeft",
+                style: { fill: "#9ca3af" },
               }}
+              stroke="#6b7280"
+              tick={{ fill: "#9ca3af" }}
+              tickFormatter={(value) => value.toFixed(2)}
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
+                backgroundColor: "#1f2937",
+                border: "1px solid #374151",
+                borderRadius: "6px",
               }}
+              labelStyle={{ color: "#9ca3af" }}
+              itemStyle={{ color: "#e5e7eb" }}
               formatter={(value: number, name: string) => [
-                value.toFixed(2),
+                value.toFixed(3),
                 name === "voltage" ? "Voltage (V)" : "Current (A)",
               ]}
               labelFormatter={(label) => {
                 const item = chartData.find((d) => d.harmonic === label);
-                return item
-                  ? `${label} (${item.frequency} Hz)`
-                  : label;
+                return item ? `${label} (${item.frequency} Hz)` : label;
               }}
             />
-            <Legend />
-            <Bar
-              dataKey="voltage"
-              fill="hsl(var(--chart-1))"
-              name="Voltage (V)"
-            />
-            <Bar
-              dataKey="current"
-              fill="hsl(var(--chart-2))"
-              name="Current (A)"
-            />
+            <Legend wrapperStyle={{ color: "#9ca3af" }} />
+            <Bar dataKey="voltage" fill="#3b82f6" name="Voltage (V)" />
+            <Bar dataKey="current" fill="#f59e0b" name="Current (A)" />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
