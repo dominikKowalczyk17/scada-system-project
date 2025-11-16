@@ -1,5 +1,6 @@
 import { ParameterCard } from "@/components/ParameterCard";
-import { LiveChart } from "@/components/LiveChart";
+import { WaveformChart } from "@/components/WaveformChart";
+import { HarmonicsChart } from "@/components/HarmonicsChart";
 import { Activity, Zap, Loader2, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -102,10 +103,6 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Chart Section */}
-        <section className="mb-8">
-          <LiveChart />
-        </section>
         {/* Real-time Parameters */}
         {dashboardData && (
           <section className="mb-8">
@@ -211,6 +208,24 @@ const Dashboard = () => {
                 min="0"
                 max="8"
                 trend="stable"
+              />
+            </div>
+          </section>
+        )}
+
+        {/* Waveform Charts */}
+        {dashboardData && (
+          <section className="mb-8">
+            <div className="grid grid-cols-1 gap-6">
+              <WaveformChart
+                waveforms={dashboardData.waveforms}
+                frequency={dashboardData.latest_measurement.frequency}
+              />
+              <HarmonicsChart
+                harmonicsVoltage={dashboardData.latest_measurement.harmonics_v}
+                harmonicsCurrent={dashboardData.latest_measurement.harmonics_i}
+                thdVoltage={dashboardData.latest_measurement.thd_voltage}
+                thdCurrent={dashboardData.latest_measurement.thd_current}
               />
             </div>
           </section>
