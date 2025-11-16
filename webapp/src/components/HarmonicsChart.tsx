@@ -46,21 +46,23 @@ export function HarmonicsChart({
           </CardTitle>
           <div className="flex gap-2">
             <button
-              onClick={() => setSelectedHarmonic('voltage')}
+              type="button"
+              onClick={() => setSelectedHarmonic("voltage")}
               className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                selectedHarmonic === 'voltage'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                selectedHarmonic === "voltage"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
               Voltage
             </button>
             <button
-              onClick={() => setSelectedHarmonic('current')}
+              type="button"
+              onClick={() => setSelectedHarmonic("current")}
               className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                selectedHarmonic === 'current'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                selectedHarmonic === "current"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
               Current
@@ -92,12 +94,15 @@ export function HarmonicsChart({
               scale="log"
               domain={[0.001, 300]}
               label={{
-                value: selectedHarmonic === 'voltage' ? "Voltage (%)" : "Current (%)",
+                value:
+                  selectedHarmonic === "voltage"
+                    ? "Voltage (%)"
+                    : "Current (%)",
                 angle: -90,
                 position: "center",
                 style: { fill: "#9ca3af" },
               }}
-              stroke={selectedHarmonic === 'voltage' ? "#3b82f6" : "#f59e0b"}
+              stroke={selectedHarmonic === "voltage" ? "#3b82f6" : "#f59e0b"}
               tick={{ fill: "#9ca3af" }}
               tickFormatter={(value) => `${Math.round(value)}%`}
               width={80}
@@ -119,7 +124,7 @@ export function HarmonicsChart({
                 return item ? `${label} (${item.frequency} Hz)` : label;
               }}
             />
-            {selectedHarmonic === 'voltage' && (
+            {selectedHarmonic === "voltage" && (
               <Bar
                 dataKey="voltage"
                 fill="#3b82f6"
@@ -127,7 +132,7 @@ export function HarmonicsChart({
                 radius={[4, 4, 0, 0]}
               />
             )}
-            {selectedHarmonic === 'current' && (
+            {selectedHarmonic === "current" && (
               <Bar
                 dataKey="current"
                 fill="#f59e0b"

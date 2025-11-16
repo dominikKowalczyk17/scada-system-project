@@ -51,20 +51,29 @@ export default function History() {
       'THD Current (%)',
     ];
 
+    const escapeCSV = (value: string) => {
+      if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+        return `"${value.replace(/"/g, '""')}"`;
+      }
+      return value;
+    };
+
     const rows = measurements.map((m) => [
-      m.time ? formatDateTime(m.time) : '',
-      m.voltage_rms?.toFixed(2) || '',
-      m.current_rms?.toFixed(3) || '',
-      m.power_active?.toFixed(2) || '',
-      m.power_apparent?.toFixed(2) || '',
-      m.power_reactive?.toFixed(2) || '',
-      m.cos_phi?.toFixed(3) || '',
-      m.frequency?.toFixed(2) || '',
-      m.thd_voltage?.toFixed(2) || '',
-      m.thd_current?.toFixed(2) || '',
+      m.time ? formatDateTime(m.time) : "",
+      m.voltage_rms?.toFixed(2) || "",
+      m.current_rms?.toFixed(3) || "",
+      m.power_active?.toFixed(2) || "",
+      m.power_apparent?.toFixed(2) || "",
+      m.power_reactive?.toFixed(2) || "",
+      m.cos_phi?.toFixed(3) || "",
+      m.frequency?.toFixed(2) || "",
+      m.thd_voltage?.toFixed(2) || "",
+      m.thd_current?.toFixed(2) || "",
     ]);
 
-    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n');
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCSV).join(","))
+      .join("\n");
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -85,6 +94,7 @@ export default function History() {
             <h1 className="text-3xl font-bold">Measurement History</h1>
           </div>
           <button
+            type="button"
             onClick={exportToCSV}
             disabled={!measurements || measurements.length === 0}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -106,12 +116,14 @@ export default function History() {
             <div className="flex gap-2 flex-wrap">
               {[1, 6, 12, 24, 48, 72, 168].map((hours) => (
                 <button
+                  type="button"
                   key={hours}
                   onClick={() => handleTimeRangeChange(hours)}
                   className={`px-4 py-2 rounded-md transition-colors ${
-                    timeRange.from === Math.floor(Date.now() / 1000) - hours * 3600
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                    timeRange.from ===
+                    Math.floor(Date.now() / 1000) - hours * 3600
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   }`}
                 >
                   Last {hours}h
@@ -149,7 +161,8 @@ export default function History() {
           <Card className="border-destructive">
             <CardContent className="pt-6">
               <p className="text-destructive">
-                Error loading history: {error instanceof Error ? error.message : 'Unknown error'}
+                Error loading history:{" "}
+                {error instanceof Error ? error.message : "Unknown error"}
               </p>
             </CardContent>
           </Card>
@@ -166,41 +179,42 @@ export default function History() {
                 </CardTitle>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setSelectedChart('voltage')}
+                    type="button"
+                    onClick={() => setSelectedChart("voltage")}
                     className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                      selectedChart === 'voltage'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      selectedChart === "voltage"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
                     Voltage
                   </button>
                   <button
-                    onClick={() => setSelectedChart('current')}
+                    onClick={() => setSelectedChart("current")}
                     className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                      selectedChart === 'current'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      selectedChart === "current"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
                     Current
                   </button>
                   <button
-                    onClick={() => setSelectedChart('power')}
+                    onClick={() => setSelectedChart("power")}
                     className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                      selectedChart === 'power'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      selectedChart === "power"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
                     Power
                   </button>
                   <button
-                    onClick={() => setSelectedChart('frequency')}
+                    onClick={() => setSelectedChart("frequency")}
                     className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                      selectedChart === 'frequency'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      selectedChart === "frequency"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
                     Frequency
@@ -216,66 +230,69 @@ export default function History() {
                     dataKey="time"
                     tickFormatter={(time) => formatChartTime(time)}
                     stroke="#6b7280"
-                    tick={{ fill: '#9ca3af' }}
+                    tick={{ fill: "#9ca3af" }}
                   />
-                  {selectedChart === 'voltage' && (
+                  {selectedChart === "voltage" && (
                     <YAxis
                       stroke="#3b82f6"
-                      tick={{ fill: '#9ca3af' }}
+                      tick={{ fill: "#9ca3af" }}
                       domain={[220, 240]}
                       label={{
-                        value: 'Voltage (V)',
+                        value: "Voltage (V)",
                         angle: -90,
-                        position: 'insideLeft',
-                        style: { fill: '#9ca3af' },
+                        position: "insideLeft",
+                        style: { fill: "#9ca3af" },
                       }}
                       tickFormatter={(value) => value.toFixed(1)}
                     />
                   )}
-                  {selectedChart === 'current' && (
+                  {selectedChart === "current" && (
                     <YAxis
                       stroke="#f59e0b"
-                      tick={{ fill: '#9ca3af' }}
-                      domain={[0, 'auto']}
+                      tick={{ fill: "#9ca3af" }}
+                      domain={[0, "auto"]}
                       label={{
-                        value: 'Current (A)',
+                        value: "Current (A)",
                         angle: -90,
-                        position: 'insideLeft',
-                        style: { fill: '#9ca3af' },
+                        position: "insideLeft",
+                        style: { fill: "#9ca3af" },
                       }}
                     />
                   )}
-                  {selectedChart === 'power' && (
+                  {selectedChart === "power" && (
                     <YAxis
                       stroke="#10b981"
-                      tick={{ fill: '#9ca3af' }}
-                      domain={[0, 'auto']}
+                      tick={{ fill: "#9ca3af" }}
+                      domain={[0, "auto"]}
                       label={{
-                        value: 'Active Power (W)',
+                        value: "Active Power (W)",
                         angle: -90,
-                        position: 'insideLeft',
-                        style: { fill: '#9ca3af' },
+                        position: "insideLeft",
+                        style: { fill: "#9ca3af" },
                       }}
                     />
                   )}
-                  {selectedChart === 'frequency' && (
+                  {selectedChart === "frequency" && (
                     <YAxis
                       stroke="#8b5cf6"
-                      tick={{ fill: '#9ca3af' }}
+                      tick={{ fill: "#9ca3af" }}
                       domain={[49.5, 50.5]}
                       label={{
-                        value: 'Frequency (Hz)',
+                        value: "Frequency (Hz)",
                         angle: -90,
-                        position: 'insideLeft',
-                        style: { fill: '#9ca3af' },
+                        position: "insideLeft",
+                        style: { fill: "#9ca3af" },
                       }}
                     />
                   )}
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151' }}
+                    contentStyle={{
+                      backgroundColor: "#1f2937",
+                      border: "1px solid #374151",
+                    }}
                     labelFormatter={(time) => formatDateTime(time)}
                   />
-                  {selectedChart === 'voltage' && (
+                  {selectedChart === "voltage" && (
                     <Line
                       type="monotone"
                       dataKey="voltage_rms"
@@ -285,7 +302,7 @@ export default function History() {
                       name="Voltage (V)"
                     />
                   )}
-                  {selectedChart === 'current' && (
+                  {selectedChart === "current" && (
                     <Line
                       type="monotone"
                       dataKey="current_rms"
@@ -295,7 +312,7 @@ export default function History() {
                       name="Current (A)"
                     />
                   )}
-                  {selectedChart === 'power' && (
+                  {selectedChart === "power" && (
                     <Line
                       type="monotone"
                       dataKey="power_active"
@@ -305,7 +322,7 @@ export default function History() {
                       name="Active Power (W)"
                     />
                   )}
-                  {selectedChart === 'frequency' && (
+                  {selectedChart === "frequency" && (
                     <Line
                       type="monotone"
                       dataKey="frequency"
@@ -329,7 +346,7 @@ export default function History() {
                 <div className="flex flex-col gap-1">
                   <span>{measurements.length} Measurements</span>
                   <span className="text-sm font-normal text-muted-foreground">
-                    from {formatDate(timeRange.from * 1000)} to{' '}
+                    from {formatDate(timeRange.from * 1000)} to{" "}
                     {formatDate(timeRange.to * 1000)}
                   </span>
                 </div>
@@ -368,9 +385,12 @@ export default function History() {
                   </thead>
                   <tbody>
                     {measurements.map((m) => (
-                      <tr key={m.id} className="border-b border-border hover:bg-muted/50">
+                      <tr
+                        key={m.id}
+                        className="border-b border-border hover:bg-muted/50"
+                      >
                         <td className="px-4 py-3 text-sm">
-                          {m.time ? formatDateTime(m.time) : 'N/A'}
+                          {m.time ? formatDateTime(m.time) : "N/A"}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-mono">
                           {m.voltage_rms?.toFixed(2)}

@@ -30,7 +30,11 @@ export const ParameterCard = ({ title, value, unit, status, min, max, trend = "s
   const numValue = parseFloat(value);
   const numMin = parseFloat(min);
   const numMax = parseFloat(max);
-  const percentage = Math.min(100, Math.max(0, ((numValue - numMin) / (numMax - numMin)) * 100));
+  const range = numMax - numMin;
+  const percentage =
+    range === 0
+      ? 0
+      : Math.min(100, Math.max(0, ((numValue - numMin) / range) * 100));
 
   return (
     <Card className="bg-card border-border shadow-card p-6 hover:shadow-glow transition-all duration-300">
