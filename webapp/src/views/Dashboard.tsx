@@ -1,10 +1,11 @@
 import { ParameterCard } from "@/components/ParameterCard";
 import { WaveformChart } from "@/components/WaveformChart";
 import { HarmonicsChart } from "@/components/HarmonicsChart";
-import { Activity, Zap, Loader2, AlertCircle } from "lucide-react";
+import { Activity, Loader2, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { formatTime, formatDate } from "@/lib/dateUtils";
 
 const Dashboard = () => {
   const [time, setTime] = useState(new Date());
@@ -49,24 +50,11 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background grid-pattern">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
+    <div className="bg-background grid-pattern">
+      {/* Status Bar */}
+      <div className="bg-card/50 backdrop-blur-sm border-b border-border">
+        <div className="max-w-7xl mx-auto px-6 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-primary rounded-lg">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gradient">
-                  SCADA Grid Monitor
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Electrical Distribution Network
-                </p>
-              </div>
-            </div>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <Activity
@@ -76,21 +64,21 @@ const Dashboard = () => {
                   {isConnected ? "Live Updates" : "Connecting..."}
                 </span>
               </div>
-              <div className="text-right">
-                <div className="text-sm font-mono text-foreground">
-                  {time.toLocaleTimeString()}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {time.toLocaleDateString()}
-                </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-mono text-foreground">
+                {formatTime(time)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {formatDate(time)}
               </div>
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Loading State */}
         {isLoading && (
           <div className="flex items-center justify-center py-12">

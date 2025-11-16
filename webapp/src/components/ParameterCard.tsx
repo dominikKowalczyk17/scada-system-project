@@ -26,6 +26,12 @@ export const ParameterCard = ({ title, value, unit, status, min, max, trend = "s
     stable: "text-muted-foreground",
   };
 
+  // Calculate percentage for progress bar
+  const numValue = parseFloat(value);
+  const numMin = parseFloat(min);
+  const numMax = parseFloat(max);
+  const percentage = Math.min(100, Math.max(0, ((numValue - numMin) / (numMax - numMin)) * 100));
+
   return (
     <Card className="bg-card border-border shadow-card p-6 hover:shadow-glow transition-all duration-300">
       <div className="flex items-start justify-between mb-4">
@@ -51,7 +57,7 @@ export const ParameterCard = ({ title, value, unit, status, min, max, trend = "s
             "bg-warning": status === "warning",
             "bg-destructive": status === "critical",
           })}
-          style={{ width: `${Math.random() * 40 + 60}%` }}
+          style={{ width: `${percentage}%` }}
         />
       </div>
     </Card>
