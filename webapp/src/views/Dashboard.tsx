@@ -53,19 +53,19 @@ const Dashboard = () => {
     <div className="bg-background grid-pattern">
       {/* Status Bar */}
       <div className="bg-card/50 backdrop-blur-sm border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <div className="flex items-center gap-4 sm:gap-6">
               <div className="flex items-center gap-2">
                 <Activity
-                  className={`w-5 h-5 ${isConnected ? "text-success animate-pulse" : "text-muted-foreground"}`}
+                  className={`w-4 h-4 sm:w-5 sm:h-5 ${isConnected ? "text-success animate-pulse" : "text-muted-foreground"}`}
                 />
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground">
                   {isConnected ? "Live Updates" : "Connecting..."}
                 </span>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right w-full sm:w-auto">
               <div className="text-sm font-mono text-foreground">
                 {formatTime(time)}
               </div>
@@ -78,7 +78,7 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Loading State */}
         {isLoading && (
           <div className="flex items-center justify-center py-12">
@@ -108,12 +108,12 @@ const Dashboard = () => {
 
         {/* Real-time Parameters */}
         {dashboardData && (
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
-              <span className="w-1 h-6 bg-primary rounded-full" />
+          <section className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-foreground flex items-center gap-2">
+              <span className="w-1 h-5 sm:h-6 bg-primary rounded-full" />
               Real-time Parameters
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <ParameterCard
                 title="Voltage"
                 value={dashboardData.latest_measurement.voltage_rms.toFixed(1)}
@@ -161,7 +161,7 @@ const Dashboard = () => {
             </div>
 
             {/* Additional Parameters Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-4 sm:mt-6">
               <ParameterCard
                 title="Power Factor"
                 value={dashboardData.latest_measurement.cos_phi.toFixed(3)}
@@ -218,8 +218,8 @@ const Dashboard = () => {
 
         {/* Waveform Charts */}
         {dashboardData && (
-          <section className="mb-8">
-            <div className="grid grid-cols-1 gap-6">
+          <section className="mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
               <WaveformChart
                 waveforms={dashboardData.waveforms}
                 frequency={dashboardData.latest_measurement.frequency}

@@ -52,16 +52,16 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
-            Real-time Waveform
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-base sm:text-lg">Real-time Waveform</span>
           </CardTitle>
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setSelectedWaveform("voltage")}
-              className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
                 selectedWaveform === "voltage"
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -72,7 +72,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
             <button
               type="button"
               onClick={() => setSelectedWaveform("current")}
-              className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
                 selectedWaveform === "current"
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -82,13 +82,13 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
             </button>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
           Real-time waveform showing harmonic distortion from non-linear loads (
           {frequency.toFixed(1)} Hz)
         </p>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={600}>
+      <CardContent className="pt-2 sm:pt-2 pb-2 px-2 sm:px-4">
+        <ResponsiveContainer width="100%" height={300} className="sm:!h-[400px] lg:!h-[600px]">
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
@@ -96,39 +96,44 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
               label={{
                 value: "Time (ms)",
                 position: "insideBottom",
-                offset: -6,
-                style: { fill: "#9ca3af" },
+                offset: -5,
+                style: { fill: "#e5e7eb", fontSize: 12 },
               }}
               tickFormatter={(value) => value.toFixed(1)}
               stroke="#6b7280"
-              tick={{ fill: "#9ca3af" }}
-              height={60}
+              tick={{ fill: "#e5e7eb", fontSize: 11 }}
+              height={50}
             />
             {selectedWaveform === "voltage" && (
               <YAxis
                 stroke="#3b82f6"
-                tick={{ fill: "#9ca3af" }}
-                domain={[220, 240]}
+                tick={{ fill: "#e5e7eb", fontSize: 11 }}
+                domain={[210, 250]}
                 label={{
                   value: "Voltage (V)",
                   angle: -90,
                   position: "insideLeft",
-                  style: { fill: "#9ca3af" },
+                  offset: 10,
+                  style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
                 }}
-                tickFormatter={(value) => value.toFixed(1)}
+                tickFormatter={(value) => value.toFixed(0)}
+                width={60}
               />
             )}
             {selectedWaveform === "current" && (
               <YAxis
                 stroke="#f59e0b"
-                tick={{ fill: "#9ca3af" }}
+                tick={{ fill: "#e5e7eb", fontSize: 11 }}
                 domain={[0, "auto"]}
                 label={{
                   value: "Current (A)",
                   angle: -90,
                   position: "insideLeft",
-                  style: { fill: "#9ca3af" },
+                  offset: 10,
+                  style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
                 }}
+                tickFormatter={(value) => value.toFixed(2)}
+                width={60}
               />
             )}
             <Tooltip
@@ -136,10 +141,12 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 backgroundColor: "#1f2937",
                 border: "1px solid #374151",
                 borderRadius: "6px",
+                fontSize: 12,
               }}
-              labelStyle={{ color: "#9ca3af" }}
+              labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
               itemStyle={{ color: "#e5e7eb" }}
               formatter={(value: number) => value.toFixed(2)}
+              labelFormatter={(time) => `${time.toFixed(1)} ms`}
             />
             {selectedWaveform === "voltage" && (
               <Line

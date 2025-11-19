@@ -37,16 +37,16 @@ export const ParameterCard = ({ title, value, unit, status, min, max, trend = "s
       : Math.min(100, Math.max(0, ((numValue - numMin) / range) * 100));
 
   return (
-    <Card className="bg-card border-border shadow-card p-6 hover:shadow-glow transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</h3>
+    <Card className="bg-card border-border shadow-card p-4 sm:p-6 hover:shadow-glow transition-all duration-300">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <h3 className="text-xs sm:text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</h3>
         <StatusIndicator status={status} label={status} />
       </div>
 
-      <div className="flex items-baseline gap-2 mb-3">
-        <span className="text-4xl font-bold font-mono tabular-nums text-foreground">{value}</span>
-        <span className="text-xl text-muted-foreground">{unit}</span>
-        <TrendIcon className={cn("w-6 h-6 ml-auto", trendColors[trend])} />
+      <div className="flex items-baseline gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+        <span className="text-2xl sm:text-3xl lg:text-4xl font-bold font-mono tabular-nums text-foreground">{value}</span>
+        <span className="text-base sm:text-lg lg:text-xl text-muted-foreground">{unit}</span>
+        <TrendIcon className={cn("w-5 h-5 sm:w-6 sm:h-6 ml-auto", trendColors[trend])} />
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -54,7 +54,7 @@ export const ParameterCard = ({ title, value, unit, status, min, max, trend = "s
         <span>Max: <span className="font-mono">{max}</span></span>
       </div>
 
-      <div className="mt-3 h-1 bg-secondary rounded-full overflow-hidden">
+      <div className="mt-2 sm:mt-3 h-1 bg-secondary rounded-full overflow-hidden">
         <div
           className={cn("h-full rounded-full transition-all duration-500", {
             "bg-success": status === "normal",

@@ -85,22 +85,22 @@ export default function History() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <HistoryIcon className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold">Measurement History</h1>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <HistoryIcon className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Measurement History</h1>
           </div>
           <button
             type="button"
             onClick={exportToCSV}
             disabled={!measurements || measurements.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" />
-            Export CSV
+            <span className="hidden sm:inline">Export CSV</span>
           </button>
         </div>
 
@@ -108,8 +108,8 @@ export default function History() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Time Range
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-base sm:text-lg">Time Range</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -119,7 +119,7 @@ export default function History() {
                   type="button"
                   key={hours}
                   onClick={() => handleTimeRangeChange(hours)}
-                  className={`px-4 py-2 rounded-md transition-colors ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md text-xs sm:text-sm transition-colors ${
                     timeRange.from ===
                     Math.floor(Date.now() / 1000) - hours * 3600
                       ? "bg-primary text-primary-foreground"
@@ -130,13 +130,13 @@ export default function History() {
                 </button>
               ))}
             </div>
-            <div className="mt-4 flex gap-4 items-center">
-              <label className="text-sm font-medium">
+            <div className="mt-3 sm:mt-4 flex gap-3 sm:gap-4 items-center">
+              <label className="text-xs sm:text-sm font-medium">
                 Limit:
                 <select
                   value={limit}
                   onChange={(e) => setLimit(Number(e.target.value))}
-                  className="ml-2 px-3 py-1 rounded-md bg-secondary"
+                  className="ml-2 px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md bg-secondary"
                 >
                   <option value={50}>50</option>
                   <option value={100}>100</option>
@@ -172,16 +172,16 @@ export default function History() {
         {measurements && measurements.length > 0 && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Historical Trends
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span className="text-base sm:text-lg">Historical Trends</span>
                 </CardTitle>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setSelectedChart("voltage")}
-                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
                       selectedChart === "voltage"
                         ? "bg-primary text-primary-foreground"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -190,8 +190,9 @@ export default function History() {
                     Voltage
                   </button>
                   <button
+                    type="button"
                     onClick={() => setSelectedChart("current")}
-                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
                       selectedChart === "current"
                         ? "bg-primary text-primary-foreground"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -200,8 +201,9 @@ export default function History() {
                     Current
                   </button>
                   <button
+                    type="button"
                     onClick={() => setSelectedChart("power")}
-                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
                       selectedChart === "power"
                         ? "bg-primary text-primary-foreground"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -210,8 +212,9 @@ export default function History() {
                     Power
                   </button>
                   <button
+                    type="button"
                     onClick={() => setSelectedChart("frequency")}
-                    className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
                       selectedChart === "frequency"
                         ? "bg-primary text-primary-foreground"
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -223,73 +226,95 @@ export default function History() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={600}>
+              <ResponsiveContainer width="100%" height={300} className="sm:!h-[450px] lg:!h-[600px]">
                 <LineChart data={measurements.slice().reverse()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis
                     dataKey="time"
                     tickFormatter={(time) => formatChartTime(time)}
                     stroke="#6b7280"
-                    tick={{ fill: "#9ca3af" }}
+                    tick={{ fill: "#e5e7eb", fontSize: 11 }}
+                    height={50}
+                    label={{
+                      value: "Time",
+                      position: "insideBottom",
+                      offset: -5,
+                      style: { fill: "#e5e7eb", fontSize: 12 },
+                    }}
                   />
                   {selectedChart === "voltage" && (
                     <YAxis
                       stroke="#3b82f6"
-                      tick={{ fill: "#9ca3af" }}
-                      domain={[220, 240]}
+                      tick={{ fill: "#e5e7eb", fontSize: 11 }}
+                      domain={[210, 250]}
                       label={{
                         value: "Voltage (V)",
                         angle: -90,
                         position: "insideLeft",
-                        style: { fill: "#9ca3af" },
+                        offset: 10,
+                        style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
                       }}
-                      tickFormatter={(value) => value.toFixed(1)}
+                      tickFormatter={(value) => value.toFixed(0)}
+                      width={60}
                     />
                   )}
                   {selectedChart === "current" && (
                     <YAxis
                       stroke="#f59e0b"
-                      tick={{ fill: "#9ca3af" }}
+                      tick={{ fill: "#e5e7eb", fontSize: 11 }}
                       domain={[0, "auto"]}
                       label={{
                         value: "Current (A)",
                         angle: -90,
                         position: "insideLeft",
-                        style: { fill: "#9ca3af" },
+                        offset: 10,
+                        style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
                       }}
+                      tickFormatter={(value) => value.toFixed(2)}
+                      width={60}
                     />
                   )}
                   {selectedChart === "power" && (
                     <YAxis
                       stroke="#10b981"
-                      tick={{ fill: "#9ca3af" }}
+                      tick={{ fill: "#e5e7eb", fontSize: 11 }}
                       domain={[0, "auto"]}
                       label={{
                         value: "Active Power (W)",
                         angle: -90,
                         position: "insideLeft",
-                        style: { fill: "#9ca3af" },
+                        offset: 10,
+                        style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
                       }}
+                      tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value.toFixed(0)}
+                      width={60}
                     />
                   )}
                   {selectedChart === "frequency" && (
                     <YAxis
                       stroke="#8b5cf6"
-                      tick={{ fill: "#9ca3af" }}
+                      tick={{ fill: "#e5e7eb", fontSize: 11 }}
                       domain={[49.5, 50.5]}
                       label={{
                         value: "Frequency (Hz)",
                         angle: -90,
                         position: "insideLeft",
-                        style: { fill: "#9ca3af" },
+                        offset: 10,
+                        style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
                       }}
+                      tickFormatter={(value) => value.toFixed(2)}
+                      width={60}
                     />
                   )}
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "#1f2937",
                       border: "1px solid #374151",
+                      borderRadius: "6px",
+                      fontSize: 12,
                     }}
+                    labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
+                    itemStyle={{ color: "#e5e7eb" }}
                     labelFormatter={(time) => formatDateTime(time)}
                   />
                   {selectedChart === "voltage" && (
