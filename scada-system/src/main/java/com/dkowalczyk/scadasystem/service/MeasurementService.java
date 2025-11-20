@@ -4,6 +4,7 @@ import com.dkowalczyk.scadasystem.model.dto.*;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
 import com.dkowalczyk.scadasystem.model.event.MeasurementSavedEvent;
 import com.dkowalczyk.scadasystem.repository.MeasurementRepository;
+import com.dkowalczyk.scadasystem.util.Constants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -46,6 +47,45 @@ public class MeasurementService {
     }
 
     /**
+     * Calculates PN-EN 50160 power quality indicators from raw measurement data.
+     * <p>
+     * This method computes voltage and frequency deviations according to PN-EN 50160 standard:
+     * - Group 1: Voltage deviation from declared value (230V nominal)
+     * - Group 2: Frequency deviation from nominal (50 Hz)
+     * <p>
+     * WHY IN SERVICE LAYER:
+     * - Keeps business logic centralized
+     * - Calculations are consistent across all code paths
+     * - Easy to test in isolation
+     * - ESP32 sends raw measurements, backend calculates indicators
+     *
+     * @param measurement Raw measurement data with voltageRms and frequency
+     */
+    private void calculatePowerQualityIndicators(Measurement measurement) {
+        // PN-EN 50160 Group 1: Voltage deviation
+        // Formula: (U_measured - U_nominal) / U_nominal * 100%
+        if (measurement.getVoltageRms() != null) {
+            double deviation = ((measurement.getVoltageRms() - Constants.NOMINAL_VOLTAGE)
+                    / Constants.NOMINAL_VOLTAGE) * 100.0;
+            measurement.setVoltageDeviationPercent(deviation);
+            log.debug("Calculated voltage deviation: {}% (U_rms={}V)",
+                    String.format("%.2f", deviation), measurement.getVoltageRms());
+        }
+
+        // PN-EN 50160 Group 2: Frequency deviation
+        // Formula: f_measured - f_nominal
+        if (measurement.getFrequency() != null) {
+            double deviation = measurement.getFrequency() - Constants.NOMINAL_FREQUENCY;
+            measurement.setFrequencyDeviationHz(deviation);
+            log.debug("Calculated frequency deviation: {} Hz (f={}Hz)",
+                    String.format("%.3f", deviation), measurement.getFrequency());
+        }
+
+        // Note: THD and harmonics (Group 4) are already calculated by ESP32 via FFT/DFT
+        // Note: Event detection (Group 5: voltage dips, interruptions) implemented separately
+    }
+
+    /**
      * Saves a new measurement to the database and triggers WebSocket broadcast.
      * <p>
      * WHY SEPARATE EVENT PUBLISHING:
@@ -53,6 +93,11 @@ public class MeasurementService {
      * - This keeps the transaction short (only database write)
      * - Expensive waveform reconstruction doesn't block the transaction
      * - If transaction rolls back, no broadcasts are sent (data consistency)
+     * <p>
+     * WHY CALCULATE INDICATORS HERE:
+     * - Indicators are calculated from raw measurements before saving
+     * - Ensures all records have consistent indicator values
+     * - Backend is single source of truth for PN-EN 50160 calculations
      */
     @Transactional
     public MeasurementDTO saveMeasurement(MeasurementRequest request) {
@@ -76,10 +121,15 @@ public class MeasurementService {
                 .harmonicsI(request.getHarmonicsI())
                 .build();
 
+        // Calculate PN-EN 50160 power quality indicators
+        calculatePowerQualityIndicators(measurement);
+
         // Zapis do bazy
         Measurement saved = repository.save(measurement);
-        log.info("Saved measurement: id={}, voltage={}, current={}",
-                saved.getId(), saved.getVoltageRms(), saved.getCurrentRms());
+        log.info("Saved measurement: id={}, voltage={}, current={}, voltage_deviation={}%, frequency_deviation={}Hz",
+                saved.getId(), saved.getVoltageRms(), saved.getCurrentRms(),
+                saved.getVoltageDeviationPercent() != null ? String.format("%.2f", saved.getVoltageDeviationPercent()) : "null",
+                saved.getFrequencyDeviationHz() != null ? String.format("%.3f", saved.getFrequencyDeviationHz()) : "null");
 
         // Konwersja Entity → DTO
         MeasurementDTO dto = toDTO(saved);
@@ -106,6 +156,14 @@ public class MeasurementService {
     public Optional<MeasurementDTO> getLatestMeasurement() {
         return repository.findTopByOrderByTimeDesc()
                 .map(this::toDTO);
+    }
+
+    /**
+     * Get latest measurement entity (for internal use by controllers).
+     * Used when controller needs access to full entity (e.g., for power quality indicators).
+     */
+    public Optional<Measurement> getLatestMeasurementEntity() {
+        return repository.findTopByOrderByTimeDesc();
     }
 
     public List<MeasurementDTO> getHistory(Instant from, Instant to, int limit) {
@@ -172,6 +230,8 @@ public class MeasurementService {
                 .thdCurrent(entity.getThdCurrent())
                 .harmonicsV(entity.getHarmonicsV())
                 .harmonicsI(entity.getHarmonicsI())
+                .voltageDeviationPercent(entity.getVoltageDeviationPercent())
+                .frequencyDeviationHz(entity.getFrequencyDeviationHz())
                 .build();
     }
 }
