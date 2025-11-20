@@ -39,16 +39,16 @@ export default function History() {
     if (!measurements) return;
 
     const headers = [
-      'Timestamp',
-      'Voltage (V)',
-      'Current (A)',
-      'Active Power (W)',
-      'Apparent Power (VA)',
-      'Reactive Power (VAR)',
-      'Power Factor',
-      'Frequency (Hz)',
-      'THD Voltage (%)',
-      'THD Current (%)',
+      'Czas',
+      'Napięcie (V)',
+      'Prąd (A)',
+      'Moc czynna (W)',
+      'Moc pozorna (VA)',
+      'Moc bierna (VAR)',
+      'Współczynnik mocy',
+      'Częstotliwość (Hz)',
+      'THD napięcia (%)',
+      'THD prądu (%)',
     ];
 
     const escapeCSV = (value: string) => {
@@ -91,7 +91,7 @@ export default function History() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-3">
             <HistoryIcon className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Measurement History</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Historia pomiarów</h1>
           </div>
           <button
             type="button"
@@ -100,7 +100,7 @@ export default function History() {
             className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span className="hidden sm:inline">Eksportuj CSV</span>
           </button>
         </div>
 
@@ -109,7 +109,7 @@ export default function History() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-base sm:text-lg">Time Range</span>
+              <span className="text-base sm:text-lg">Zakres czasowy</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -126,7 +126,7 @@ export default function History() {
                       : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   }`}
                 >
-                  Last {hours}h
+                  Ostatnie {hours}h
                 </button>
               ))}
             </div>
@@ -153,7 +153,7 @@ export default function History() {
         {isLoading && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <p className="mt-4 text-muted-foreground">Loading history...</p>
+            <p className="mt-4 text-muted-foreground">Ładowanie historii...</p>
           </div>
         )}
 
@@ -161,8 +161,8 @@ export default function History() {
           <Card className="border-destructive">
             <CardContent className="pt-6">
               <p className="text-destructive">
-                Error loading history:{" "}
-                {error instanceof Error ? error.message : "Unknown error"}
+                Błąd ładowania historii:{" "}
+                {error instanceof Error ? error.message : "Nieznany błąd"}
               </p>
             </CardContent>
           </Card>
@@ -175,7 +175,7 @@ export default function History() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="text-base sm:text-lg">Historical Trends</span>
+                  <span className="text-base sm:text-lg">Trendy historyczne</span>
                 </CardTitle>
                 <div className="flex gap-2 flex-wrap">
                   <button
@@ -187,7 +187,7 @@ export default function History() {
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    Voltage
+                    Napięcie
                   </button>
                   <button
                     type="button"
@@ -198,7 +198,7 @@ export default function History() {
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    Current
+                    Prąd
                   </button>
                   <button
                     type="button"
@@ -209,7 +209,7 @@ export default function History() {
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    Power
+                    Moc
                   </button>
                   <button
                     type="button"
@@ -220,14 +220,15 @@ export default function History() {
                         : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                     }`}
                   >
-                    Frequency
+                    Częstotliwość
                   </button>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300} className="sm:!h-[450px] lg:!h-[600px]">
-                <LineChart data={measurements.slice().reverse()}>
+              <div className="h-[300px] sm:h-[450px] lg:h-[600px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={measurements.slice().reverse()}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                   <XAxis
                     dataKey="time"
@@ -236,7 +237,7 @@ export default function History() {
                     tick={{ fill: "#e5e7eb", fontSize: 11 }}
                     height={50}
                     label={{
-                      value: "Time",
+                      value: "Czas",
                       position: "insideBottom",
                       offset: -5,
                       style: { fill: "#e5e7eb", fontSize: 12 },
@@ -248,7 +249,7 @@ export default function History() {
                       tick={{ fill: "#e5e7eb", fontSize: 11 }}
                       domain={[210, 250]}
                       label={{
-                        value: "Voltage (V)",
+                        value: "Napięcie (V)",
                         angle: -90,
                         position: "insideLeft",
                         offset: 10,
@@ -264,7 +265,7 @@ export default function History() {
                       tick={{ fill: "#e5e7eb", fontSize: 11 }}
                       domain={[0, "auto"]}
                       label={{
-                        value: "Current (A)",
+                        value: "Prąd (A)",
                         angle: -90,
                         position: "insideLeft",
                         offset: 10,
@@ -280,7 +281,7 @@ export default function History() {
                       tick={{ fill: "#e5e7eb", fontSize: 11 }}
                       domain={[0, "auto"]}
                       label={{
-                        value: "Active Power (W)",
+                        value: "Moc czynna (W)",
                         angle: -90,
                         position: "insideLeft",
                         offset: 10,
@@ -296,7 +297,7 @@ export default function History() {
                       tick={{ fill: "#e5e7eb", fontSize: 11 }}
                       domain={[49.5, 50.5]}
                       label={{
-                        value: "Frequency (Hz)",
+                        value: "Częstotliwość (Hz)",
                         angle: -90,
                         position: "insideLeft",
                         offset: 10,
@@ -324,7 +325,7 @@ export default function History() {
                       stroke="#3b82f6"
                       strokeWidth={2}
                       dot={false}
-                      name="Voltage (V)"
+                      name="Napięcie (V)"
                     />
                   )}
                   {selectedChart === "current" && (
@@ -334,7 +335,7 @@ export default function History() {
                       stroke="#f59e0b"
                       strokeWidth={2}
                       dot={false}
-                      name="Current (A)"
+                      name="Prąd (A)"
                     />
                   )}
                   {selectedChart === "power" && (
@@ -344,7 +345,7 @@ export default function History() {
                       stroke="#10b981"
                       strokeWidth={2}
                       dot={false}
-                      name="Active Power (W)"
+                      name="Moc czynna (W)"
                     />
                   )}
                   {selectedChart === "frequency" && (
@@ -354,11 +355,12 @@ export default function History() {
                       stroke="#8b5cf6"
                       strokeWidth={2}
                       dot={false}
-                      name="Frequency (Hz)"
+                      name="Częstotliwość (Hz)"
                     />
                   )}
                 </LineChart>
               </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -369,9 +371,9 @@ export default function History() {
             <CardHeader>
               <CardTitle>
                 <div className="flex flex-col gap-1">
-                  <span>{measurements.length} Measurements</span>
+                  <span>Pomiarów: {measurements.length}</span>
                   <span className="text-sm font-normal text-muted-foreground">
-                    from {formatDate(timeRange.from * 1000)} to{" "}
+                    od {formatDate(timeRange.from * 1000)} do{" "}
                     {formatDate(timeRange.to * 1000)}
                   </span>
                 </div>
@@ -383,25 +385,25 @@ export default function History() {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                        Time
+                        Czas
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                        Voltage (V)
+                        Napięcie (V)
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                        Current (A)
+                        Prąd (A)
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                        Power (W)
+                        Moc (W)
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                        PF
+                        cos φ
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                        Freq (Hz)
+                        Częst. (Hz)
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                        THD-V (%)
+                        THD-U (%)
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
                         THD-I (%)
@@ -450,7 +452,7 @@ export default function History() {
         {measurements && measurements.length === 0 && (
           <Card>
             <CardContent className="pt-6 text-center text-muted-foreground">
-              No measurements found for the selected time range.
+              Brak pomiarów dla wybranego zakresu czasowego.
             </CardContent>
           </Card>
         )}

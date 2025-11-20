@@ -42,7 +42,7 @@ export function HarmonicsChart({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="text-base sm:text-lg">Harmonic Analysis</span>
+            <span className="text-base sm:text-lg">Analiza harmonicznych</span>
           </CardTitle>
           <div className="flex gap-2">
             <button
@@ -54,7 +54,7 @@ export function HarmonicsChart({
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              Voltage
+              Napięcie
             </button>
             <button
               type="button"
@@ -65,23 +65,24 @@ export function HarmonicsChart({
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              Current
+              Prąd
             </button>
           </div>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
-          THD Voltage: {thdVoltage.toFixed(2)}% | THD Current:{" "}
-          {thdCurrent.toFixed(2)}% (IEC 61000 limit: 8%)
+          THD napięcia: {thdVoltage.toFixed(2)}% | THD prądu:{" "}
+          {thdCurrent.toFixed(2)}% (limit IEC 61000: 8%)
         </p>
       </CardHeader>
       <CardContent className="pt-2 sm:pt-2 pb-2 px-2 sm:px-4">
-        <ResponsiveContainer width="100%" height={250} className="sm:!h-[350px] lg:!h-[400px]">
-          <BarChart data={chartData} barSize={30} barCategoryGap="15%" className="sm:!bar-size-[40]">
+        <div className="h-[250px] sm:h-[350px] lg:h-[400px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData} barSize={30} barCategoryGap="15%">
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey="frequency"
               label={{
-                value: "Frequency (Hz)",
+                value: "Częstotliwość (Hz)",
                 position: "insideBottom",
                 offset: -5,
                 style: { fill: "#e5e7eb", fontSize: 12 },
@@ -97,8 +98,8 @@ export function HarmonicsChart({
               label={{
                 value:
                   selectedHarmonic === "voltage"
-                    ? "Amplitude (V)"
-                    : "Amplitude (A)",
+                    ? "Amplituda (V)"
+                    : "Amplituda (A)",
                 angle: -90,
                 position: "insideLeft",
                 offset: 10,
@@ -120,7 +121,7 @@ export function HarmonicsChart({
               itemStyle={{ color: "#e5e7eb" }}
               formatter={(value: number) => [
                 value >= 1 ? value.toFixed(2) : value.toFixed(3),
-                selectedHarmonic === "voltage" ? "Amplitude (V)" : "Amplitude (A)",
+                selectedHarmonic === "voltage" ? "Amplituda (V)" : "Amplituda (A)",
               ]}
               labelFormatter={(freq) => `${freq} Hz`}
             />
@@ -128,7 +129,7 @@ export function HarmonicsChart({
               <Bar
                 dataKey="voltage"
                 fill="#3b82f6"
-                name="Voltage (V)"
+                name="Napięcie (V)"
                 radius={[4, 4, 0, 0]}
               />
             )}
@@ -136,12 +137,13 @@ export function HarmonicsChart({
               <Bar
                 dataKey="current"
                 fill="#f59e0b"
-                name="Current (A)"
+                name="Prąd (A)"
                 radius={[4, 4, 0, 0]}
               />
             )}
           </BarChart>
         </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );

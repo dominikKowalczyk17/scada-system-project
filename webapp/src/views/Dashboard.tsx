@@ -31,22 +31,31 @@ const Dashboard = () => {
   }, []);
 
   // Helper function to determine status based on value
-  const getVoltageStatus = (voltage: number) => {
+  const getVoltageStatus = (voltage: number): "normal" | "warning" | "critical" => {
     if (voltage < 207 || voltage > 253) return "critical"; // IEC 61000 limits ±10%
     if (voltage < 220 || voltage > 240) return "warning";
     return "normal";
   };
 
-  const getCurrentStatus = (current: number) => {
+  const getCurrentStatus = (current: number): "normal" | "warning" | "critical" => {
     if (current > 16) return "critical"; // 16A typical household limit
     if (current > 13) return "warning";
     return "normal";
   };
 
-  const getFrequencyStatus = (freq: number) => {
+  const getFrequencyStatus = (freq: number): "normal" | "warning" | "critical" => {
     if (freq < 49.5 || freq > 50.5) return "critical";
     if (freq < 49.8 || freq > 50.2) return "warning";
     return "normal";
+  };
+
+  const getStatusLabel = (status: "normal" | "warning" | "critical") => {
+    const labels = {
+      normal: "Normalny",
+      warning: "Ostrzeżenie",
+      critical: "Krytyczny"
+    };
+    return labels[status];
   };
 
   return (
@@ -61,7 +70,7 @@ const Dashboard = () => {
                   className={`w-4 h-4 sm:w-5 sm:h-5 ${isConnected ? "text-success animate-pulse" : "text-muted-foreground"}`}
                 />
                 <span className="text-xs sm:text-sm text-muted-foreground">
-                  {isConnected ? "Live Updates" : "Connecting..."}
+                  {isConnected ? "Aktualizacja na żywo" : "Łączenie..."}
                 </span>
               </div>
             </div>
@@ -84,7 +93,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
             <span className="ml-3 text-muted-foreground">
-              Loading dashboard data...
+              Ładowanie danych...
             </span>
           </div>
         )}
@@ -96,10 +105,10 @@ const Dashboard = () => {
               <AlertCircle className="w-6 h-6 text-destructive" />
               <div>
                 <h3 className="font-semibold text-destructive">
-                  Failed to load dashboard data
+                  Błąd ładowania danych
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Make sure the backend is running on http://localhost:8080
+                  Sprawdź czy backend działa na http://192.168.1.53:8080
                 </p>
               </div>
             </div>
@@ -111,49 +120,53 @@ const Dashboard = () => {
           <section className="mb-6 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-foreground flex items-center gap-2">
               <span className="w-1 h-5 sm:h-6 bg-primary rounded-full" />
-              Real-time Parameters
+              Parametry w czasie rzeczywistym
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <ParameterCard
-                title="Voltage"
+                title="Napięcie"
                 value={dashboardData.latest_measurement.voltage_rms.toFixed(1)}
                 unit="V"
                 status={getVoltageStatus(
                   dashboardData.latest_measurement.voltage_rms
                 )}
+                statusLabel={getStatusLabel(getVoltageStatus(dashboardData.latest_measurement.voltage_rms))}
                 min="207"
                 max="253"
                 trend="stable"
               />
               <ParameterCard
-                title="Current"
+                title="Prąd"
                 value={dashboardData.latest_measurement.current_rms.toFixed(2)}
                 unit="A"
                 status={getCurrentStatus(
                   dashboardData.latest_measurement.current_rms
                 )}
+                statusLabel={getStatusLabel(getCurrentStatus(dashboardData.latest_measurement.current_rms))}
                 min="0"
                 max="16"
                 trend="stable"
               />
               <ParameterCard
-                title="Active Power"
+                title="Moc czynna"
                 value={(
                   dashboardData.latest_measurement.power_active / 1000
                 ).toFixed(2)}
                 unit="kW"
                 status="normal"
+                statusLabel="Normalny"
                 min="0"
                 max="3.68"
                 trend="stable"
               />
               <ParameterCard
-                title="Frequency"
+                title="Częstotliwość"
                 value={dashboardData.latest_measurement.frequency.toFixed(2)}
                 unit="Hz"
                 status={getFrequencyStatus(
                   dashboardData.latest_measurement.frequency
                 )}
+                statusLabel={getStatusLabel(getFrequencyStatus(dashboardData.latest_measurement.frequency))}
                 min="49.50"
                 max="50.50"
                 trend="stable"
@@ -163,7 +176,7 @@ const Dashboard = () => {
             {/* Additional Parameters Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-4 sm:mt-6">
               <ParameterCard
-                title="Power Factor"
+                title="Współczynnik mocy"
                 value={dashboardData.latest_measurement.cos_phi.toFixed(3)}
                 unit="cos φ"
                 status={
@@ -171,23 +184,25 @@ const Dashboard = () => {
                     ? "normal"
                     : "warning"
                 }
+                statusLabel={getStatusLabel(dashboardData.latest_measurement.cos_phi > 0.9 ? "normal" : "warning")}
                 min="0.8"
                 max="1.0"
                 trend="stable"
               />
               <ParameterCard
-                title="Reactive Power"
+                title="Moc bierna"
                 value={(
                   dashboardData.latest_measurement.power_reactive / 1000
                 ).toFixed(2)}
                 unit="kVAR"
                 status="normal"
+                statusLabel="Normalny"
                 min="0"
                 max="2.0"
                 trend="stable"
               />
               <ParameterCard
-                title="THD Voltage"
+                title="THD napięcia"
                 value={dashboardData.latest_measurement.thd_voltage.toFixed(1)}
                 unit="%"
                 status={
@@ -195,12 +210,13 @@ const Dashboard = () => {
                     ? "critical"
                     : "normal"
                 }
+                statusLabel={getStatusLabel(dashboardData.latest_measurement.thd_voltage > 8 ? "critical" : "normal")}
                 min="0"
                 max="8"
                 trend="stable"
               />
               <ParameterCard
-                title="THD Current"
+                title="THD prądu"
                 value={dashboardData.latest_measurement.thd_current.toFixed(1)}
                 unit="%"
                 status={
@@ -208,6 +224,7 @@ const Dashboard = () => {
                     ? "warning"
                     : "normal"
                 }
+                statusLabel={getStatusLabel(dashboardData.latest_measurement.thd_current > 8 ? "warning" : "normal")}
                 min="0"
                 max="8"
                 trend="stable"

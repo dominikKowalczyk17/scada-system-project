@@ -55,7 +55,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="text-base sm:text-lg">Real-time Waveform</span>
+            <span className="text-base sm:text-lg">Przebieg czasowy</span>
           </CardTitle>
           <div className="flex gap-2">
             <button
@@ -67,7 +67,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              Voltage
+              Napięcie
             </button>
             <button
               type="button"
@@ -78,23 +78,23 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              Current
+              Prąd
             </button>
           </div>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
-          Real-time waveform showing harmonic distortion from non-linear loads (
-          {frequency.toFixed(1)} Hz)
+          Przebieg w czasie rzeczywistym z widocznym zniekształceniem harmonicznym ({frequency.toFixed(1)} Hz)
         </p>
       </CardHeader>
       <CardContent className="pt-2 sm:pt-2 pb-2 px-2 sm:px-4">
-        <ResponsiveContainer width="100%" height={300} className="sm:!h-[400px] lg:!h-[600px]">
-          <LineChart data={chartData}>
+        <div className="h-[300px] sm:h-[400px] lg:h-[500px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey="time"
               label={{
-                value: "Time (ms)",
+                value: "Czas (ms)",
                 position: "insideBottom",
                 offset: -5,
                 style: { fill: "#e5e7eb", fontSize: 12 },
@@ -110,7 +110,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
                 domain={[210, 250]}
                 label={{
-                  value: "Voltage (V)",
+                  value: "Napięcie (V)",
                   angle: -90,
                   position: "insideLeft",
                   offset: 10,
@@ -126,7 +126,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
                 domain={[0, "auto"]}
                 label={{
-                  value: "Current (A)",
+                  value: "Prąd (A)",
                   angle: -90,
                   position: "insideLeft",
                   offset: 10,
@@ -155,7 +155,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={false}
-                name="Voltage (V)"
+                name="Napięcie (V)"
               />
             )}
             {selectedWaveform === "current" && (
@@ -165,11 +165,12 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 stroke="#f59e0b"
                 strokeWidth={2}
                 dot={false}
-                name="Current (A)"
+                name="Prąd (A)"
               />
             )}
           </LineChart>
         </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );
