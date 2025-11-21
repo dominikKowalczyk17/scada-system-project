@@ -159,11 +159,20 @@ public class MeasurementService {
     }
 
     /**
-     * Get latest measurement entity (for internal use by controllers).
-     * Used when controller needs access to full entity (e.g., for power quality indicators).
+     * Get latest measurement entity (strictly internal, for service-layer logic only).
+     * <b>INTERNAL USE ONLY:</b> Do not expose domain entities to controllers. Use DTO-returning methods for API.
      */
-    public Optional<Measurement> getLatestMeasurementEntity() {
+    Optional<Measurement> getLatestMeasurementEntity() {
         return repository.findTopByOrderByTimeDesc();
+    }
+    /**
+     * Returns the latest power quality indicators as a DTO for controller/API use.
+     * This method ensures controllers do not access domain entities directly.
+     *
+     * @return Optional containing PowerQualityIndicatorsDTO for the latest measurement, or empty if none found.
+     */
+    public Optional<PowerQualityIndicatorsDTO> getLatestPowerQualityIndicators() {
+        return getLatestMeasurementEntity().map(this::buildPowerQualityIndicatorsDTO);
     }
 
     public List<MeasurementDTO> getHistory(Instant from, Instant to, int limit) {
@@ -235,10 +244,6 @@ public class MeasurementService {
                 .build();
     }
 
-    public Optional<PowerQualityIndicatorsDTO> getPowerQualityIndicators() {
-        return repository.findTopByOrderByTimeDesc()
-            .map(this::buildPowerQualityIndicatorsDTO);
-    }
 
     private Boolean allTrueOrNull(Boolean... values) {
         for (Boolean v : values) {

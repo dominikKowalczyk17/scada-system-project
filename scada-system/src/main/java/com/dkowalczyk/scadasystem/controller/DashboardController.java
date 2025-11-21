@@ -65,8 +65,8 @@ public class DashboardController {
      */
     @GetMapping("/power-quality-indicators")
     public ResponseEntity<PowerQualityIndicatorsDTO> getPowerQualityIndicators() {
-        return measurementService.getPowerQualityIndicators()
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return measurementService.getLatestPowerQualityIndicators()
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 }
