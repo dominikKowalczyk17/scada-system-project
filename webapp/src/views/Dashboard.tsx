@@ -8,6 +8,8 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePowerQualityIndicators } from "@/hooks/usePowerQualityIndicators";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { formatTime, formatDate } from "@/lib/dateUtils";
+import { POWER_QUALITY_LIMITS } from "@/lib/constants";
+import type { MeasurementDTO } from "@/types/api";
 
 const Dashboard = () => {
   const [time, setTime] = useState(new Date());
@@ -32,20 +34,20 @@ const Dashboard = () => {
 
   // Helper function to determine status based on value
   const getVoltageStatus = (voltage: number): "normal" | "warning" | "critical" => {
-    if (voltage < 207 || voltage > 253) return "critical"; // IEC 61000 limits ±10%
-    if (voltage < 220 || voltage > 240) return "warning";
+    if (voltage < POWER_QUALITY_LIMITS.VOLTAGE_CRITICAL_MIN || voltage > POWER_QUALITY_LIMITS.VOLTAGE_CRITICAL_MAX) return "critical"; // IEC 61000 limits ±10%
+    if (voltage < POWER_QUALITY_LIMITS.VOLTAGE_WARNING_MIN || voltage > POWER_QUALITY_LIMITS.VOLTAGE_WARNING_MAX) return "warning";
     return "normal";
   };
 
   const getCurrentStatus = (current: number): "normal" | "warning" | "critical" => {
-    if (current > 16) return "critical"; // 16A typical household limit
-    if (current > 13) return "warning";
+    if (current > POWER_QUALITY_LIMITS.CURRENT_CRITICAL) return "critical"; // 16A typical household limit
+    if (current > POWER_QUALITY_LIMITS.CURRENT_WARNING) return "warning";
     return "normal";
   };
 
   const getFrequencyStatus = (freq: number): "normal" | "warning" | "critical" => {
-    if (freq < 49.5 || freq > 50.5) return "critical";
-    if (freq < 49.8 || freq > 50.2) return "warning";
+    if (freq < POWER_QUALITY_LIMITS.FREQUENCY_CRITICAL_MIN || freq > POWER_QUALITY_LIMITS.FREQUENCY_CRITICAL_MAX) return "critical";
+    if (freq < POWER_QUALITY_LIMITS.FREQUENCY_WARNING_MIN || freq > POWER_QUALITY_LIMITS.FREQUENCY_WARNING_MAX) return "warning";
     return "normal";
   };
 
@@ -56,6 +58,17 @@ const Dashboard = () => {
       critical: "Krytyczny"
     };
     return labels[status];
+  };
+
+  const getTrend = (current: number, history: MeasurementDTO[], key: keyof MeasurementDTO): "rising" | "falling" | "stable" => {
+    if (!history || history.length < 2) return "stable";
+    
+    const previous = history[history.length - 2][key] as number;
+    const diff = current - previous;
+    const threshold = current * 0.02; // 2% threshold
+    
+    if (Math.abs(diff) < threshold) return "stable";
+    return diff > 0 ? "rising" : "falling";
   };
 
   return (
@@ -153,7 +166,11 @@ const Dashboard = () => {
                 statusLabel={getStatusLabel(getVoltageStatus(dashboardData.latest_measurement.voltage_rms))}
                 min="207"
                 max="253"
-                trend="stable"
+                trend={getTrend(
+                  dashboardData.latest_measurement.voltage_rms,
+                  dashboardData.recent_history,
+                  'voltage_rms'
+                )}
               />
               <ParameterCard
                 title="Prąd"
@@ -165,7 +182,11 @@ const Dashboard = () => {
                 statusLabel={getStatusLabel(getCurrentStatus(dashboardData.latest_measurement.current_rms))}
                 min="0"
                 max="16"
-                trend="stable"
+                trend={getTrend(
+                  dashboardData.latest_measurement.current_rms,
+                  dashboardData.recent_history,
+                  'current_rms'
+                )}
               />
               <ParameterCard
                 title="Moc czynna"
@@ -177,7 +198,11 @@ const Dashboard = () => {
                 statusLabel="Normalny"
                 min="0"
                 max="3.68"
-                trend="stable"
+                trend={getTrend(
+                  dashboardData.latest_measurement.power_active / 1000,
+                  dashboardData.recent_history,
+                  'power_active'
+                )}
               />
               <ParameterCard
                 title="Częstotliwość"
@@ -189,7 +214,11 @@ const Dashboard = () => {
                 statusLabel={getStatusLabel(getFrequencyStatus(dashboardData.latest_measurement.frequency))}
                 min="49.50"
                 max="50.50"
-                trend="stable"
+                trend={getTrend(
+                  dashboardData.latest_measurement.frequency,
+                  dashboardData.recent_history,
+                  'frequency'
+                )}
               />
             </div>
 
@@ -207,7 +236,11 @@ const Dashboard = () => {
                 statusLabel={getStatusLabel(dashboardData.latest_measurement.cos_phi > 0.9 ? "normal" : "warning")}
                 min="0.8"
                 max="1.0"
-                trend="stable"
+                trend={getTrend(
+                  dashboardData.latest_measurement.cos_phi,
+                  dashboardData.recent_history,
+                  'cos_phi'
+                )}
               />
               <ParameterCard
                 title="Moc bierna"
@@ -219,7 +252,11 @@ const Dashboard = () => {
                 statusLabel="Normalny"
                 min="0"
                 max="2.0"
-                trend="stable"
+                trend={getTrend(
+                  dashboardData.latest_measurement.power_reactive / 1000,
+                  dashboardData.recent_history,
+                  'power_reactive'
+                )}
               />
               <ParameterCard
                 title="THD napięcia"
@@ -233,7 +270,11 @@ const Dashboard = () => {
                 statusLabel={getStatusLabel(dashboardData.latest_measurement.thd_voltage > 8 ? "critical" : "normal")}
                 min="0"
                 max="8"
-                trend="stable"
+                trend={getTrend(
+                  dashboardData.latest_measurement.thd_voltage,
+                  dashboardData.recent_history,
+                  'thd_voltage'
+                )}
               />
               <ParameterCard
                 title="THD prądu"
@@ -247,7 +288,11 @@ const Dashboard = () => {
                 statusLabel={getStatusLabel(dashboardData.latest_measurement.thd_current > 8 ? "warning" : "normal")}
                 min="0"
                 max="8"
-                trend="stable"
+                trend={getTrend(
+                  dashboardData.latest_measurement.thd_current,
+                  dashboardData.recent_history,
+                  'thd_current'
+                )}
               />
             </div>
           </section>

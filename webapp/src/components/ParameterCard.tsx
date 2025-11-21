@@ -11,19 +11,19 @@ interface ParameterCardProps {
   statusLabel?: string;
   min: string;
   max: string;
-  trend?: "up" | "down" | "stable";
+  trend?: "rising" | "falling" | "stable";
 }
 
 export const ParameterCard = ({ title, value, unit, status, statusLabel, min, max, trend = "stable" }: ParameterCardProps) => {
   const TrendIcon = {
-    up: TrendingUp,
-    down: TrendingDown,
+    rising: TrendingUp,
+    falling: TrendingDown,
     stable: Minus,
   }[trend];
 
   const trendColors = {
-    up: "text-success",
-    down: "text-destructive",
+    rising: "text-success",
+    falling: "text-destructive",
     stable: "text-muted-foreground",
   };
 
