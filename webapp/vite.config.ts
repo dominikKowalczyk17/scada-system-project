@@ -16,4 +16,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    // Fix for SockJS: add global polyfill
+    global: 'globalThis',
+  },
 })

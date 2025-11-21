@@ -12,5 +12,11 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedOrigins("*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE")
                 .allowedHeaders("*");
+
+        // Allow CORS for WebSocket endpoint (SockJS handshake needs CORS)
+        registry.addMapping("/ws/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST")
+                .allowedHeaders("*");
     }
 }

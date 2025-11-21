@@ -1,12 +1,29 @@
 import { ParameterCard } from "@/components/ParameterCard";
-import { GridSection } from "@/components/GridSection";
-import { AlertPanel } from "@/components/AlertPanel";
-import { LiveChart } from "@/components/LiveChart";
-import { Activity, Zap } from "lucide-react";
+import { WaveformChart } from "@/components/WaveformChart";
+import { HarmonicsChart } from "@/components/HarmonicsChart";
+import { PowerQualitySection } from "@/components/PowerQualitySection";
+import { Activity, Loader2, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { usePowerQualityIndicators } from "@/hooks/usePowerQualityIndicators";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { formatTime, formatDate } from "@/lib/dateUtils";
+import { POWER_QUALITY_LIMITS } from "@/lib/constants";
+import type { MeasurementDTO } from "@/types/api";
 
 const Dashboard = () => {
   const [time, setTime] = useState(new Date());
+  const { data: dashboardData, isLoading, isError } = useDashboardData();
+  const { data: powerQualityData, isLoading: isPqLoading } = usePowerQualityIndicators();
+
+  // WebSocket connection for real-time updates
+  const { isConnected } = useWebSocket({
+    url: import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws/measurements',
+    topic: '/topic/dashboard',
+    onError: (error) => {
+      console.error('[Dashboard] WebSocket error:', error);
+    },
+  });
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -15,107 +32,289 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Helper function to determine status based on value
+  const getVoltageStatus = (voltage: number): "normal" | "warning" | "critical" => {
+    if (voltage < POWER_QUALITY_LIMITS.VOLTAGE_CRITICAL_MIN || voltage > POWER_QUALITY_LIMITS.VOLTAGE_CRITICAL_MAX) return "critical"; // IEC 61000 limits ±10%
+    if (voltage < POWER_QUALITY_LIMITS.VOLTAGE_WARNING_MIN || voltage > POWER_QUALITY_LIMITS.VOLTAGE_WARNING_MAX) return "warning";
+    return "normal";
+  };
+
+  const getCurrentStatus = (current: number): "normal" | "warning" | "critical" => {
+    if (current > POWER_QUALITY_LIMITS.CURRENT_CRITICAL) return "critical"; // 16A typical household limit
+    if (current > POWER_QUALITY_LIMITS.CURRENT_WARNING) return "warning";
+    return "normal";
+  };
+
+  const getFrequencyStatus = (freq: number): "normal" | "warning" | "critical" => {
+    if (freq < POWER_QUALITY_LIMITS.FREQUENCY_CRITICAL_MIN || freq > POWER_QUALITY_LIMITS.FREQUENCY_CRITICAL_MAX) return "critical";
+    if (freq < POWER_QUALITY_LIMITS.FREQUENCY_WARNING_MIN || freq > POWER_QUALITY_LIMITS.FREQUENCY_WARNING_MAX) return "warning";
+    return "normal";
+  };
+
+  const getStatusLabel = (status: "normal" | "warning" | "critical") => {
+    const labels = {
+      normal: "Normalny",
+      warning: "Ostrzeżenie",
+      critical: "Krytyczny"
+    };
+    return labels[status];
+  };
+
+  const getTrend = (current: number, history: MeasurementDTO[], key: keyof MeasurementDTO): "rising" | "falling" | "stable" => {
+    if (!history || history.length < 2) return "stable";
+    
+    const previous = history[history.length - 2][key] as number;
+    const diff = current - previous;
+    const threshold = current * 0.02; // 2% threshold
+    
+    if (Math.abs(diff) < threshold) return "stable";
+    return diff > 0 ? "rising" : "falling";
+  };
+
   return (
-    <div className="min-h-screen bg-background grid-pattern">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-primary rounded-lg">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gradient">SCADA Grid Monitor</h1>
-                <p className="text-sm text-muted-foreground">Electrical Distribution Network</p>
+    <div className="bg-background grid-pattern">
+      {/* Status Bar */}
+      <div className="bg-card/50 backdrop-blur-sm border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex items-center gap-2">
+                <Activity
+                  className={`w-4 h-4 sm:w-5 sm:h-5 ${isConnected ? "text-success animate-pulse" : "text-muted-foreground"}`}
+                />
+                <span className="text-xs sm:text-sm text-muted-foreground">
+                  {isConnected ? "Aktualizacja na żywo" : "Łączenie..."}
+                </span>
               </div>
             </div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-success animate-pulse" />
-                <span className="text-sm text-muted-foreground">System Online</span>
+            <div className="text-left sm:text-right w-full sm:w-auto">
+              <div className="text-sm font-mono text-foreground">
+                {formatTime(time)}
               </div>
-              <div className="text-right">
-                <div className="text-sm font-mono text-foreground">{time.toLocaleTimeString()}</div>
-                <div className="text-xs text-muted-foreground">{time.toLocaleDateString()}</div>
+              <div className="text-xs text-muted-foreground">
+                {formatDate(time)}
               </div>
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
-        {/* Real-time Parameters */}
-        <section className="mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
-            <span className="w-1 h-6 bg-primary rounded-full" />
-            Real-time Parameters
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <ParameterCard
-              title="Voltage L1-N"
-              value="232.4"
-              unit="kV"
-              status="normal"
-              min="230.0"
-              max="240.0"
-              trend="up"
-            />
-            <ParameterCard
-              title="Current L1"
-              value="845.2"
-              unit="A"
-              status="warning"
-              min="800.0"
-              max="900.0"
-              trend="stable"
-            />
-            <ParameterCard
-              title="Active Power"
-              value="12.8"
-              unit="MW"
-              status="normal"
-              min="10.0"
-              max="15.0"
-              trend="up"
-            />
-            <ParameterCard
-              title="Frequency"
-              value="50.02"
-              unit="Hz"
-              status="normal"
-              min="49.90"
-              max="50.10"
-              trend="stable"
-            />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <span className="ml-3 text-muted-foreground">
+              Ładowanie danych...
+            </span>
           </div>
-        </section>
+        )}
 
-        {/* Chart Section */}
-        <section className="mb-8">
-          <LiveChart />
-        </section>
-
-        {/* Grid Sections and Alerts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <h2 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
-              <span className="w-1 h-6 bg-primary rounded-full" />
-              Grid Sections
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <GridSection name="Sector A" status="normal" load={142.5} capacity={200} />
-              <GridSection name="Sector B" status="warning" load={178.3} capacity={200} />
-              <GridSection name="Sector C" status="normal" load={95.8} capacity={150} />
-              <GridSection name="Sector D" status="critical" load={188.2} capacity={200} />
+        {/* Error State */}
+        {isError && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 mb-8">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-6 h-6 text-destructive" />
+              <div>
+                <h3 className="font-semibold text-destructive">
+                  Błąd ładowania danych
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Sprawdź czy backend działa na http://192.168.1.53:8080
+                </p>
+              </div>
             </div>
           </div>
+        )}
 
-          <div>
-            <AlertPanel />
-          </div>
-        </div>
+        {/* PN-EN 50160 Power Quality Indicators */}
+        {!isLoading && !isError && (
+          <>
+            {isPqLoading && (
+              <section className="mb-6 sm:mb-8">
+                <div className="flex items-center gap-3 bg-card/50 border border-border rounded-lg p-6">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">
+                    Ładowanie wskaźników jakości energii...
+                  </span>
+                </div>
+              </section>
+            )}
+
+            {powerQualityData && !isPqLoading && (
+              <PowerQualitySection data={powerQualityData} />
+            )}
+          </>
+        )}
+
+        {/* Real-time Parameters */}
+        {dashboardData && (
+          <section className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-foreground flex items-center gap-2">
+              <span className="w-1 h-5 sm:h-6 bg-primary rounded-full" />
+              Parametry w czasie rzeczywistym
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <ParameterCard
+                title="Napięcie"
+                value={dashboardData.latest_measurement.voltage_rms.toFixed(1)}
+                unit="V"
+                status={getVoltageStatus(
+                  dashboardData.latest_measurement.voltage_rms
+                )}
+                statusLabel={getStatusLabel(getVoltageStatus(dashboardData.latest_measurement.voltage_rms))}
+                min="207"
+                max="253"
+                trend={getTrend(
+                  dashboardData.latest_measurement.voltage_rms,
+                  dashboardData.recent_history,
+                  'voltage_rms'
+                )}
+              />
+              <ParameterCard
+                title="Prąd"
+                value={dashboardData.latest_measurement.current_rms.toFixed(2)}
+                unit="A"
+                status={getCurrentStatus(
+                  dashboardData.latest_measurement.current_rms
+                )}
+                statusLabel={getStatusLabel(getCurrentStatus(dashboardData.latest_measurement.current_rms))}
+                min="0"
+                max="16"
+                trend={getTrend(
+                  dashboardData.latest_measurement.current_rms,
+                  dashboardData.recent_history,
+                  'current_rms'
+                )}
+              />
+              <ParameterCard
+                title="Moc czynna"
+                value={(
+                  dashboardData.latest_measurement.power_active / 1000
+                ).toFixed(2)}
+                unit="kW"
+                status="normal"
+                statusLabel="Normalny"
+                min="0"
+                max="3.68"
+                trend={getTrend(
+                  dashboardData.latest_measurement.power_active / 1000,
+                  dashboardData.recent_history,
+                  'power_active'
+                )}
+              />
+              <ParameterCard
+                title="Częstotliwość"
+                value={dashboardData.latest_measurement.frequency.toFixed(2)}
+                unit="Hz"
+                status={getFrequencyStatus(
+                  dashboardData.latest_measurement.frequency
+                )}
+                statusLabel={getStatusLabel(getFrequencyStatus(dashboardData.latest_measurement.frequency))}
+                min="49.50"
+                max="50.50"
+                trend={getTrend(
+                  dashboardData.latest_measurement.frequency,
+                  dashboardData.recent_history,
+                  'frequency'
+                )}
+              />
+            </div>
+
+            {/* Additional Parameters Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-4 sm:mt-6">
+              <ParameterCard
+                title="Współczynnik mocy"
+                value={dashboardData.latest_measurement.cos_phi.toFixed(3)}
+                unit="cos φ"
+                status={
+                  dashboardData.latest_measurement.cos_phi > 0.9
+                    ? "normal"
+                    : "warning"
+                }
+                statusLabel={getStatusLabel(dashboardData.latest_measurement.cos_phi > 0.9 ? "normal" : "warning")}
+                min="0.8"
+                max="1.0"
+                trend={getTrend(
+                  dashboardData.latest_measurement.cos_phi,
+                  dashboardData.recent_history,
+                  'cos_phi'
+                )}
+              />
+              <ParameterCard
+                title="Moc bierna"
+                value={(
+                  dashboardData.latest_measurement.power_reactive / 1000
+                ).toFixed(2)}
+                unit="kVAR"
+                status="normal"
+                statusLabel="Normalny"
+                min="0"
+                max="2.0"
+                trend={getTrend(
+                  dashboardData.latest_measurement.power_reactive / 1000,
+                  dashboardData.recent_history,
+                  'power_reactive'
+                )}
+              />
+              <ParameterCard
+                title="THD napięcia"
+                value={dashboardData.latest_measurement.thd_voltage.toFixed(1)}
+                unit="%"
+                status={
+                  dashboardData.latest_measurement.thd_voltage > 8
+                    ? "critical"
+                    : "normal"
+                }
+                statusLabel={getStatusLabel(dashboardData.latest_measurement.thd_voltage > 8 ? "critical" : "normal")}
+                min="0"
+                max="8"
+                trend={getTrend(
+                  dashboardData.latest_measurement.thd_voltage,
+                  dashboardData.recent_history,
+                  'thd_voltage'
+                )}
+              />
+              <ParameterCard
+                title="THD prądu"
+                value={dashboardData.latest_measurement.thd_current.toFixed(1)}
+                unit="%"
+                status={
+                  dashboardData.latest_measurement.thd_current > 8
+                    ? "warning"
+                    : "normal"
+                }
+                statusLabel={getStatusLabel(dashboardData.latest_measurement.thd_current > 8 ? "warning" : "normal")}
+                min="0"
+                max="8"
+                trend={getTrend(
+                  dashboardData.latest_measurement.thd_current,
+                  dashboardData.recent_history,
+                  'thd_current'
+                )}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* Waveform Charts */}
+        {dashboardData && (
+          <section className="mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6">
+              <WaveformChart
+                waveforms={dashboardData.waveforms}
+                frequency={dashboardData.latest_measurement.frequency}
+              />
+              <HarmonicsChart
+                harmonicsVoltage={dashboardData.latest_measurement.harmonics_v}
+                harmonicsCurrent={dashboardData.latest_measurement.harmonics_i}
+                thdVoltage={dashboardData.latest_measurement.thd_voltage}
+                thdCurrent={dashboardData.latest_measurement.thd_current}
+              />
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
