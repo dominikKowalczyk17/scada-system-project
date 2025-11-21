@@ -1,23 +1,23 @@
 import { ParameterCard } from "@/components/ParameterCard";
 import { WaveformChart } from "@/components/WaveformChart";
 import { HarmonicsChart } from "@/components/HarmonicsChart";
+import { PowerQualitySection } from "@/components/PowerQualitySection";
 import { Activity, Loader2, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { usePowerQualityIndicators } from "@/hooks/usePowerQualityIndicators";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { formatTime, formatDate } from "@/lib/dateUtils";
 
 const Dashboard = () => {
   const [time, setTime] = useState(new Date());
   const { data: dashboardData, isLoading, isError } = useDashboardData();
+  const { data: powerQualityData, isLoading: isPqLoading } = usePowerQualityIndicators();
 
   // WebSocket connection for real-time updates
   const { isConnected } = useWebSocket({
     url: import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws/measurements',
     topic: '/topic/dashboard',
-    onMessage: (data) => {
-      console.log('[Dashboard] Real-time update received:', data.latest_measurement.voltage_rms);
-    },
     onError: (error) => {
       console.error('[Dashboard] WebSocket error:', error);
     },
@@ -113,6 +113,26 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* PN-EN 50160 Power Quality Indicators */}
+        {!isLoading && !isError && (
+          <>
+            {isPqLoading && (
+              <section className="mb-6 sm:mb-8">
+                <div className="flex items-center gap-3 bg-card/50 border border-border rounded-lg p-6">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">
+                    Ładowanie wskaźników jakości energii...
+                  </span>
+                </div>
+              </section>
+            )}
+
+            {powerQualityData && !isPqLoading && (
+              <PowerQualitySection data={powerQualityData} />
+            )}
+          </>
         )}
 
         {/* Real-time Parameters */}

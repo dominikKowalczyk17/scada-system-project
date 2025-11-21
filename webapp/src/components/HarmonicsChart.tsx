@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Info } from "lucide-react";
 
 interface HarmonicsChartProps {
   harmonicsVoltage: number[];
@@ -29,9 +29,10 @@ export function HarmonicsChart({
   // Transform harmonics arrays into Recharts format
   // harmonicsVoltage = [H1, H2, H3, ..., H8]
   // H1 = fundamental (50Hz), H2 = 2nd harmonic (100Hz), etc.
+  // Limited to H1-H8 due to Nyquist constraint at 800Hz sampling rate
   const chartData = harmonicsVoltage.map((vHarmonic, index) => ({
     harmonic: `H${index + 1}`,
-    frequency: (index + 1) * 50, // 50Hz, 100Hz, 150Hz, ..., 400Hz
+    frequency: (index + 1) * 50, // 50Hz, 100Hz, 150Hz, ..., 400Hz (Nyquist limit)
     voltage: vHarmonic,
     current: harmonicsCurrent[index],
   }));
@@ -69,10 +70,20 @@ export function HarmonicsChart({
             </button>
           </div>
         </div>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
-          THD napięcia: {thdVoltage.toFixed(2)}% | THD prądu:{" "}
-          {thdCurrent.toFixed(2)}% (limit IEC 61000: 8%)
-        </p>
+        <div className="flex flex-col gap-2 mt-2">
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            THD napięcia: {thdVoltage.toFixed(2)}% | THD prądu:{" "}
+            {thdCurrent.toFixed(2)}% (limit PN-EN 50160: 8%)
+          </p>
+          <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md p-2">
+            <Info className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-yellow-700 dark:text-yellow-400">
+              <strong>Ograniczenie Nyquista:</strong> System próbkuje przy 800Hz, co pozwala na pomiar tylko harmonicznych H1-H8 (50Hz-400Hz).
+              THD jest obliczane tylko z H2-H8 zamiast pełnego zakresu H2-H40 wymaganego przez IEC 61000-4-7.
+              Wyświetlana wartość reprezentuje <strong>dolne ograniczenie</strong> rzeczywistego THD.
+            </p>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-2 sm:pt-2 pb-2 px-2 sm:px-4">
         <div className="h-[250px] sm:h-[350px] lg:h-[400px] w-full">

@@ -48,7 +48,6 @@ export function useWebSocket({
       heartbeatOutgoing: 4000,
 
       onConnect: () => {
-        console.log('[STOMP] Connected to', url);
         setIsConnected(true);
 
         // Subscribe to dashboard topic
@@ -74,12 +73,10 @@ export function useWebSocket({
       },
 
       onWebSocketClose: () => {
-        console.log('[STOMP] WebSocket closed');
         setIsConnected(false);
       },
 
       onDisconnect: () => {
-        console.log('[STOMP] Disconnected');
         setIsConnected(false);
       },
     });
