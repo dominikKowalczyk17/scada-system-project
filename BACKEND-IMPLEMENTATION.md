@@ -1180,23 +1180,40 @@ monitoring.voltage.max=253
 
 ## 📊 IMPLEMENTATION PROGRESS
 
-**Last Updated:** 2025-11-11
+**Last Updated:** 2025-11-15
 
-### Overall Backend Status: **70% Complete**
-
-**By Priority:**
-- 🔴 **MUST HAVE:** 5 tasks (Dashboard real-time) - **0/5 done** → Issue #31
-- 🟡 **SHOULD HAVE:** 3 tasks (Historical stats) - **0/3 done** → Issue #32
-- 🟢 **NICE TO HAVE:** 2 tasks (Polish) - **0/2 done**
+### Overall Backend Status: **95% Complete** ✅
 
 **By Component:**
-- ✅ MQTT Integration: **100%**
-- ✅ Database: **100%**
-- ✅ Basic API: **100%**
-- ⚠️ Dashboard API: **0%** (not started) → Issue #31
-- ✅ Statistics: **100%** (calculations complete) - Issue #25 ✅
-- ✅ Data Aggregation: **100%** (scheduled job complete) - Issue #25 ✅
-- ⚠️ WebSocket: **80%** (works but missing waveform) → Issue #31
+- ✅ MQTT Integration: **100%** (MqttConfig, MqttMessageHandler)
+- ✅ Database: **100%** (PostgreSQL + Flyway migrations)
+- ✅ Basic API: **100%** (MeasurementController, StatsController, HealthController)
+- ✅ Dashboard API: **100%** (DashboardController + RealtimeDashboardDTO) - Issue #31 ✅
+- ✅ Statistics: **100%** (StatsService with IEC 61000 compliance) - Issue #25 ✅
+- ✅ Historical Stats API: **100%** (7-day, 30-day, date range endpoints) - Issue #32 ✅
+- ✅ Data Aggregation: **100%** (scheduled daily job at 00:05) - Issue #32 ✅
+- ✅ WebSocket: **100%** (real-time + waveform data) - Issue #31 ✅
+- ✅ Waveform Service: **100%** (sinusoid reconstruction from harmonics)
+- ✅ ESP32 Mock Generator: **100%** (PlatformIO firmware) - Issue #38 ✅
+
+### Overall Frontend Status: **10% Complete** ⚠️
+
+**By Component:**
+- ✅ Project Setup: **100%** (React + TypeScript + Vite + shadcn/ui)
+- ✅ Testing Framework: **100%** (Vitest + React Testing Library)
+- ⚠️ **Backend Integration: 0%** (in progress) → **Issue #42**
+  - TanStack Query setup
+  - REST API connection (GET /api/dashboard)
+  - WebSocket real-time updates
+  - Recharts data visualization
+- 🔴 **Charts & Visualization: 0%** (to do)
+  - Waveform chart (voltage/current sinusoid)
+  - Harmonics bar chart
+  - Power quality timeline
+- 🔴 **Advanced Features: 0%** (to do)
+  - Historical data view
+  - Statistics dashboard
+  - Settings page
 
 ---
 
@@ -1263,8 +1280,281 @@ monitoring.voltage.max=253
 2. **Scheduled job enhancements** (1h) - Manual trigger, health checks
 3. **Data completeness tracking** (1h) - Quality metrics
 
-**Total remaining time:** ~9-11 hours for complete backend
+**Total backend time:** Backend is now **95% complete** ✅
 
 ---
 
-**End of Implementation Status**
+## 🔌 FRONTEND INTEGRATION GUIDE
+
+### Quick Start for Frontend Developers
+
+**Backend Base URL:** `http://localhost:8080`
+
+#### 1. Main Dashboard Endpoint
+
+```typescript
+// GET /api/dashboard - Complete dashboard data
+interface RealtimeDashboardDTO {
+  measurement: MeasurementDTO;
+  waveforms: {
+    voltage: number[];  // 200 points (sinusoid)
+    current: number[];  // 200 points
+  };
+  timestamp: string;
+}
+
+// Example fetch
+const response = await fetch('http://localhost:8080/api/dashboard');
+const data: RealtimeDashboardDTO = await response.json();
+```
+
+#### 2. WebSocket Real-time Updates
+
+```typescript
+// Connect to WebSocket
+const ws = new WebSocket('ws://localhost:8080/ws/measurements');
+
+// Subscribe to dashboard topic
+ws.send(JSON.stringify({
+  type: 'subscribe',
+  topic: '/topic/dashboard'
+}));
+
+// Receive updates every 3 seconds
+ws.onmessage = (event) => {
+  const data: RealtimeDashboardDTO = JSON.parse(event.data);
+  console.log('Real-time update:', data);
+  // Update React state/components
+};
+
+// Auto-reconnect on disconnect
+ws.onclose = () => {
+  setTimeout(() => {
+    // Reconnect with exponential backoff
+  }, 1000);
+};
+```
+
+#### 3. Historical Data
+
+```typescript
+// GET /api/measurements/history?from=2025-11-01T00:00:00&to=2025-11-15T23:59:59&limit=100
+const params = new URLSearchParams({
+  from: '2025-11-01T00:00:00',
+  to: '2025-11-15T23:59:59',
+  limit: '100'
+});
+
+const response = await fetch(`http://localhost:8080/api/measurements/history?${params}`);
+const measurements: MeasurementDTO[] = await response.json();
+```
+
+#### 4. Statistics API
+
+```typescript
+// Daily stats
+GET /api/stats/daily  // Today's aggregated stats
+
+// Weekly stats
+GET /api/stats/last-7-days
+
+// Monthly stats
+GET /api/stats/last-30-days
+
+// Custom date range (max 365 days)
+GET /api/stats/range?from=2025-11-01&to=2025-11-15
+```
+
+### TypeScript Types
+
+```typescript
+interface MeasurementDTO {
+  id?: number;
+  voltage: number;           // 220-240V nominal
+  current: number;           // Amperes
+  powerActive: number;       // Watts
+  powerReactive: number;     // VAR
+  powerApparent: number;     // VA
+  cosPhi: number;            // Power factor (0-1)
+  frequency: number;         // 49.5-50.5 Hz nominal
+  thdVoltage: number;        // % (IEC 61000 limit: 8%)
+  thdCurrent: number;        // %
+  harmonicsV: number[];      // 8 harmonics [H1, H2, ..., H8]
+  harmonicsI: number[];      // 8 harmonics
+  timestamp?: string;
+}
+
+interface WaveformDTO {
+  voltage: number[];  // 200 samples (20ms @ 50Hz)
+  current: number[];  // 200 samples
+}
+
+interface StatsDTO {
+  date: string;
+  avgVoltage: number;
+  minVoltage: number;
+  maxVoltage: number;
+  avgCurrent: number;
+  maxCurrent: number;
+  totalEnergyKwh: number;
+  voltageSagCount: number;
+  voltageSwellCount: number;
+  thdViolationsCount: number;
+  dataCompleteness: number;  // 0.0-1.0 (95%+ is good)
+  measurementCount: number;
+}
+```
+
+### React Query Example
+
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: 'http://localhost:8080',
+});
+
+export function useDashboardData() {
+  return useQuery({
+    queryKey: ['dashboard'],
+    queryFn: async () => {
+      const { data } = await api.get<RealtimeDashboardDTO>('/api/dashboard');
+      return data;
+    },
+    refetchInterval: 5000,  // Refetch every 5s as fallback
+  });
+}
+
+export function useStats(days: 7 | 30) {
+  return useQuery({
+    queryKey: ['stats', days],
+    queryFn: async () => {
+      const endpoint = days === 7 ? 'last-7-days' : 'last-30-days';
+      const { data } = await api.get<StatsDTO[]>(`/api/stats/${endpoint}`);
+      return data;
+    },
+  });
+}
+```
+
+### Recharts Example - Power Quality Timeline
+
+```tsx
+import { LineChart, Line, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+
+function PowerQualityChart({ measurements }: { measurements: MeasurementDTO[] }) {
+  const data = measurements.map(m => ({
+    time: new Date(m.timestamp).toLocaleTimeString(),
+    voltage: m.voltage,
+    current: m.current,
+    power: m.powerActive / 1000,  // Convert to kW
+  }));
+
+  return (
+    <LineChart width={800} height={400} data={data}>
+      <XAxis dataKey="time" />
+      <YAxis yAxisId="left" label={{ value: 'Voltage (V)', angle: -90 }} />
+      <YAxis yAxisId="right" orientation="right" label={{ value: 'Current (A)', angle: 90 }} />
+      <Tooltip />
+      <Legend />
+      <Line yAxisId="left" type="monotone" dataKey="voltage" stroke="#8884d8" name="Voltage" />
+      <Line yAxisId="right" type="monotone" dataKey="current" stroke="#82ca9d" name="Current" />
+      <Line yAxisId="left" type="monotone" dataKey="power" stroke="#ffc658" name="Power (kW)" />
+    </LineChart>
+  );
+}
+```
+
+### Waveform Visualization
+
+```tsx
+import { LineChart, Line, XAxis, YAxis } from 'recharts';
+
+function WaveformChart({ waveform }: { waveform: WaveformDTO }) {
+  // Generate time axis (0-20ms for 50Hz cycle)
+  const data = waveform.voltage.map((v, i) => ({
+    time: (i / 200) * 20,  // 20ms / 200 samples
+    voltage: v,
+    current: waveform.current[i],
+  }));
+
+  return (
+    <LineChart width={600} height={300} data={data}>
+      <XAxis dataKey="time" label="Time (ms)" />
+      <YAxis label="Amplitude" />
+      <Line type="monotone" dataKey="voltage" stroke="#8884d8" dot={false} />
+      <Line type="monotone" dataKey="current" stroke="#82ca9d" dot={false} />
+    </LineChart>
+  );
+}
+```
+
+### Error Handling
+
+```typescript
+// Backend returns standard error format
+interface ErrorResponse {
+  timestamp: string;
+  status: number;
+  error: string;
+  message: string;
+  path: string;
+}
+
+// Example error handling
+try {
+  const response = await api.get('/api/dashboard');
+} catch (error) {
+  if (axios.isAxiosError(error)) {
+    const errorData = error.response?.data as ErrorResponse;
+    console.error(`API Error: ${errorData.message}`);
+    // Show toast notification
+  }
+}
+```
+
+### CORS Configuration
+
+Backend already configured CORS for:
+- **Origins:** `http://localhost:5173` (Vite dev server)
+- **Methods:** GET, POST, PUT, DELETE, OPTIONS
+- **Headers:** Content-Type, Authorization
+- **WebSocket:** Enabled on all origins
+
+### Testing with curl
+
+```bash
+# Test dashboard endpoint
+curl http://localhost:8080/api/dashboard | jq
+
+# Test latest measurement
+curl http://localhost:8080/api/measurements/latest | jq
+
+# Test stats
+curl http://localhost:8080/api/stats/daily | jq
+
+# Test health
+curl http://localhost:8080/health | jq
+```
+
+### Common Issues
+
+**1. WebSocket connection refused**
+- Ensure backend is running: `curl http://localhost:8080/health`
+- Check MQTT broker: `docker ps | grep mosquitto`
+- Verify ESP32 is publishing data (check backend logs)
+
+**2. Empty waveform data**
+- Waveforms generated from harmonics - if harmonics are [0,0,0...], waveform will be flat
+- Ensure ESP32 mock generator is sending realistic harmonic data
+
+**3. CORS errors**
+- Backend allows `http://localhost:5173` by default
+- If using different port, update `WebSocketConfig.java`
+
+---
+
+**Current Status:** Backend API ready for frontend integration ✅ (Issue #42 in progress)
+
+**End of Implementation Guide**

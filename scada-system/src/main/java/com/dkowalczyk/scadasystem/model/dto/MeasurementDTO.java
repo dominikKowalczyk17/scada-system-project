@@ -3,11 +3,17 @@ package com.dkowalczyk.scadasystem.model.dto;
 import lombok.*;
 import java.time.Instant;
 
+/**
+ * Data Transfer Object for electrical measurements.
+ * Includes both raw measurement values and calculated PN-EN 50160 power quality indicators.
+ */
 @Data
 @Builder
 public class MeasurementDTO {
     private Long id;
     private Instant time;
+
+    // Raw measurements
     private Double voltageRms;
     private Double currentRms;
     private Double powerActive;
@@ -19,4 +25,8 @@ public class MeasurementDTO {
     private Double thdCurrent;
     private Double[] harmonicsV;
     private Double[] harmonicsI;
+
+    // PN-EN 50160 power quality indicators (calculated by backend)
+    private Double voltageDeviationPercent;  // Group 1: Supply voltage magnitude
+    private Double frequencyDeviationHz;     // Group 2: Supply frequency
 }
