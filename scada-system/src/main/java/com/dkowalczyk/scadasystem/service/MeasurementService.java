@@ -162,7 +162,7 @@ public class MeasurementService {
      * Get latest measurement entity (strictly internal, for service-layer logic only).
      * <b>INTERNAL USE ONLY:</b> Do not expose domain entities to controllers. Use DTO-returning methods for API.
      */
-    Optional<Measurement> getLatestMeasurementEntity() {
+    private Optional<Measurement> getLatestMeasurementEntity() {
         return repository.findTopByOrderByTimeDesc();
     }
     /**
