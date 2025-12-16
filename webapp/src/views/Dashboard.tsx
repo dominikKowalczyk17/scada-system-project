@@ -2,6 +2,7 @@ import { ParameterCard } from "@/components/ParameterCard";
 import { WaveformChart } from "@/components/WaveformChart";
 import { HarmonicsChart } from "@/components/HarmonicsChart";
 import { PowerQualitySection } from "@/components/PowerQualitySection";
+import { StreamingChart } from "@/components/StreamingChart";
 import { Activity, Loader2, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -17,7 +18,7 @@ const Dashboard = () => {
   const { data: powerQualityData, isLoading: isPqLoading } = usePowerQualityIndicators();
 
   // WebSocket connection for real-time updates
-  const { isConnected } = useWebSocket({
+  const { isConnected, data: websocket_data } = useWebSocket({
     url: import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws/measurements',
     topic: '/topic/dashboard',
     onError: (error) => {
@@ -298,9 +299,65 @@ const Dashboard = () => {
           </section>
         )}
 
+        {/* Real-time Streaming Charts (Oscilloscope-like) */}
+        {isConnected && (
+          <section className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-foreground flex items-center gap-2">
+              <span className="w-1 h-5 sm:h-6 bg-success rounded-full" />
+              Wykresy streamingowe (oscyloskop)
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <StreamingChart
+                parameter_key="voltage_rms"
+                title="Napięcie RMS"
+                unit="V"
+                stroke_color="#3b82f6"
+                y_domain={[200, 260]}
+                max_buffer_size={60}
+                format_value={(v) => v.toFixed(1)}
+                latest_measurement={websocket_data?.latest_measurement}
+              />
+              <StreamingChart
+                parameter_key="current_rms"
+                title="Prąd RMS"
+                unit="A"
+                stroke_color="#f59e0b"
+                y_domain={[0, "auto"]}
+                max_buffer_size={60}
+                format_value={(v) => v.toFixed(2)}
+                latest_measurement={websocket_data?.latest_measurement}
+              />
+              <StreamingChart
+                parameter_key="frequency"
+                title="Częstotliwość"
+                unit="Hz"
+                stroke_color="#10b981"
+                y_domain={[49.5, 50.5]}
+                max_buffer_size={60}
+                format_value={(v) => v.toFixed(2)}
+                latest_measurement={websocket_data?.latest_measurement}
+              />
+              <StreamingChart
+                parameter_key="power_active"
+                title="Moc czynna"
+                unit="W"
+                stroke_color="#8b5cf6"
+                y_domain={[0, "auto"]}
+                max_buffer_size={60}
+                format_value={(v) => (v / 1000).toFixed(2)}
+                latest_measurement={websocket_data?.latest_measurement}
+              />
+            </div>
+          </section>
+        )}
+
         {/* Waveform Charts */}
         {dashboardData && (
           <section className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-foreground flex items-center gap-2">
+              <span className="w-1 h-5 sm:h-6 bg-primary rounded-full" />
+              Przebiegi czasowe i harmoniczne
+            </h2>
             <div className="grid grid-cols-1 gap-4 sm:gap-6">
               <WaveformChart
                 waveforms={dashboardData.waveforms}
