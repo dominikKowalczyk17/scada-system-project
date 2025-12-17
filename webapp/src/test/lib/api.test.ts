@@ -160,7 +160,9 @@ describe('api', () => {
       const result1 = request_interceptor_fn(config1);
       const result2 = request_interceptor_fn(config2);
 
-      expect(result1.params._t).toBeLessThanOrEqual(result2.params._t);
+      expect(typeof result1.params._t).toBe('number');
+      expect(typeof result2.params._t).toBe('number');
+      expect(result2.params._t).toBeGreaterThanOrEqual(result1.params._t);
     });
 
     it('rejects on request error', async () => {

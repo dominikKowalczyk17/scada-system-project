@@ -6,6 +6,7 @@ import { createTestQueryClient } from '@/test/utils/test-utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { api } from '@/lib/api';
+import type { MeasurementDTO } from '@/types/api';
 
 vi.mock('@/lib/api', () => ({
   api: {
@@ -71,7 +72,7 @@ describe('useHistoryData Hook', () => {
   });
 
   it('passes query params (from,to,limit) to the API', async () => {
-    const sampleData: any[] = [];
+    const sampleData: MeasurementDTO[] = [];
     (api.get as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       data: sampleData,
     });

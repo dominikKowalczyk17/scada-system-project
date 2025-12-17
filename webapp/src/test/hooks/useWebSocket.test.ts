@@ -21,7 +21,6 @@ let mockClient: MockClient;
 let onConnectCallback: (() => void) | undefined;
 let onStompErrorCallback: ((frame: { headers: Record<string, string>; body: string }) => void) | undefined;
 
-// Mock @stomp/stompjs - MUST be at top level for Vitest hoisting
 vi.mock('@stomp/stompjs', () => ({
   Client: vi.fn().mockImplementation((config) => {
     onConnectCallback = config.onConnect;
@@ -30,7 +29,6 @@ vi.mock('@stomp/stompjs', () => ({
     mockClient = {
       connected: false,
       activate: vi.fn(function(this: MockClient) {
-        // Connection happens asynchronously
         setTimeout(() => {
           this.connected = true;
           onConnectCallback?.();
@@ -54,7 +52,6 @@ vi.mock('@stomp/stompjs', () => ({
   }),
 }));
 
-// Mock sockjs-client
 vi.mock('sockjs-client', () => ({
   default: vi.fn(() => ({
     close: vi.fn(),
@@ -104,12 +101,10 @@ describe('useWebSocket Hook', () => {
       { wrapper: createWrapper(queryClient) }
     );
 
-    // Wait for connection
     await waitFor(() => {
       expect(result.current.isConnected).toBe(true);
     });
 
-    // Trigger message manually
     const callback = subscriptions.get('/topic/dashboard');
     expect(callback).toBeDefined();
     callback?.({ body: JSON.stringify(mockData) });
@@ -129,7 +124,6 @@ describe('useWebSocket Hook', () => {
       { wrapper: createWrapper(queryClient) }
     );
 
-    // Trigger error manually
     onStompErrorCallback?.({
       headers: { message: 'Connection Refused' },
       body: 'Connection Refused',
@@ -148,12 +142,12 @@ describe('useWebSocket Hook', () => {
       { wrapper: createWrapper(queryClient) }
     );
 
-    // Wait for activation
     await waitFor(() => {
       expect(mockClient.activate).toHaveBeenCalled();
     });
 
     unmount();
     expect(mockClient.deactivate).toHaveBeenCalled();
+    expect(subscriptions.size).toBe(0);
   });
 });

@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Button } from '@/ui/Button';
-import { faCoffee } from '@fortawesome/free-solid-svg-icons';
+import { faCoffee, faHeart } from '@fortawesome/free-solid-svg-icons';
 
 describe('Button Component', () => {
   it('renders button element', () => {
@@ -78,7 +78,7 @@ describe('Button Component', () => {
       const { container: container1 } = render(<Button size="md" icon={faCoffee} />);
       expect(container1.querySelector('svg')).toBeInTheDocument();
 
-      const { container: container2 } = render(<Button size="md" icon={faCoffee} />);
+      const { container: container2 } = render(<Button size="md" icon={faHeart} />);
       expect(container2.querySelector('svg')).toBeInTheDocument();
     });
   });

@@ -31,7 +31,7 @@ export function createMockAxios(): Mocked<AxiosInstance> {
       headers: new AxiosHeaders(),
       timeout: 10000,
       baseURL: 'http://localhost:8080',
-    } as any,
+    },
   } as unknown as Mocked<AxiosInstance>;
 
   return mock;

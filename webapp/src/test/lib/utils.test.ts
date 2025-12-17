@@ -84,21 +84,19 @@ describe('utils', () => {
     it('handles complex conditional expressions', () => {
       const is_active = true;
       const is_disabled = false;
-      let size: 'large' | 'small' = 'large';
+      const size = 'large';
 
       const result = cn(
         'base',
         is_active && 'active',
         is_disabled && 'disabled',
         size === 'large' && 'text-lg',
-        size === 'small' && 'text-sm'
       );
 
       expect(result).toContain('base');
       expect(result).toContain('active');
       expect(result).toContain('text-lg');
       expect(result).not.toContain('disabled');
-      expect(result).not.toContain('text-sm');
     });
 
     it('handles nested arrays and objects', () => {
@@ -150,10 +148,8 @@ describe('utils', () => {
         'button-base',
         {
           'button-primary': variant === 'primary',
-          'button-secondary': variant === 'secondary',
         },
         {
-          'button-sm': size === 'sm',
           'button-lg': size === 'lg',
         }
       );

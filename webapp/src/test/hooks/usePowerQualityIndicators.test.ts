@@ -132,7 +132,7 @@ describe('usePowerQualityIndicators Hook', () => {
         expect(query).toBeDefined();
     });
 
-    it('sets correct stale time and refetch interval', async () => {
+    it('registers query observer', async () => {
         const sampleIndicators = {
             group1: {},
             group2: {},
