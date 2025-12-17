@@ -32,8 +32,8 @@ public class WaveformService {
      * samplesPerCycle = 200
      * Output: [0.0, 7.2, 14.4, ..., -7.2] (200 values representing sine wave)
      */
-    public double[] reconstructWaveform(Double[] harmonics, double frequency, int samplesPerCycle) {
+    public double[] reconstructWaveform(Double[] harmonics, double frequency, int samplesPerCycle, double phaseShift) {
         // Delegate to MathUtils for the actual mathematical computation
-        return MathUtils.reconstructWaveform(harmonics, frequency, samplesPerCycle);
+        return MathUtils.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
     }
 }

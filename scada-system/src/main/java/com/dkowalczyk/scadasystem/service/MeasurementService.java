@@ -35,10 +35,13 @@ public class MeasurementService {
      */
     private WaveformDTO reconstructWaveforms(Measurement measurement) {
         double frequency = measurement.getFrequency() != null ? measurement.getFrequency() : 50.0;
+        double cos_phi = measurement.getCosPhi() != null ? measurement.getCosPhi() : 1.0;
+        cos_phi = Math.min(1.0, Math.max(-1.0, cos_phi));
+        double phaseShift = Math.acos(cos_phi);
         double[] voltageWaveform = waveformService.reconstructWaveform(
-                measurement.getHarmonicsV(), frequency, 200);
+                measurement.getHarmonicsV(), frequency, 200, 0.0);
         double[] currentWaveform = waveformService.reconstructWaveform(
-                measurement.getHarmonicsI(), frequency, 200);
+                measurement.getHarmonicsI(), frequency, 200, phaseShift);
 
         return WaveformDTO.builder()
                 .voltage(voltageWaveform)

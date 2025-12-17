@@ -38,9 +38,10 @@ class WaveformServiceTest {
         };
         double frequency = 50.0; // Hz
         int samplesPerCycle = 200;
+        double phaseShift = 0.0; // No phase shift
 
         // When: Reconstruct waveform
-        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle);
+        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
 
         // Then: Should have 200 samples
         assertThat(waveform).hasSize(200);
@@ -80,9 +81,10 @@ class WaveformServiceTest {
         };
         double frequency = 50.0; // Hz
         int samplesPerCycle = 200;
+        double phaseShift = 0.0; // No phase shift
 
         // When: Reconstruct waveform
-        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle);
+        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
 
         // Then: Should have 200 samples
         assertThat(waveform).hasSize(200);
@@ -105,9 +107,10 @@ class WaveformServiceTest {
         Double[] harmonics = null;
         double frequency = 50.0;
         int samplesPerCycle = 200;
+        double phaseShift = 0.0; // No phase shift
 
         // When: Reconstruct waveform
-        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle);
+        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
 
         // Then: Should return array of zeros
         assertThat(waveform).hasSize(200);
@@ -121,9 +124,10 @@ class WaveformServiceTest {
         Double[] harmonics = new Double[]{};
         double frequency = 50.0;
         int samplesPerCycle = 200;
+        double phaseShift = 0.0; // No phase shift
 
         // When: Reconstruct waveform
-        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle);
+        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
 
         // Then: Should return array of zeros
         assertThat(waveform).hasSize(200);
@@ -140,9 +144,10 @@ class WaveformServiceTest {
         };
         double frequency = 60.0; // Hz (USA)
         int samplesPerCycle = 200;
+        double phaseShift = 0.0; // No phase shift
 
         // When: Reconstruct waveform
-        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle);
+        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
 
         // Then: Should have 200 samples
         assertThat(waveform).hasSize(200);
@@ -159,12 +164,11 @@ class WaveformServiceTest {
 
         // CASE 1: Pure sine wave (no distortion)
         Double[] pureHarmonics = new Double[]{230.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        double[] pureWave = waveformService.reconstructWaveform(pureHarmonics, 50.0, 200);
+        double[] pureWave = waveformService.reconstructWaveform(pureHarmonics, 50.0, 200, 0.0);
 
         // CASE 2: With 2nd harmonic (adds "hump" to waveform)
         Double[] with2ndHarmonic = new Double[]{230.0, 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        double[] distortedWave = waveformService.reconstructWaveform(with2ndHarmonic, 50.0, 200);
-
+        double[] distortedWave = waveformService.reconstructWaveform(with2ndHarmonic, 50.0, 200, 0.0);
         // Educational observation: 2nd harmonic CHANGES the waveform shape
         // The waveform is no longer a perfect sine - it's distorted!
         double purePeak = findMax(pureWave);

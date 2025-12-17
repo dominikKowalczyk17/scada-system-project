@@ -119,29 +119,27 @@ public class MathUtils {
      * samplesPerCycle = 200
      * → returns 200-element array representing voltage waveform over 20ms (one 50Hz cycle)
      */
-    public static double[] reconstructWaveform(Double[] harmonics, double frequency, int samplesPerCycle) {
-        // Validation: return zeros if harmonics is null or empty
-        if (harmonics == null || harmonics.length == 0) {
-            return new double[samplesPerCycle];
-        }
-
-        // Calculate time step between samples
-        // Period T = 1/f, so Δt = T / samplesPerCycle
+    // W MathUtils.java - dodaj obsługę fazy i popraw amplitudę
+    public static double[] reconstructWaveform(Double[] harmonics, double frequency, int samples, double phaseShift) {
+        double[] waveform = new double[samples];
         double period = 1.0 / frequency;
-        double deltaT = period / samplesPerCycle;
+        
+        for (int i = 0; i < samples; i++) {
+            double t = (i * (period / samples));
+            double sum = 0.0;
 
-        // Initialize result array
-        double[] waveform = new double[samplesPerCycle];
-
-        // Reconstruct waveform by summing all harmonics at each time point
-        for (int i = 0; i < samplesPerCycle; i++) {
-            double t = i * deltaT;  // Time for this sample
-            double sum = getSum(harmonics, frequency, t);
-
-            // Store reconstructed value for this time point
+            for (int n = 0; n < harmonics.length; n++) {
+                if (harmonics[n] != null) {
+                    double order = n + 1;
+                    double omega = 2 * Math.PI * frequency * order;
+                    // n=0 to f. podstawowa, dodajemy do niej phaseShift (acos(cos_phi))
+                    double currentPhase = (n == 0) ? phaseShift : 0; 
+                    // Mnożymy przez sqrt(2), aby z RMS przejść na amplitudę szczytową
+                    sum += (harmonics[n] * Math.sqrt(2)) * Math.sin(omega * t - currentPhase);
+                }
+            }
             waveform[i] = sum;
         }
-
         return waveform;
     }
 
