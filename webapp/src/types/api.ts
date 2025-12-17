@@ -35,18 +35,18 @@ export interface RealtimeDashboardDTO {
 }
 
 export interface StatsDTO {
-  date: string;              // YYYY-MM-DD
-  avgVoltage: number;
-  minVoltage: number;
-  maxVoltage: number;
-  avgCurrent: number;
-  maxCurrent: number;
-  totalEnergyKwh: number;
-  voltageSagCount: number;   // Count of voltage < 207V events
-  voltageSwellCount: number; // Count of voltage > 253V events
-  thdViolationsCount: number; // Count of THD > 8% violations
-  dataCompleteness: number;  // 0.0-1.0 (1.0 = 100%)
-  measurementCount: number;
+  date: string;
+  avg_voltage: number;
+  min_voltage: number;
+  max_voltage: number;
+  avg_current: number;
+  max_current: number;
+  total_energy_kwh: number;
+  voltage_sag_count: number;
+  voltage_swell_count: number;
+  thd_violations_count: number;
+  data_completeness: number;
+  measurement_count: number;
 }
 
 export interface ErrorResponse {
