@@ -86,7 +86,7 @@ export interface PowerQualityIndicatorsDTO {
 
   // PN-EN 50160 Group 4: Voltage Waveform Distortions (Partial)
   thd_voltage: number;                // THD % (partial: H2-H8 only)
-  thd_within_limits: boolean;         // <8% limit
+  thd_within_limits: boolean | null;         // <8% limit
   harmonics_voltage: number[];        // [H1, H2, ..., H8]
 
   // Overall compliance status
