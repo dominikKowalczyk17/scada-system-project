@@ -35,18 +35,18 @@ export interface RealtimeDashboardDTO {
 }
 
 export interface StatsDTO {
-  date: string;              // YYYY-MM-DD
-  avgVoltage: number;
-  minVoltage: number;
-  maxVoltage: number;
-  avgCurrent: number;
-  maxCurrent: number;
-  totalEnergyKwh: number;
-  voltageSagCount: number;   // Count of voltage < 207V events
-  voltageSwellCount: number; // Count of voltage > 253V events
-  thdViolationsCount: number; // Count of THD > 8% violations
-  dataCompleteness: number;  // 0.0-1.0 (1.0 = 100%)
-  measurementCount: number;
+  date: string;
+  avg_voltage: number;
+  min_voltage: number;
+  max_voltage: number;
+  avg_current: number;
+  max_current: number;
+  total_energy_kwh: number;
+  voltage_sag_count: number;
+  voltage_swell_count: number;
+  thd_violations_count: number;
+  data_completeness: number;
+  measurement_count: number;
 }
 
 export interface ErrorResponse {
@@ -86,7 +86,7 @@ export interface PowerQualityIndicatorsDTO {
 
   // PN-EN 50160 Group 4: Voltage Waveform Distortions (Partial)
   thd_voltage: number;                // THD % (partial: H2-H8 only)
-  thd_within_limits: boolean;         // <8% limit
+  thd_within_limits: boolean | null;         // <8% limit
   harmonics_voltage: number[];        // [H1, H2, ..., H8]
 
   // Overall compliance status

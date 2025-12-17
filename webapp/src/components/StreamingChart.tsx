@@ -12,21 +12,13 @@ import type { MeasurementDTO } from "@/types/api";
 import { Activity } from "lucide-react";
 
 interface StreamingChartProps {
-  /** Parameter key to display (e.g., 'voltage_rms', 'current_rms') */
   parameter_key: keyof MeasurementDTO;
-  /** Chart title */
   title: string;
-  /** Y-axis unit (e.g., 'V', 'A', 'Hz') */
   unit: string;
-  /** Line color */
   stroke_color: string;
-  /** Y-axis domain [min, max] or 'auto' */
   y_domain?: [number | string, number | string];
-  /** Max buffer size (number of measurements to keep) */
   max_buffer_size?: number;
-  /** Format value for display */
   format_value?: (value: number) => string;
-  /** Latest measurement from WebSocket */
   latest_measurement?: MeasurementDTO;
 }
 
@@ -70,14 +62,9 @@ export function StreamingChart({
   format_value = (v: number) => v.toFixed(2),
   latest_measurement,
 }: StreamingChartProps) {
-  // Use ref to store buffer - avoids re-renders on each measurement
-  const buffer_ref = useRef<ChartDataPoint[]>([]);
+  const [buffer, set_buffer] = useState<ChartDataPoint[]>([]);
   const last_timestamp_ref = useRef<number>(0);
 
-  // Force re-render counter (only when we want to update the chart)
-  const [render_count, set_render_count] = useState(0);
-
-  // Add new measurement to buffer when latest_measurement prop changes
   const add_measurement = useCallback(
     (measurement: MeasurementDTO) => {
       const value = measurement[parameter_key];
@@ -87,7 +74,6 @@ export function StreamingChart({
         ? new Date(measurement.time).getTime()
         : Date.now();
 
-      // Prevent duplicate entries (same timestamp)
       if (timestamp === last_timestamp_ref.current) return;
       last_timestamp_ref.current = timestamp;
 
@@ -101,19 +87,14 @@ export function StreamingChart({
         }),
       };
 
-      // Add new point and remove oldest if buffer is full (circular buffer)
-      buffer_ref.current = [
-        ...buffer_ref.current.slice(-(max_buffer_size - 1)),
+      set_buffer((prev_buffer) => [
+        ...prev_buffer.slice(-(max_buffer_size - 1)),
         new_point,
-      ];
-
-      // Trigger re-render to update chart
-      set_render_count((prev) => prev + 1);
+      ]);
     },
     [parameter_key, max_buffer_size]
   );
 
-  // Process latest measurement when it changes (useEffect for side effects)
   const measurement_timestamp = latest_measurement?.time || '';
   const previous_measurement_timestamp_ref = useRef<string>('');
 
@@ -122,20 +103,17 @@ export function StreamingChart({
     add_measurement(latest_measurement);
   }
 
-  // Memoize chart data to prevent unnecessary Recharts re-renders
-  // Only recalculate when buffer changes (render_count increments)
   const chart_data = useMemo(() => {
-    return buffer_ref.current.map((point, index) => ({
-      index,  // X-axis: sequential index (0, 1, 2, ...)
+    return buffer.map((point, index) => ({
+      index,
       value: point.value,
       timestamp: point.timestamp,
       display_time: point.display_time,
     }));
-  }, [render_count]);
+  }, [buffer]);
 
-  // Calculate min/max for last 10 measurements (for status indication)
   const recent_stats = useMemo(() => {
-    const recent = buffer_ref.current.slice(-10);
+    const recent = buffer.slice(-10);
     if (recent.length === 0) return { min: 0, max: 0, avg: 0 };
 
     const values = recent.map(p => p.value);
@@ -144,7 +122,7 @@ export function StreamingChart({
       max: Math.max(...values),
       avg: values.reduce((a, b) => a + b, 0) / values.length,
     };
-  }, [render_count]);
+  }, [buffer]);
 
   return (
     <Card>
@@ -201,7 +179,7 @@ export function StreamingChart({
                 stroke={stroke_color}
                 strokeWidth={2}
                 dot={false}
-                isAnimationActive={false}  // Disable animations for streaming
+                isAnimationActive={false}
                 name={title}
               />
             </LineChart>

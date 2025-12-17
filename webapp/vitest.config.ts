@@ -31,6 +31,9 @@ export default defineConfig({
       '.git',
       '.cache',
     ],
+    env: {
+      TZ: 'UTC',
+    },
   },
   resolve: {
     alias: {
