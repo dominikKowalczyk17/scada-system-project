@@ -17,12 +17,16 @@ Thumbs.db
 # Build outputs
 /webapp/build/
 /webapp/dist/
+/webapp/coverage/
 /scada-system/target/
 *.class
 
 # Environment files
 .env
 .env.local
+
+# Claude Code local settings
+.claude/settings.local.json
 
 # Docker volumes
 mosquitto/data/

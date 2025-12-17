@@ -37,6 +37,7 @@ export function useWebSocket({
 }: UseWebSocketOptions) {
   const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [latestData, setLatestData] = useState<RealtimeDashboardDTO | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -54,6 +55,9 @@ export function useWebSocket({
         client.subscribe(topic, (message) => {
           try {
             const data: RealtimeDashboardDTO = JSON.parse(message.body);
+
+            // Update local state for streaming components
+            setLatestData(data);
 
             // Update React Query cache automatically
             queryClient.setQueryData(['dashboard'], data);
@@ -97,5 +101,6 @@ export function useWebSocket({
   return {
     isConnected,
     client: clientRef.current,
+    data: latestData,
   };
 }

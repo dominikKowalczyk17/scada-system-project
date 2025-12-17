@@ -289,20 +289,25 @@ All database schema changes are managed via Flyway migrations in `scada-system/s
 - Testing framework (JUnit 5 + H2 in-memory tests)
 - ESP32 Mock Data Generator (PlatformIO firmware)
 
-**Frontend - In Progress (⚠️ 10%):**
+**Frontend - In Progress (⚠️ 45%):**
 - ✅ Basic project structure (React + TypeScript + Vite)
 - ✅ shadcn/ui components setup
 - ✅ Dashboard layout mockup (hardcoded data)
 - ✅ Vitest testing framework
-- ⚠️ **In Progress (Issue #42):**
+- ✅ **Completed (Issue #42):**
   - TanStack Query (React Query) integration
   - Backend API connection (GET /api/dashboard)
   - WebSocket real-time updates (ws://backend:8080/ws/measurements)
   - Recharts data visualization
   - Loading states & error handling
+- ✅ **Completed (Issue #44):**
+  - Real-time streaming charts (oscilloscope-like behavior)
+  - Circular buffer with 60 measurements (3 minutes)
+  - Optimized performance (no animations, memoized data, ref-based buffer)
+  - 4 streaming parameters: Voltage, Current, Frequency, Active Power
+- ✅ Waveform chart (voltage/current sinusoid)
+- ✅ Harmonics bar chart visualization
 - 🔴 **To Do:**
-  - Waveform chart (voltage/current sinusoid)
-  - Harmonics bar chart visualization
   - Historical data view
   - Statistics dashboard
   - Settings & configuration page

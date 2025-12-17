@@ -49,22 +49,34 @@ Production build output: `dist/`
 webapp/
 ├── src/
 │   ├── components/        # Reusable UI components
-│   │   ├── ui/           # shadcn/ui components
+│   │   ├── StreamingChart.tsx      # Real-time streaming charts (Issue #44)
 │   │   ├── ParameterCard.tsx
-│   │   ├── PowerQualityChart.tsx
-│   │   └── ConnectionStatus.tsx
+│   │   ├── WaveformChart.tsx
+│   │   ├── HarmonicsChart.tsx
+│   │   └── PowerQualitySection.tsx
+│   ├── ui/               # shadcn/ui base components
+│   │   ├── Button.tsx
+│   │   ├── Card.tsx
+│   │   └── Icon.tsx
 │   ├── hooks/            # Custom React hooks
 │   │   ├── useDashboardData.ts
-│   │   ├── useWebSocket.ts
-│   │   └── useLatestMeasurement.ts
+│   │   ├── useWebSocket.ts          # WebSocket with STOMP
+│   │   └── usePowerQualityIndicators.ts
 │   ├── lib/              # Utilities
 │   │   ├── api.ts        # Axios instance
 │   │   ├── queryClient.ts # React Query config
+│   │   ├── dateUtils.ts
 │   │   └── utils.ts
-│   ├── pages/            # Page components
-│   │   └── Dashboard.tsx
+│   ├── views/            # Page components
+│   │   ├── Dashboard.tsx
+│   │   └── History.tsx
 │   ├── types/            # TypeScript types
 │   │   └── api.ts
+│   ├── test/             # Unit tests (Vitest)
+│   │   ├── components/   # Complex component tests
+│   │   │   └── StreamingChart.test.tsx (27 tests, 99% coverage)
+│   │   └── ui/           # UI component tests
+│   │       └── Button.test.tsx
 │   ├── App.tsx
 │   └── main.tsx
 ├── public/
@@ -152,23 +164,47 @@ npm run type-check
 
 ## Testing
 
+### Test Directory Structure
+
+```
+src/test/
+├── components/     # Complex component tests
+│   └── StreamingChart.test.tsx (27 tests, 99.23% coverage)
+├── ui/             # Simple UI component tests
+│   └── Button.test.tsx
+├── hooks/          # Custom hook tests (to be added)
+├── views/          # Page-level tests (to be added)
+└── lib/            # Utility function tests (to be added)
+```
+
 ### Unit Tests (Vitest)
 
 ```bash
+# Run all tests
 npm test
-```
 
-### Component Tests (React Testing Library)
+# Run specific test file
+npm test -- StreamingChart
 
-```bash
+# Watch mode for development
 npm run test:watch
 ```
+
+### Coverage Requirements
+
+- **Complex components**: Minimum 90% coverage ✅
+- **UI components**: Minimum 80% coverage
+- **Utility functions**: Minimum 95% coverage
+- **Hooks**: Minimum 90% coverage
 
 ### Coverage Report
 
 ```bash
 npm run test:coverage
 ```
+
+**Current Coverage:**
+- StreamingChart component: 99.23% statements, 90% branches ✅
 
 ## Implementation Status
 
@@ -177,17 +213,16 @@ npm run test:coverage
 - shadcn/ui components setup
 - Dashboard layout mockup
 - Vitest testing framework
-
-**In Progress (Issue #42):**
-- TanStack Query integration
-- Backend API connection
-- WebSocket real-time updates
-- Recharts data visualization
-- Loading states & error handling
-
-**To Do:**
+- **Issue #42**: TanStack Query integration, Backend API connection, WebSocket real-time updates, Recharts visualization
+- **Issue #44**: Real-time streaming charts (oscilloscope-like behavior)
+  - 4 streaming parameters: Voltage, Current, Frequency, Active Power
+  - Circular buffer (60 measurements = 3 minutes)
+  - Optimized performance (no animations, memoized data, ref-based buffer)
+  - 27 unit tests with 99.23% coverage
 - Waveform chart (voltage/current sinusoid visualization)
 - Harmonics bar chart
+
+**To Do:**
 - Historical data view with date picker
 - Statistics dashboard
 - Settings & configuration page
@@ -234,7 +269,7 @@ npm run lint
 
 See issue tracker: https://github.com/dominikKowalczyk17/scada-system-project/issues
 
-Currently working on: **Issue #42 - Frontend Dashboard API Integration**
+Currently working on: **Historical data view and statistics dashboard**
 
 ---
 
