@@ -100,7 +100,8 @@ public class MathUtils {
     }
 
     /**
-     * Reconstructs time-domain waveform from harmonic amplitudes using inverse Fourier synthesis.
+     * Reconstructs time-domain waveform from harmonic amplitudes using inverse
+     * Fourier synthesis.
      * <p>
      * Mathematical formula: V(t) = Σ[Hₙ · sin(ωₙ · t)] where ωₙ = 2π · f · n
      * <p>
@@ -109,54 +110,47 @@ public class MathUtils {
      *
      * @param harmonics       Array of harmonic amplitudes [H1, H2, ..., H8]
      *                        H1 = fundamental frequency, H2 = 2nd harmonic, etc.
-     * @param frequency       Fundamental frequency in Hz (50Hz for EU, 60Hz for USA)
+     * @param frequency       Fundamental frequency in Hz (50Hz for EU, 60Hz for
+     *                        USA)
      * @param samplesPerCycle Number of samples to generate per complete cycle
-     * @return Array of waveform samples representing one complete cycle, or zeros if harmonics is null/empty
-     * <p>
-     * EXAMPLE:
-     * harmonics = [230.0, 4.8, 2.3, 1.1, 0.8, 0.5, 0.3, 0.2]
-     * frequency = 50.0
-     * samplesPerCycle = 200
-     * → returns 200-element array representing voltage waveform over 20ms (one 50Hz cycle)
+     * @return Array of waveform samples representing one complete cycle, or zeros
+     *         if harmonics is null/empty
+     *         <p>
+     *         EXAMPLE:
+     *         harmonics = [230.0, 4.8, 2.3, 1.1, 0.8, 0.5, 0.3, 0.2]
+     *         frequency = 50.0
+     *         samplesPerCycle = 200
+     *         → returns 200-element array representing voltage waveform over 20ms
+     *         (one 50Hz cycle)
      */
-    // W MathUtils.java - dodaj obsługę fazy i popraw amplitudę
-    public static double[] reconstructWaveform(Double[] harmonics, double frequency, int samples, double phaseShift) {
-        double[] waveform = new double[samples];
-        double period = 1.0 / frequency;
-        
-        for (int i = 0; i < samples; i++) {
-            double t = (i * (period / samples));
-            double sum = 0.0;
+    public static double[] reconstructWaveform(Double[] harmonics, double frequency, int samplesPerCycle,
+            double phaseShift) {
+        if (harmonics == null || harmonics.length == 0) {
+            return new double[samplesPerCycle];
+        }
 
-            for (int n = 0; n < harmonics.length; n++) {
-                if (harmonics[n] != null) {
-                    double order = n + 1;
-                    double omega = 2 * Math.PI * frequency * order;
-                    // n=0 to f. podstawowa, dodajemy do niej phaseShift (acos(cos_phi))
-                    double currentPhase = (n == 0) ? phaseShift : 0; 
-                    // Mnożymy przez sqrt(2), aby z RMS przejść na amplitudę szczytową
-                    sum += (harmonics[n] * Math.sqrt(2)) * Math.sin(omega * t - currentPhase);
-                }
+        double[] waveform = new double[samplesPerCycle];
+
+        // t_step = 1.0 / (frequency * samplesPerCycle);
+
+        for (int i = 0; i < samplesPerCycle; i++) {
+            double t = (double) i / samplesPerCycle;
+            double sum = 0;
+
+            for (int h = 0; h < harmonics.length; h++) {
+                if (harmonics[h] == null)
+                    continue;
+
+                int harmonicOrder = h + 1;
+                double amplitude = harmonics[h] * Math.sqrt(2);
+
+                // Fourier Synthesis:
+                double angle = 2.0 * Math.PI * harmonicOrder * t - (harmonicOrder == 1 ? phaseShift : 0);
+                sum += amplitude * Math.sin(angle);
             }
             waveform[i] = sum;
         }
+
         return waveform;
-    }
-
-    private static double getSum(Double[] harmonics, double frequency, double t) {
-        double sum = 0.0;       // Sum of all harmonic contributions
-
-        // Add contribution from each harmonic
-        for (int n = 0; n < harmonics.length; n++) {
-            if (harmonics[n] != null) {
-                // Angular frequency: ω = 2π · f · (n+1)
-                // n+1 because n=0 is 1st harmonic (fundamental), n=1 is 2nd harmonic, etc.
-                double omega = 2 * Math.PI * frequency * (n + 1);
-
-                // Add harmonic contribution: Hₙ · sin(ωₙ · t)
-                sum += harmonics[n] * Math.sin(omega * t);
-            }
-        }
-        return sum;
     }
 }

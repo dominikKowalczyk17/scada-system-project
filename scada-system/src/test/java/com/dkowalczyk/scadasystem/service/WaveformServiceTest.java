@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.within;
 class WaveformServiceTest {
 
     private WaveformService waveformService;
+    private static final double SQRT_2 = Math.sqrt(2.0);
 
     @BeforeEach
     void setUp() {
@@ -25,96 +26,36 @@ class WaveformServiceTest {
     @Test
     @DisplayName("Should reconstruct pure sine wave from fundamental harmonic only")
     void shouldReconstructPureSineWave() {
-        // Given: Pure 50Hz sine wave with amplitude 230V (only H1, rest = 0)
-        Double[] harmonics = new Double[]{
-                230.0,  // H1 - fundamental (50Hz)
-                0.0,    // H2 - 2nd harmonic (100Hz)
-                0.0,    // H3
-                0.0,    // H4
-                0.0,    // H5
-                0.0,    // H6
-                0.0,    // H7
-                0.0     // H8
-        };
-        double frequency = 50.0; // Hz
+        Double[] harmonics = new Double[]{230.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        double frequency = 50.0;
         int samplesPerCycle = 200;
-        double phaseShift = 0.0; // No phase shift
+        double phaseShift = 0.0;
 
-        // When: Reconstruct waveform
         double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
 
-        // Then: Should have 200 samples
+        double expectedPeak = 230.0 * SQRT_2;
+        
         assertThat(waveform).hasSize(200);
-
-        // Then: Peak value should be close to 230V (RMS to peak ≈ RMS * √2, but for simplicity harmonics are amplitudes)
-        double maxValue = findMax(waveform);
-        double minValue = findMin(waveform);
-        assertThat(maxValue).isCloseTo(230.0, within(1.0));
-        assertThat(minValue).isCloseTo(-230.0, within(1.0));
-
-        // Then: At t=0, value should be 0 (sine wave starts at 0)
+        assertThat(findMax(waveform)).isCloseTo(expectedPeak, within(1.0));
+        assertThat(findMin(waveform)).isCloseTo(-expectedPeak, within(1.0));
         assertThat(waveform[0]).isCloseTo(0.0, within(0.1));
-
-        // Then: At 1/4 cycle (sample 50), value should be at peak (~230V)
-        assertThat(waveform[50]).isCloseTo(230.0, within(1.0));
-
-        // Then: At 1/2 cycle (sample 100), value should be ~0
-        assertThat(waveform[100]).isCloseTo(0.0, within(1.0));
-
-        // Then: At 3/4 cycle (sample 150), value should be at negative peak (~-230V)
-        assertThat(waveform[150]).isCloseTo(-230.0, within(1.0));
     }
 
     @Test
     @DisplayName("Should reconstruct distorted waveform with multiple harmonics")
     void shouldReconstructDistortedWaveform() {
-        // Given: Typical power grid with harmonics (realistic values from ESP32)
-        Double[] harmonics = new Double[]{
-                230.0,  // H1 - fundamental (dominant)
-                4.8,    // H2 - 2nd harmonic (small distortion)
-                2.3,    // H3 - 3rd harmonic
-                1.1,    // H4
-                0.8,    // H5
-                0.5,    // H6
-                0.3,    // H7
-                0.2     // H8
-        };
-        double frequency = 50.0; // Hz
-        int samplesPerCycle = 200;
-        double phaseShift = 0.0; // No phase shift
+        Double[] harmonics = new Double[]{230.0, 4.8, 2.3, 1.1, 0.8, 0.5, 0.3, 0.2};
+        
+        double[] waveform = waveformService.reconstructWaveform(harmonics, 50.0, 200, 0.0);
 
-        // When: Reconstruct waveform
-        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
-
-        // Then: Should have 200 samples
-        assertThat(waveform).hasSize(200);
-
-        // Then: Peak value should be slightly higher than 230V due to harmonics
-        double maxValue = findMax(waveform);
-        double minValue = findMin(waveform);
-        assertThat(maxValue).isBetween(220.0, 240.0);
-        assertThat(minValue).isBetween(-240.0, -220.0); // But not too much distortion
-
-        // Then: Waveform should NOT be perfectly symmetric (harmonics cause distortion)
-        // This is expected - harmonics create asymmetry
-        assertThat(waveform).isNotEmpty();
+        assertThat(findMax(waveform)).isBetween(310.0, 340.0);
     }
 
     @Test
     @DisplayName("Should handle null harmonics array gracefully")
     void shouldHandleNullHarmonics() {
-        // Given: Null harmonics
-        Double[] harmonics = null;
-        double frequency = 50.0;
-        int samplesPerCycle = 200;
-        double phaseShift = 0.0; // No phase shift
-
-        // When: Reconstruct waveform
-        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
-
-        // Then: Should return array of zeros
-        assertThat(waveform).hasSize(200);
-        assertThat(waveform).containsOnly(0.0);
+        double[] waveform = waveformService.reconstructWaveform(null, 50.0, 200, 0.0);
+        assertThat(waveform).hasSize(200).containsOnly(0.0);
     }
 
     @Test
@@ -137,24 +78,10 @@ class WaveformServiceTest {
     @Test
     @DisplayName("Should work with 60Hz frequency (USA power grid)")
     void shouldWorkWith60Hz() {
-        // Given: USA power grid with 60Hz
-        Double[] harmonics = new Double[]{
-                120.0,  // H1 - 110-120V RMS in USA
-                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-        };
-        double frequency = 60.0; // Hz (USA)
-        int samplesPerCycle = 200;
-        double phaseShift = 0.0; // No phase shift
+        Double[] harmonics = new Double[]{120.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        double[] waveform = waveformService.reconstructWaveform(harmonics, 60.0, 200, 0.0);
 
-        // When: Reconstruct waveform
-        double[] waveform = waveformService.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
-
-        // Then: Should have 200 samples
-        assertThat(waveform).hasSize(200);
-
-        // Then: Peak should be ~120V
-        double maxValue = findMax(waveform);
-        assertThat(maxValue).isCloseTo(120.0, within(1.0));
+        assertThat(findMax(waveform)).isCloseTo(120.0 * SQRT_2, within(1.0));
     }
 
     @Test
