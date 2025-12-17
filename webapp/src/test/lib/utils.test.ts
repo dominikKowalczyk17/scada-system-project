@@ -31,7 +31,8 @@ describe('utils', () => {
     });
 
     it('handles conditional classes with arrays', () => {
-      const result = cn(['base', 'primary'], ['secondary', false && 'hidden']);
+      const should_hide = false;
+      const result = cn(['base', 'primary'], ['secondary', should_hide && 'hidden']);
 
       expect(result).toContain('base');
       expect(result).toContain('primary');
@@ -213,13 +214,14 @@ describe('utils', () => {
     });
 
     it('handles mixed input types simultaneously', () => {
+      const should_hide = false;
       const result = cn(
         'base',
         ['array1', 'array2'],
         { conditional1: true, conditional2: false },
         undefined,
         null,
-        false && 'hidden',
+        should_hide && 'hidden',
         'end'
       );
 

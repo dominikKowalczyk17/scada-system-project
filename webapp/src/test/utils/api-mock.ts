@@ -57,15 +57,16 @@ export function createMockResponse<T>(
 /**
  * Creates a mock Axios Error that passes "isAxiosError" checks
  */
-export function createMockError(status: number, data?: any): AxiosError {
-  const error = new AxiosError('Mock Error') as any;
-  error.response = {
+export function createMockError<T = unknown>(status: number, data?: T): AxiosError {
+  const error = new AxiosError('Mock Error');
+  (error as AxiosError).response = {
     status,
     data,
     headers: {},
-    config: { headers: new AxiosHeaders() },
+    config: { headers: new AxiosHeaders() } as InternalAxiosRequestConfig,
+    statusText: 'Error',
   };
-  error.isAxiosError = true;
+  (error as AxiosError).isAxiosError = true;
   return error;
 }
 
@@ -74,11 +75,13 @@ export function createMockError(status: number, data?: any): AxiosError {
  */
 export function mockAxiosModule() {
   const instance = createMockAxios();
-  
+
   vi.mock('axios', () => ({
     default: {
       create: vi.fn(() => instance),
-      isAxiosError: (err: any) => err?.isAxiosError === true,
+      isAxiosError: (err: unknown) => {
+        return typeof err === 'object' && err !== null && 'isAxiosError' in err && err.isAxiosError === true;
+      },
       AxiosHeaders: vi.fn(() => ({})),
     },
     AxiosError: class extends Error {

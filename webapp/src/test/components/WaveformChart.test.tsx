@@ -3,40 +3,72 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { WaveformChart } from '@/components/WaveformChart';
 
+interface MockResponsiveContainerProps {
+  children: React.ReactNode;
+}
+
+interface MockLineChartProps {
+  children: React.ReactNode;
+  data?: Array<Record<string, unknown>>;
+}
+
+interface MockXAxisProps {
+  tickFormatter?: (value: number) => string;
+  label?: { value?: string };
+}
+
+interface MockYAxisProps {
+  label?: { value?: string };
+  domain?: [number | string, number | string];
+  tickFormatter?: (value: number) => string;
+}
+
+interface MockTooltipProps {
+  formatter?: (value: number) => string;
+  labelFormatter?: (value: number) => string;
+}
+
+interface MockLineProps {
+  dataKey: string;
+  stroke?: string;
+  name?: string;
+  dot?: boolean;
+}
+
 vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
-  LineChart: ({ children, data }: any) => (
+  ResponsiveContainer: ({ children }: MockResponsiveContainerProps) => <div data-testid="responsive-container">{children}</div>,
+  LineChart: ({ children, data }: MockLineChartProps) => (
     <div data-testid="line-chart" data-points={data?.length} data-raw={JSON.stringify(data)}>
       {children}
     </div>
   ),
-  XAxis: ({ tickFormatter, label }: any) => (
+  XAxis: ({ tickFormatter, label }: MockXAxisProps) => (
     <div data-testid="x-axis" data-label={label?.value}>
       <span data-testid="x-tick-sample">{tickFormatter?.(20.0)}</span>
     </div>
   ),
-  YAxis: ({ label, domain, tickFormatter }: any) => (
-    <div 
-      data-testid="y-axis" 
-      data-label={label?.value} 
+  YAxis: ({ label, domain, tickFormatter }: MockYAxisProps) => (
+    <div
+      data-testid="y-axis"
+      data-label={label?.value}
       data-domain={JSON.stringify(domain)}
     >
       <span data-testid="y-tick-sample">{tickFormatter?.(230.123)}</span>
     </div>
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: ({ formatter, labelFormatter }: any) => (
+  Tooltip: ({ formatter, labelFormatter }: MockTooltipProps) => (
     <div data-testid="tooltip">
       <span data-testid="tooltip-val">{JSON.stringify(formatter?.(230.123))}</span>
       <span data-testid="tooltip-label">{labelFormatter?.(10.5)}</span>
     </div>
   ),
-  Line: ({ dataKey, stroke, name, dot }: any) => (
-    <div 
-      data-testid={`line-${dataKey}`} 
-      data-stroke={stroke} 
-      data-name={name} 
-      data-dot={String(dot)} 
+  Line: ({ dataKey, stroke, name, dot }: MockLineProps) => (
+    <div
+      data-testid={`line-${dataKey}`}
+      data-stroke={stroke}
+      data-name={name}
+      data-dot={String(dot)}
     />
   ),
 }));

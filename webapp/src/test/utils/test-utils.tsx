@@ -1,10 +1,10 @@
 import { type ReactElement, type ReactNode } from 'react';
-import { render, type RenderOptions } from '@testing-library/react';
+import { render, type RenderOptions, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 
 /**
- * Create a new QueryClient for each test to ensure isolation
+ * Create a new QueryClient for each test to ensure isolation.
  */
 export function createTestQueryClient(): QueryClient {
   return new QueryClient({
@@ -21,6 +21,9 @@ export function createTestQueryClient(): QueryClient {
   });
 }
 
+/**
+ * Internal helper component.
+ */
 interface AllTheProvidersProps {
   children: ReactNode;
   queryClient?: QueryClient;
@@ -41,6 +44,9 @@ function AllTheProviders({
   );
 }
 
+/**
+ * Custom render function that wraps UI with providers.
+ */
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   queryClient?: QueryClient;
   initialRoutes?: string[];
@@ -62,6 +68,6 @@ function customRender(
   });
 }
 
-export * from '@testing-library/react';
+export { screen, fireEvent, waitFor };
 
 export { customRender as render };

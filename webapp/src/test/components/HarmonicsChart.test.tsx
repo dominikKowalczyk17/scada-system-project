@@ -3,33 +3,64 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { HarmonicsChart } from '@/components/HarmonicsChart';
 
+interface MockResponsiveContainerProps {
+  children: React.ReactNode;
+}
+
+interface MockBarChartProps {
+  children: React.ReactNode;
+  data?: Array<Record<string, unknown>>;
+}
+
+interface MockXAxisProps {
+  tickFormatter?: (value: number) => string;
+  label?: { value?: string };
+}
+
+interface MockYAxisProps {
+  scale?: string;
+  domain?: [number | string, number | string];
+  label?: { value?: string };
+}
+
+interface MockTooltipProps {
+  labelFormatter?: (value: number) => string;
+}
+
+interface MockBarProps {
+  dataKey: string;
+  fill?: string;
+  name?: string;
+  radius?: number[];
+}
+
 vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
-  BarChart: ({ children, data }: any) => (
+  ResponsiveContainer: ({ children }: MockResponsiveContainerProps) => <div data-testid="responsive-container">{children}</div>,
+  BarChart: ({ children, data }: MockBarChartProps) => (
     <div data-testid="bar-chart" data-bars={data?.length} data-raw={JSON.stringify(data)}>
       {children}
     </div>
   ),
-  XAxis: ({ tickFormatter, label }: any) => (
+  XAxis: ({ tickFormatter, label }: MockXAxisProps) => (
     <div data-testid="x-axis" data-label={label?.value}>
       <span data-testid="x-tick-sample">{tickFormatter?.(50)}</span>
     </div>
   ),
-  YAxis: ({ scale, domain, label }: any) => (
+  YAxis: ({ scale, domain, label }: MockYAxisProps) => (
     <div data-testid="y-axis" data-scale={scale} data-domain={JSON.stringify(domain)} data-label={label?.value} />
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: ({ labelFormatter }: any) => (
+  Tooltip: ({ labelFormatter }: MockTooltipProps) => (
     <div data-testid="tooltip">
        <span data-testid="tooltip-label-sample">{labelFormatter?.(100)}</span>
     </div>
   ),
-  Bar: ({ dataKey, fill, name, radius }: any) => (
-    <div 
-      data-testid={`bar-${dataKey}`} 
-      data-fill={fill} 
-      data-name={name} 
-      data-radius={JSON.stringify(radius)} 
+  Bar: ({ dataKey, fill, name, radius }: MockBarProps) => (
+    <div
+      data-testid={`bar-${dataKey}`}
+      data-fill={fill}
+      data-name={name}
+      data-radius={JSON.stringify(radius)}
     />
   ),
 }));
