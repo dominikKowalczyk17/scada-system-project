@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { WaveformChart } from '@/components/WaveformChart';
 
@@ -18,18 +18,19 @@ interface MockXAxisProps {
 }
 
 interface MockYAxisProps {
-  label?: { value?: string };
+  yAxisId?: string;
+  orientation?: string;
   domain?: [number | string, number | string];
   tickFormatter?: (value: number) => string;
 }
 
 interface MockTooltipProps {
-  formatter?: (value: number) => string;
   labelFormatter?: (value: number) => string;
 }
 
 interface MockLineProps {
   dataKey: string;
+  yAxisId?: string;
   stroke?: string;
   name?: string;
   dot?: boolean;
@@ -47,25 +48,25 @@ vi.mock('recharts', () => ({
       <span data-testid="x-tick-sample">{tickFormatter?.(20.0)}</span>
     </div>
   ),
-  YAxis: ({ label, domain, tickFormatter }: MockYAxisProps) => (
+  YAxis: ({ yAxisId, orientation, domain, tickFormatter }: MockYAxisProps) => (
     <div
-      data-testid="y-axis"
-      data-label={label?.value}
+      data-testid={`y-axis-${yAxisId}`}
+      data-orientation={orientation}
       data-domain={JSON.stringify(domain)}
     >
-      <span data-testid="y-tick-sample">{tickFormatter?.(230.123)}</span>
+      <span data-testid={`y-tick-${yAxisId}`}>{tickFormatter?.(230.123)}</span>
     </div>
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: ({ formatter, labelFormatter }: MockTooltipProps) => (
+  Tooltip: ({ labelFormatter }: MockTooltipProps) => (
     <div data-testid="tooltip">
-      <span data-testid="tooltip-val">{JSON.stringify(formatter?.(230.123))}</span>
       <span data-testid="tooltip-label">{labelFormatter?.(10.5)}</span>
     </div>
   ),
-  Line: ({ dataKey, stroke, name, dot }: MockLineProps) => (
+  Line: ({ dataKey, yAxisId, stroke, name, dot }: MockLineProps) => (
     <div
       data-testid={`line-${dataKey}`}
+      data-y-axis={yAxisId}
       data-stroke={stroke}
       data-name={name}
       data-dot={String(dot)}
@@ -80,86 +81,102 @@ describe('WaveformChart - Comprehensive Suite', () => {
   const defaultProps = { waveforms, frequency: 50 };
 
   describe('UI & Layout', () => {
-    it('renders the Polish title and frequency description', () => {
+    it('renders the Polish title', () => {
       render(React.createElement(WaveformChart, defaultProps));
-      expect(screen.getByText(/Przebieg czasowy/i)).toBeInTheDocument();
-      expect(screen.getByText(/50.0 Hz/i)).toBeInTheDocument();
+      expect(screen.getByText(/Analiza Fazowa \(Oscyloskop\)/i)).toBeInTheDocument();
     });
 
-    it('renders the toggle buttons with correct Polish labels', () => {
+    it('renders the frequency description with both voltage and current mentioned', () => {
       render(React.createElement(WaveformChart, defaultProps));
-      expect(screen.getByRole('button', { name: /Napięcie/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Prąd/i })).toBeInTheDocument();
+      expect(screen.getByText(/Napięcie.*Prąd.*50\.0 Hz/i)).toBeInTheDocument();
+    });
+
+    it('renders both voltage and current lines simultaneously (dual-axis)', () => {
+      render(React.createElement(WaveformChart, defaultProps));
+      expect(screen.getByTestId('line-voltage')).toBeInTheDocument();
+      expect(screen.getByTestId('line-current')).toBeInTheDocument();
     });
   });
 
-  describe('Data Transformation & Noise Logic', () => {
+  describe('Data Transformation', () => {
     it('calculates time in milliseconds correctly based on frequency', () => {
       render(React.createElement(WaveformChart, defaultProps));
       const chart = screen.getByTestId('line-chart');
       const data = JSON.parse(chart.getAttribute('data-raw') || '[]');
-      
+
       const lastPoint = data[199];
-      expect(lastPoint.time).toBeCloseTo(19.9, 1);
+      const expectedTime = (199 / 200) * (1000 / 50); // ~19.9 ms
+      expect(lastPoint.time).toBeCloseTo(expectedTime, 1);
     });
 
-    it('applies noise to values (output should not exactly equal input)', () => {
+    it('transforms waveform data to chart format with sample, time, voltage, current', () => {
       render(React.createElement(WaveformChart, defaultProps));
       const chart = screen.getByTestId('line-chart');
       const data = JSON.parse(chart.getAttribute('data-raw') || '[]');
 
-      expect(data[0].voltage).not.toBe(0); 
+      expect(data[0]).toHaveProperty('sample', 0);
+      expect(data[0]).toHaveProperty('time');
+      expect(data[0]).toHaveProperty('voltage');
+      expect(data[0]).toHaveProperty('current');
+      expect(data.length).toBe(200);
     });
   });
 
-  describe('Axis & Tooltip Configuration', () => {
+  describe('Axis Configuration - Dual Y-Axis', () => {
     it('configures X-Axis with time labels and ms formatting', () => {
       render(React.createElement(WaveformChart, defaultProps));
       expect(screen.getByTestId('x-axis')).toHaveAttribute('data-label', 'Czas (ms)');
-      expect(screen.getByTestId('x-tick-sample')).toHaveTextContent('20.0');
+      expect(screen.getByTestId('x-tick-sample')).toHaveTextContent('20.0ms');
     });
 
-    it('formats tooltip values to 2 decimal places and labels to 1 decimal place', () => {
+    it('configures left Y-Axis for voltage with fixed domain [-400, 400]', () => {
       render(React.createElement(WaveformChart, defaultProps));
-      expect(screen.getByTestId('tooltip-val')).toHaveTextContent('230.12');
+      const voltageAxis = screen.getByTestId('y-axis-v-axis');
+      expect(voltageAxis).toHaveAttribute('data-orientation', 'left');
+      expect(voltageAxis).toHaveAttribute('data-domain', JSON.stringify([-400, 400]));
+      expect(screen.getByTestId('y-tick-v-axis')).toHaveTextContent('230');
+    });
+
+    it('configures right Y-Axis for current with auto domain', () => {
+      render(React.createElement(WaveformChart, defaultProps));
+      const currentAxis = screen.getByTestId('y-axis-i-axis');
+      expect(currentAxis).toHaveAttribute('data-orientation', 'right');
+      expect(currentAxis).toHaveAttribute('data-domain', JSON.stringify(['auto', 'auto']));
+      expect(screen.getByTestId('y-tick-i-axis')).toHaveTextContent('230.12');
+    });
+  });
+
+  describe('Line Configuration', () => {
+    it('renders voltage line with correct yAxisId and blue stroke', () => {
+      render(React.createElement(WaveformChart, defaultProps));
+      const voltageLine = screen.getByTestId('line-voltage');
+      expect(voltageLine).toHaveAttribute('data-y-axis', 'v-axis');
+      expect(voltageLine).toHaveAttribute('data-stroke', '#3b82f6');
+      expect(voltageLine).toHaveAttribute('data-name', 'Napięcie (V)');
+    });
+
+    it('renders current line with correct yAxisId and orange stroke', () => {
+      render(React.createElement(WaveformChart, defaultProps));
+      const currentLine = screen.getByTestId('line-current');
+      expect(currentLine).toHaveAttribute('data-y-axis', 'i-axis');
+      expect(currentLine).toHaveAttribute('data-stroke', '#f59e0b');
+      expect(currentLine).toHaveAttribute('data-name', 'Prąd (A)');
+    });
+  });
+
+  describe('Tooltip & Styling', () => {
+    it('formats tooltip time labels with ms unit', () => {
+      render(React.createElement(WaveformChart, defaultProps));
       expect(screen.getByTestId('tooltip-label')).toHaveTextContent('10.5 ms');
     });
-  });
 
-  describe('State Management', () => {
-    it('switches Y-Axis scale and labels when changing waveform type', () => {
-      const { rerender } = render(React.createElement(WaveformChart, defaultProps));
-      
-      let yAxis = screen.getByTestId('y-axis');
-      expect(yAxis).toHaveAttribute('data-label', 'Napięcie (V)');
-      expect(yAxis).toHaveAttribute('data-domain', JSON.stringify([210, 250]));
-
-      fireEvent.click(screen.getByRole('button', { name: /Prąd/i }));
-      rerender(React.createElement(WaveformChart, defaultProps));
-      
-      yAxis = screen.getByTestId('y-axis');
-      expect(yAxis).toHaveAttribute('data-label', 'Prąd (A)');
-      expect(yAxis).toHaveAttribute('data-domain', JSON.stringify([0, "auto"]));
-    });
-
-    it('renders only the active line (Voltage or Current)', () => {
-      render(React.createElement(WaveformChart, defaultProps));
-      expect(screen.getByTestId('line-voltage')).toBeInTheDocument();
-      expect(screen.queryByTestId('line-current')).not.toBeInTheDocument();
-
-      fireEvent.click(screen.getByRole('button', { name: /Prąd/i }));
-      expect(screen.getByTestId('line-current')).toBeInTheDocument();
-      expect(screen.queryByTestId('line-voltage')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Styling & Performance', () => {
     it('disables dots on lines for cleaner visualization', () => {
       render(React.createElement(WaveformChart, defaultProps));
       expect(screen.getByTestId('line-voltage')).toHaveAttribute('data-dot', 'false');
+      expect(screen.getByTestId('line-current')).toHaveAttribute('data-dot', 'false');
     });
 
-    it('applies the correct CSS classes for height responsiveness', () => {
+    it('applies responsive height classes', () => {
       const { container } = render(React.createElement(WaveformChart, defaultProps));
       const chartContainer = container.querySelector('.h-\\[300px\\]');
       expect(chartContainer).toBeInTheDocument();
