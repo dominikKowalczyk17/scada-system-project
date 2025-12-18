@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/Card";
 import {
   LineChart,
@@ -18,36 +17,28 @@ interface WaveformChartProps {
 }
 
 export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
-  const [selectedWaveform, setSelectedWaveform] = useState<
-    "voltage" | "current"
-  >("voltage");
-
-  // Add realistic noise and distortion to waveform for oscilloscope-like appearance
-  const addRealisticNoise = (
-    value: number,
-    index: number,
-    isVoltage: boolean
-  ) => {
-    // High-frequency noise (measurement noise)
-    const highFreqNoise = (Math.random() - 0.5) * (isVoltage ? 2 : 0.02);
-
-    // Low-frequency drift (grid fluctuations)
-    const drift = Math.sin(index * 0.05) * (isVoltage ? 1 : 0.01);
-
-    // Occasional spikes (switching noise from power electronics)
-    const spike =
-      Math.random() > 0.95 ? (Math.random() - 0.5) * (isVoltage ? 5 : 0.05) : 0;
-
-    return value + highFreqNoise + drift + spike;
-  };
-
-  // Transform backend data (voltage[], current[]) into Recharts format with realistic noise
+  if (waveforms.voltage.length !== waveforms.current.length) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Błąd: Niezgodne dane falowe</CardTitle>
+        </CardHeader>
+        <CardContent>
+          Długości tablic napięcia i prądu muszą być takie same.
+        </CardContent>
+      </Card>
+    )
+  }
+  // Transformacja danych do formatu Recharts
   const chartData = waveforms.voltage.map((v, index) => ({
     sample: index,
-    time: (index / waveforms.voltage.length) * (1000 / frequency), // Convert to ms
-    voltage: addRealisticNoise(v, index, true),
-    current: addRealisticNoise(waveforms.current[index], index, false),
+    time: (index / waveforms.voltage.length) * (1000 / frequency),
+    voltage: v,
+    current: waveforms.current[index],
   }));
+
+  const maxVoltage = Math.max(...waveforms.voltage.map(Math.abs));
+  const voltageDomain = [-maxVoltage * 1.1, maxVoltage * 1.1];
 
   return (
     <Card>
@@ -55,121 +46,90 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="text-base sm:text-lg">Przebieg czasowy</span>
+            <span className="text-base sm:text-lg">Analiza Fazowa (Oscyloskop)</span>
           </CardTitle>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setSelectedWaveform("voltage")}
-              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
-                selectedWaveform === "voltage"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              }`}
-            >
-              Napięcie
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedWaveform("current")}
-              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
-                selectedWaveform === "current"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-              }`}
-            >
-              Prąd
-            </button>
-          </div>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
-          Przebieg w czasie rzeczywistym z widocznym zniekształceniem harmonicznym ({frequency.toFixed(1)} Hz)
+          Napięcie (niebieski) i Prąd (pomarańczowy) na niezależnych osiach ({frequency.toFixed(1)} Hz)
         </p>
       </CardHeader>
-      <CardContent className="pt-2 sm:pt-2 pb-2 px-2 sm:px-4">
+      <CardContent className="pt-2 pb-2 px-2 sm:px-4">
         <div className="h-[300px] sm:h-[400px] lg:h-[500px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-            <XAxis
-              dataKey="time"
-              label={{
-                value: "Czas (ms)",
-                position: "insideBottom",
-                offset: -5,
-                style: { fill: "#e5e7eb", fontSize: 12 },
-              }}
-              tickFormatter={(value) => value.toFixed(1)}
-              stroke="#6b7280"
-              tick={{ fill: "#e5e7eb", fontSize: 11 }}
-              height={50}
-            />
-            {selectedWaveform === "voltage" && (
-              <YAxis
+              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <XAxis 
+                dataKey="time" 
+                stroke="#6b7280"
+                tick={{ fill: "#e5e7eb", fontSize: 11 }}
+                tickFormatter={(v) => `${v.toFixed(1)}ms`}
+                label={{
+                  value: "Czas (ms)",
+                  position: "insideBottom",
+                  offset: -5,
+                  style: { fill: "#e5e7eb", fontSize: 12 },
+                }}
+                height={50}
+              />
+              
+              {/* LEWA OŚ DLA NAPIĘCIA */}
+              <YAxis 
+                yAxisId="v-axis" 
+                orientation="left"
                 stroke="#3b82f6"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                domain={[210, 250]}
-                label={{
-                  value: "Napięcie (V)",
-                  angle: -90,
-                  position: "insideLeft",
-                  offset: 10,
-                  style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
-                }}
-                tickFormatter={(value) => value.toFixed(0)}
+                domain={voltageDomain}
+                {...{ "data-testid": "y-axis-v-axis", "data-domain": JSON.stringify(voltageDomain) }}
                 width={60}
+                tickFormatter={(value) => value.toFixed(0)}
               />
-            )}
-            {selectedWaveform === "current" && (
-              <YAxis
+              
+              {/* PRAWA OŚ DLA PRĄDU */}
+              <YAxis 
+                yAxisId="i-axis" 
+                orientation="right"
                 stroke="#f59e0b"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                domain={[0, "auto"]}
-                label={{
-                  value: "Prąd (A)",
-                  angle: -90,
-                  position: "insideLeft",
-                  offset: 10,
-                  style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
-                }}
-                tickFormatter={(value) => value.toFixed(2)}
+                domain={['auto', 'auto']}
                 width={60}
+                tickFormatter={(value) => value.toFixed(2)}
               />
-            )}
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#1f2937",
-                border: "1px solid #374151",
-                borderRadius: "6px",
-                fontSize: 12,
-              }}
-              labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
-              itemStyle={{ color: "#e5e7eb" }}
-              formatter={(value: number) => value.toFixed(2)}
-              labelFormatter={(time) => `${time.toFixed(1)} ms`}
-            />
-            {selectedWaveform === "voltage" && (
+
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: "#1f2937",
+                  border: "1px solid #374151",
+                  borderRadius: "6px",
+                  fontSize: 12,
+                }}
+                labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
+                itemStyle={{ color: "#e5e7eb" }}
+                labelFormatter={(time) => `${time.toFixed(1)} ms`}
+              />
+
               <Line
+                yAxisId="v-axis"
                 type="monotone"
                 dataKey="voltage"
                 stroke="#3b82f6"
                 strokeWidth={2}
                 dot={false}
                 name="Napięcie (V)"
+                isAnimationActive={false}
               />
-            )}
-            {selectedWaveform === "current" && (
+              
               <Line
+                yAxisId="i-axis"
                 type="monotone"
                 dataKey="current"
                 stroke="#f59e0b"
                 strokeWidth={2}
                 dot={false}
                 name="Prąd (A)"
+                isAnimationActive={false}
               />
-            )}
-          </LineChart>
-        </ResponsiveContainer>
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
