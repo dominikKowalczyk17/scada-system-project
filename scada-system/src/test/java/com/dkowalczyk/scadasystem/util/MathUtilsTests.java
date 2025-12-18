@@ -2,11 +2,15 @@ package com.dkowalczyk.scadasystem.util;
 
 
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
+
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MathUtilsTests {
@@ -362,5 +366,19 @@ public class MathUtilsTests {
         // Total: 10575 Ws = 0.002937... kWh
         double expectedKwh = 10575.0 / 3_600_000.0;
         assertEquals(expectedKwh, result, 0.000001);
+    }
+
+    @Test
+    @DisplayName("Should apply phase shift to waveform")
+    void shouldApplyPhaseShiftToWaveform() {
+        Double[] harmonics = new Double[]{230.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        double frequency = 50.0;
+        int samplesPerCycle = 200;
+        double phaseShift = Math.PI / 2;
+
+        double[] waveform = MathUtils.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
+
+        double expectedPeak = 230.0 * Math.sqrt(2);
+        assertThat(waveform[0]).isCloseTo(expectedPeak, within(0.1));
     }
 }

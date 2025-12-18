@@ -24,6 +24,7 @@ public class WaveformService {
      *                        H1 = fundamental (50Hz), H2 = 2nd harmonic (100Hz), etc.
      * @param frequency       Fundamental frequency in Hz (50Hz for EU, 60Hz for USA)
      * @param samplesPerCycle Number of samples to generate per cycle (e.g., 200 for smooth graph)
+     * @param phaseShift      Phase shift in radians to fundamental harmonic (typically arccos(cosPhi) for current waveform)
      * @return Array of waveform samples representing one complete cycle
      * <p>
      * EXAMPLE:

@@ -17,6 +17,19 @@ interface WaveformChartProps {
 }
 
 export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
+  if (waveforms.voltage.length != waveforms.current.length) {
+    throw new Error("Voltage and current arrays must have the same length");
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Błąd: Niezgodne dane falowe</CardTitle>
+        </CardHeader>
+        <CardContent>
+          Długości tablic napięcia i prądu muszą być takie same.
+        </CardContent>
+      </Card>
+    )
+  }
   // Transformacja danych do formatu Recharts
   const chartData = waveforms.voltage.map((v, index) => ({
     sample: index,
@@ -24,6 +37,9 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
     voltage: v,
     current: waveforms.current[index],
   }));
+
+  const maxVoltage = Math.max(...waveforms.voltage.map(Math.abs));
+  const voltageDomain = [-maxVoltage * 1.1, maxVoltage * 1.1];
 
   return (
     <Card>
@@ -63,7 +79,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 orientation="left"
                 stroke="#3b82f6"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                domain={[-400, 400]}
+                domain={voltageDomain}
                 width={60}
                 tickFormatter={(value) => value.toFixed(0)}
               />
