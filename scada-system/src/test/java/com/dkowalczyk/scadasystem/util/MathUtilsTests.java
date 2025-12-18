@@ -374,7 +374,7 @@ public class MathUtilsTests {
         Double[] harmonics = new Double[]{230.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         double frequency = 50.0;
         int samplesPerCycle = 200;
-        double phaseShift = Math.PI / 2;
+        double phaseShift = -Math.PI / 2;
 
         double[] waveform = MathUtils.reconstructWaveform(harmonics, frequency, samplesPerCycle, phaseShift);
 
