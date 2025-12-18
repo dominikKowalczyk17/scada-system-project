@@ -17,8 +17,7 @@ interface WaveformChartProps {
 }
 
 export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
-  if (waveforms.voltage.length != waveforms.current.length) {
-    throw new Error("Voltage and current arrays must have the same length");
+  if (waveforms.voltage.length !== waveforms.current.length) {
     return (
       <Card>
         <CardHeader>
