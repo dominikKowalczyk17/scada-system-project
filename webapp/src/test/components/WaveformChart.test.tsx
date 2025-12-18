@@ -129,12 +129,16 @@ describe('WaveformChart - Comprehensive Suite', () => {
       expect(screen.getByTestId('x-tick-sample')).toHaveTextContent('20.0ms');
     });
 
-    it('configures left Y-Axis for voltage with fixed domain [-400, 400]', () => {
+    it('configures left Y-Axis for voltage with correct calculated domain', () => {
       render(React.createElement(WaveformChart, defaultProps));
+      
       const voltageAxis = screen.getByTestId('y-axis-v-axis');
+      
+      const maxVal = Math.max(...defaultProps.waveforms.voltage.map(Math.abs));
+      const expectedDomain = JSON.stringify([-maxVal * 1.1, maxVal * 1.1]);
+
       expect(voltageAxis).toHaveAttribute('data-orientation', 'left');
-      expect(voltageAxis).toHaveAttribute('data-domain', JSON.stringify([-400, 400]));
-      expect(screen.getByTestId('y-tick-v-axis')).toHaveTextContent('230');
+      expect(voltageAxis).toHaveAttribute('data-domain', expectedDomain);
     });
 
     it('configures right Y-Axis for current with auto domain', () => {

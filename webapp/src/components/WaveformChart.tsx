@@ -80,6 +80,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 stroke="#3b82f6"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
                 domain={voltageDomain}
+                {...{ "data-testid": "y-axis-v-axis", "data-domain": JSON.stringify(voltageDomain) }}
                 width={60}
                 tickFormatter={(value) => value.toFixed(0)}
               />
