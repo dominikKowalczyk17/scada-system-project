@@ -8,6 +8,9 @@ import com.dkowalczyk.scadasystem.util.Constants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -192,8 +195,8 @@ public class MeasurementService {
 
     public List<MeasurementDTO> getHistory(Instant from, Instant to, int limit) {
         // Tworzymy request z limitem i sortowaniem po stronie bazy
-        org.springframework.data.domain.Pageable pageable = 
-            org.springframework.data.domain.PageRequest.of(0, limit, org.springframework.data.domain.Sort.by("time").descending());
+        Pageable pageable = 
+            PageRequest.of(0, limit, Sort.by("time").descending());
 
         return repository.findByIsValidTrueAndTimeBetween(from, to, pageable)
                 .stream()
