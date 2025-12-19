@@ -45,7 +45,7 @@ class MeasurementServiceTest {
             .voltageDeviationPercent(0.0)
             .frequencyDeviationHz(0.0)
             .build();
-        when(repository.findTopByOrderByTimeDesc()).thenReturn(Optional.of(measurement));
+        when(repository.findTopByIsValidTrueOrderByTimeDesc()).thenReturn(Optional.of(measurement));
 
         Optional<PowerQualityIndicatorsDTO> result = measurementService.getLatestPowerQualityIndicators();
 
@@ -63,7 +63,7 @@ class MeasurementServiceTest {
 
     @Test
     void getLatestPowerQualityIndicators_returnsEmptyWhenNoMeasurement() {
-        when(repository.findTopByOrderByTimeDesc()).thenReturn(Optional.empty());
+        when(repository.findTopByIsValidTrueOrderByTimeDesc()).thenReturn(Optional.empty());
         Optional<PowerQualityIndicatorsDTO> result = measurementService.getLatestPowerQualityIndicators();
         assertThat(result).isNotPresent();
     }
@@ -79,7 +79,7 @@ class MeasurementServiceTest {
             .voltageDeviationPercent(-10.869565217391305) // (205-230)/230*100
             .frequencyDeviationHz(-1.0) // 49-50
             .build();
-        when(repository.findTopByOrderByTimeDesc()).thenReturn(Optional.of(measurement));
+        when(repository.findTopByIsValidTrueOrderByTimeDesc()).thenReturn(Optional.of(measurement));
 
         Optional<PowerQualityIndicatorsDTO> result = measurementService.getLatestPowerQualityIndicators();
         assertThat(result).isPresent();
