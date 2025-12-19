@@ -205,4 +205,10 @@ public class Measurement {
     @Column(updatable = false)
     @CreationTimestamp
     private Instant createdAt;
+
+    /**
+     * Indicates if the measurement passed validation checks.
+     */
+    @Column(name = "is_valid")
+    private Boolean isValid;
 }

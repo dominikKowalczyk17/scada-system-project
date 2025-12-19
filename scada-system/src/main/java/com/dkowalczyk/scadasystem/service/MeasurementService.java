@@ -26,6 +26,7 @@ public class MeasurementService {
     private final WebSocketService webSocketService;
     private final WaveformService waveformService;
     private final ApplicationEventPublisher eventPublisher;
+    private final MeasurementValidator validator;
 
     /**
      * Helper method to reconstruct voltage and current waveforms from harmonics.
@@ -124,6 +125,9 @@ public class MeasurementService {
                 .harmonicsI(request.getHarmonicsI())
                 .build();
 
+        ValidationResult validationResult = validator.validate(request);
+        measurement.setIsValid(validationResult.isValid());
+
         // Calculate PN-EN 50160 power quality indicators
         calculatePowerQualityIndicators(measurement);
 
@@ -134,6 +138,10 @@ public class MeasurementService {
                 saved.getVoltageDeviationPercent() != null ? String.format("%.2f", saved.getVoltageDeviationPercent()) : "null",
                 saved.getFrequencyDeviationHz() != null ? String.format("%.3f", saved.getFrequencyDeviationHz()) : "null");
 
+        if (!validationResult.isValid()) {
+            log.warn("Saved INVALID measurement: id={}, reasons={}", 
+                     saved.getId(), validationResult.getErrors());
+        }
         // Konwersja Entity → DTO
         MeasurementDTO dto = toDTO(saved);
 
@@ -145,6 +153,10 @@ public class MeasurementService {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void broadcastAfterCommit(MeasurementSavedEvent event) {
+        if (!Boolean.TRUE.equals(event.getMeasurement().getIsValid())) {
+            log.debug("Skipping broadcast for invalid measurement id={}", event.getMeasurement().getId());
+            return;
+        }
         // Broadcast poza transakcją
         WaveformDTO waveforms = reconstructWaveforms(event.getMeasurement());
         webSocketService.broadcastMeasurement(event.getDto());
@@ -157,7 +169,7 @@ public class MeasurementService {
     }
 
     public Optional<MeasurementDTO> getLatestMeasurement() {
-        return repository.findTopByOrderByTimeDesc()
+        return repository.findTopByIsValidTrueOrderByTimeDesc()
                 .map(this::toDTO);
     }
 
@@ -166,7 +178,7 @@ public class MeasurementService {
      * <b>INTERNAL USE ONLY:</b> Do not expose domain entities to controllers. Use DTO-returning methods for API.
      */
     private Optional<Measurement> getLatestMeasurementEntity() {
-        return repository.findTopByOrderByTimeDesc();
+        return repository.findTopByIsValidTrueOrderByTimeDesc();
     }
     /**
      * Returns the latest power quality indicators as a DTO for controller/API use.
@@ -179,9 +191,12 @@ public class MeasurementService {
     }
 
     public List<MeasurementDTO> getHistory(Instant from, Instant to, int limit) {
-        return repository.findByTimeBetweenOrderByTimeDesc(from, to)
+        // Tworzymy request z limitem i sortowaniem po stronie bazy
+        org.springframework.data.domain.Pageable pageable = 
+            org.springframework.data.domain.PageRequest.of(0, limit, org.springframework.data.domain.Sort.by("time").descending());
+
+        return repository.findByIsValidTrueAndTimeBetween(from, to, pageable)
                 .stream()
-                .limit(limit)
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
@@ -196,7 +211,7 @@ public class MeasurementService {
      */
     public Optional<DashboardDTO> getDashboardData() {
         // 1. Pobierz ostatni pomiar
-        Optional<Measurement> latestMeasurement = repository.findTopByOrderByTimeDesc();
+        Optional<Measurement> latestMeasurement = repository.findTopByIsValidTrueOrderByTimeDesc();
         if (latestMeasurement.isEmpty()) {
             log.warn("No measurements found in database for dashboard");
             return Optional.empty();
@@ -209,7 +224,7 @@ public class MeasurementService {
         WaveformDTO waveforms = reconstructWaveforms(latest);
 
         // 3. Pobierz ostatnie 100 pomiarów (historia)
-        List<MeasurementDTO> recentHistory = repository.findTop100ByOrderByTimeDesc()
+        List<MeasurementDTO> recentHistory = repository.findTop100ByIsValidTrueOrderByTimeDesc()
                 .stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());

@@ -153,4 +153,13 @@ public class MathUtils {
 
         return waveform;
     }
+
+    /**
+     * Calculate apparent power S (in VA) from active power P (in W) and reactive
+     * power Q (in VAR).
+     * Formula: S = √(P² + Q²)
+     */
+    public static double calculateApparentPower(double activePower, double reactivePower) {
+        return Math.sqrt(Math.pow(activePower, 2) + Math.pow(reactivePower, 2));
+    }
 }
