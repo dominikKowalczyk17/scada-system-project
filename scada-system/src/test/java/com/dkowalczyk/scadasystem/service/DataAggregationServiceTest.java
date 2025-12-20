@@ -134,18 +134,18 @@ class DataAggregationServiceTest {
         @Test
         @DisplayName("should clear error message on successful run after previous failure")
         void shouldClearErrorOnSuccess() {
-            // Given: First run fails
+            // Given: First run fails, second run succeeds
             LocalDate yesterday = LocalDate.now().minusDays(1);
+            StatsDTO mockStats = createMockStats(yesterday);
             when(statsService.calculateDailyStats(yesterday))
-                    .thenThrow(new RuntimeException("First failure"));
+                    .thenThrow(new RuntimeException("First failure"))
+                    .thenReturn(mockStats);
 
+            // When: First run fails
             aggregationService.aggregateDailyStats();
             assertThat(aggregationService.getLastError()).isNotNull();
 
             // When: Second run succeeds
-            StatsDTO mockStats = createMockStats(yesterday);
-            when(statsService.calculateDailyStats(yesterday)).thenReturn(mockStats);
-
             aggregationService.aggregateDailyStats();
 
             // Then

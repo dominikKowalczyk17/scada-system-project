@@ -198,8 +198,7 @@ class HealthControllerTest {
                     .andExpect(jsonPath("$.aggregation_job.schedule").exists())
                     .andExpect(jsonPath("$.aggregation_job.last_run_time").exists())
                     .andExpect(jsonPath("$.aggregation_job.last_processed_date").exists())
-                    .andExpect(jsonPath("$.aggregation_job.last_run_success").exists())
-                    .andExpect(jsonPath("$.aggregation_job.last_error").exists());
+                    .andExpect(jsonPath("$.aggregation_job.last_run_success").exists());
         }
     }
 

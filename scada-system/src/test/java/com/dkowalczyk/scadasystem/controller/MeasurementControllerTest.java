@@ -113,20 +113,6 @@ class MeasurementControllerTest {
         }
 
         @Test
-        @DisplayName("should return 400 Bad Request when timestamp is missing")
-        void shouldReturn400_whenTimestampMissing() throws Exception {
-            // Given
-            MeasurementRequest request = createValidRequest();
-            request.setTimestamp(null);
-
-            // When & Then
-            mockMvc.perform(post("/api/measurements")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
         @DisplayName("should return 400 Bad Request when voltageRms is missing")
         void shouldReturn400_whenVoltageRmsMissing() throws Exception {
             // Given

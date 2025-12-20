@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
@@ -368,12 +369,12 @@ class DailyStatsRepositoryTest {
             // When: Try to insert another stat for same date
             DailyStats duplicate = createStats(date);
 
-            // Then: This should work (no unique constraint on date)
-            // In real application, there should be a unique constraint
-            assertThatCode(() -> {
+            // Then: Should throw exception due to unique constraint on date
+           assertThatThrownBy(() -> {
                 entityManager.persist(duplicate);
                 entityManager.flush();
-            }).doesNotThrowAnyException();
+            }).isInstanceOf(Exception.class)
+              .hasMessageContaining("Unique index or primary key violation");
         }
 
         @Test

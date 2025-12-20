@@ -3,6 +3,7 @@ package com.dkowalczyk.scadasystem.service;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementDTO;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementRequest;
 import com.dkowalczyk.scadasystem.model.dto.PowerQualityIndicatorsDTO;
+import com.dkowalczyk.scadasystem.model.dto.ValidationResult;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
 import com.dkowalczyk.scadasystem.repository.MeasurementRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -118,7 +120,7 @@ class MeasurementServiceTest {
             .isValid(true)
             .build();
 
-        when(validator.validate(any())).thenReturn(new ValidationResult(true, null));
+        when(validator.validate(any())).thenReturn(new ValidationResult(true, Collections.emptyList(), Collections.emptyList()));
         when(repository.save(any(Measurement.class))).thenReturn(savedMeasurement);
 
         // When
@@ -159,7 +161,7 @@ class MeasurementServiceTest {
             .isValid(true)
             .build();
 
-        when(validator.validate(any())).thenReturn(new ValidationResult(true, null));
+        when(validator.validate(any())).thenReturn(new ValidationResult(true, Collections.emptyList(), Collections.emptyList()));
         when(repository.save(any(Measurement.class))).thenReturn(savedMeasurement);
 
         // When

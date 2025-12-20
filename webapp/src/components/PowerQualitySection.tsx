@@ -244,7 +244,7 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
         </h3>
         <div>
           <div className="space-y-2 space-x-2 text-sm">
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-2">
               <span>Status ogólny:</span>
               <span
                 className={

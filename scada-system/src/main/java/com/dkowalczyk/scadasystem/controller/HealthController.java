@@ -41,12 +41,12 @@ public class HealthController {
         Map<String, Object> aggregationJob = new HashMap<>();
         aggregationJob.put("name", "DailyStatsAggregation");
         aggregationJob.put("schedule", "0 5 0 * * * (every day at 00:05)");
-        aggregationJob.put("lastRunTime", dataAggregationService.getLastRunTime());
-        aggregationJob.put("lastProcessedDate", dataAggregationService.getLastProcessedDate());
-        aggregationJob.put("lastRunSuccess", dataAggregationService.isLastRunSuccess());
-        aggregationJob.put("lastError", dataAggregationService.getLastError());
+        aggregationJob.put("last_run_time", dataAggregationService.getLastRunTime());
+        aggregationJob.put("last_processed_date", dataAggregationService.getLastProcessedDate());
+        aggregationJob.put("last_run_success", dataAggregationService.isLastRunSuccess());
+        aggregationJob.put("last_error", dataAggregationService.getLastError());
 
-        health.put("aggregationJob", aggregationJob);
+        health.put("aggregation_job", aggregationJob);
         health.put("timestamp", Instant.now().toString());
 
         return health;

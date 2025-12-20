@@ -1,11 +1,19 @@
 package com.dkowalczyk.scadasystem.exception;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -13,23 +21,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MeasurementNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(
             MeasurementNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(Map.of(
-                        "error", "Not Found",
-                        "message", ex.getMessage(),
-                        "timestamp", Instant.now()
-                ));
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(
             IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of(
-                        "error", "Bad Request",
-                        "message", ex.getMessage(),
-                        "timestamp", Instant.now()
-                ));
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -37,21 +35,52 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException ex) {
         String message = String.format("Invalid value '%s' for parameter '%s'",
                 ex.getValue(), ex.getName());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of(
-                        "error", "Bad Request",
-                        "message", message,
-                        "timestamp", Instant.now()
-                ));
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", message);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationErrors(
+            MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(FieldError::getDefaultMessage)
+                .collect(Collectors.joining(", "));
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", message);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(
+            ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations().stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining(", "));
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", message);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleMalformedJson(
+            HttpMessageNotReadableException ex) {
+        String message = "Malformed JSON request";
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Bad Request", message);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnsupportedMediaType(
+            HttpMediaTypeNotSupportedException ex) {
+        String message = "Unsupported Media Type";
+        return buildErrorResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, message, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of(
-                        "error", "Internal Server Error",
-                        "message", ex.getMessage(),
-                        "timestamp", Instant.now()
-                ));
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", ex.getMessage());
+    }
+
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(
+            HttpStatus status, String error, String message) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", error);
+        body.put("message", message != null ? message : error);
+        body.put("timestamp", Instant.now());
+        return ResponseEntity.status(status).body(body);
     }
 }

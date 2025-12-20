@@ -3,11 +3,12 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <arduinoFFT.h>
+#include "config.h"
 
 // --- KONFIGURACJA ---
-const char* ssid = "FunBox2-8CE3-2.4GHz";
-const char* password = "74CF7AA6AAA1D7E75776436F36";
-const char* mqtt_server = "192.168.1.11";
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASS;
+const char* mqtt_server = MQTT_SERVER;
 const char* mqtt_topic = "scada/measurements/node1";
 
 #define SAMPLES 512

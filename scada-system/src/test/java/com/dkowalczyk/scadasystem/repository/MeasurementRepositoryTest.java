@@ -269,11 +269,11 @@ class MeasurementRepositoryTest {
             Instant from = now.minusSeconds(100);
             Instant to = now.minusSeconds(20);
 
-            persistMeasurement(from.minusSeconds(10), true); // Before range
-            persistMeasurement(from, true); // At start
-            persistMeasurement(from.plusSeconds(30), true); // In range
-            persistMeasurement(to, true); // At end
-            persistMeasurement(to.plusSeconds(10), true); // After range
+            Measurement m1 = persistMeasurement(from.minusSeconds(10), true); // Before range
+            Measurement m2 = persistMeasurement(from.plusSeconds(1), true); // Just after start (should be included)
+            Measurement m3 = persistMeasurement(from.plusSeconds(40), true); // Middle of range
+            Measurement m4 = persistMeasurement(to.minusSeconds(5), true); // Before end (should be included)
+            Measurement m5 = persistMeasurement(to.plusSeconds(10), true); // After range
             entityManager.flush();
 
             Pageable pageable = PageRequest.of(0, 100, Sort.by("time").descending());
@@ -281,8 +281,10 @@ class MeasurementRepositoryTest {
             // When
             List<Measurement> result = repository.findByIsValidTrueAndTimeBetween(from, to, pageable);
 
-            // Then: Should include boundaries (from and to inclusive)
+            // Then: Should include m2, m3, m4 (3 measurements)
             assertThat(result).hasSize(3);
+            assertThat(result).extracting(Measurement::getId)
+                .containsExactlyInAnyOrder(m2.getId(), m3.getId(), m4.getId());
         }
 
         @Test

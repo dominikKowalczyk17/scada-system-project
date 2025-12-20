@@ -199,12 +199,12 @@ class GlobalExceptionHandlerTest {
         @Test
         @DisplayName("should return 400 when required field is missing")
         void shouldReturn400_whenRequiredFieldMissing() throws Exception {
-            // Given: Request missing timestamp
+            // Given: Request missing required voltageRms field
             MeasurementRequest request = new MeasurementRequest();
-            request.setVoltageRms(230.0);
+            request.setTimestamp(Instant.now().getEpochSecond());
+            // voltageRms is null (required)
             request.setCurrentRms(5.0);
             request.setFrequency(50.0);
-            // timestamp is null
 
             // When & Then
             mockMvc.perform(post("/api/measurements")
@@ -232,7 +232,7 @@ class GlobalExceptionHandlerTest {
         void shouldReturn400_whenMultipleConstraintsViolated() throws Exception {
             // Given: Multiple invalid fields
             MeasurementRequest request = new MeasurementRequest();
-            request.setTimestamp(null);  // Required
+            request.setTimestamp(Instant.now().getEpochSecond());
             request.setVoltageRms(-10.0);  // Must be >= 0
             request.setCurrentRms(150.0);  // Must be <= 100
             request.setFrequency(70.0);  // Must be <= 65
