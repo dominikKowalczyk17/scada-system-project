@@ -34,7 +34,10 @@ import lombok.Data;
 @Data
 public class MeasurementRequest {
 
-    @NotNull(message = "timestamp is required")
+    /**
+     * Optional Unix timestamp (seconds since epoch).
+     * If not provided by ESP32, backend will assign current server time.
+     */
     private Long timestamp;
 
     @NotNull(message = "voltageRms is required")

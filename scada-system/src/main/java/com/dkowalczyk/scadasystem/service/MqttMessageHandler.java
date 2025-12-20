@@ -34,7 +34,6 @@ public class MqttMessageHandler {
 
             // Zapis pomiaru
             measurementService.saveMeasurement(request);
-
             log.info("Measurement processed successfully");
 
         } catch (Exception e) {

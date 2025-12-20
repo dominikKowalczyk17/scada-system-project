@@ -109,10 +109,10 @@ public class MeasurementService {
     @Transactional
     public MeasurementDTO saveMeasurement(MeasurementRequest request) {
         // Konwersja DTO → Entity
-        if (request.getTimestamp() == null) {
-            throw new IllegalArgumentException("timestamp must be provided");
-        }
-        Instant timestamp = Instant.ofEpochSecond(request.getTimestamp());
+        // If ESP32 doesn't provide timestamp, use current server time
+        Instant timestamp = (request.getTimestamp() != null)
+                ? Instant.ofEpochSecond(request.getTimestamp())
+                : Instant.now();
         Measurement measurement = Measurement.builder()
                 .time(timestamp)
                 .voltageRms(request.getVoltageRms())
