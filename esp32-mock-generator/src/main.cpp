@@ -98,12 +98,9 @@ void processingTask(void * pvParameters) {
         FFT.complexToMagnitude(vReal, vImag, SAMPLES);
         
         double freq = FFT.majorPeak(vReal, SAMPLES, SAMPLING_FREQ);
-        // Obliczamy bin składowej podstawowej (zwykle ok. 4 dla 50Hz)
         int baseBin = round(freq / (SAMPLING_FREQ / (double)SAMPLES));
-        if (baseBin < 2) baseBin = 4; // Zabezpieczenie przed błędnym odczytem
+        if (baseBin < 2) baseBin = 4;
 
-        // Amplitudy harmonicznych napięcia (normalizacja FFT: / SAMPLES * 2)
-        // Musimy zapamiętać je przed wykonaniem drugiego FFT na tym samym buforze
         double hV_vals[6];
         double sumSqHarmonicsV = 0;
         for (int h = 1; h <= 5; h++) {
@@ -123,19 +120,31 @@ void processingTask(void * pvParameters) {
             if (h > 1) sumSqHarmonicsI += pow(hI_vals[h], 2);
         }
 
+        // --- DODANY WARUNEK: NOISE GATE ---
+        if (iRMS < 0.40) { 
+          iRMS = 0;
+          pActive = 0;
+          sApparent = 0;
+          qReactive = 0;
+          cosPhi = 1.0;
+          for (int h = 1; h <= 5; h++) {
+            hI_vals[h] = 0;
+          }
+          sumSqHarmonicsI = 0;
+        }
+
         // 4. Budowanie JSON (ArduinoJson v7)
         JsonDocument doc;
         doc["voltage_rms"] = vRMS;
-        doc["current_rms"] = (iRMS < 0.01) ? 0 : iRMS;
+        doc["current_rms"] = iRMS;
         doc["power_active"] = abs(pActive);
         doc["power_apparent"] = sApparent;
         doc["power_reactive"] = qReactive;
         doc["cos_phi"] = (cosPhi > 1.0) ? 1.0 : cosPhi;
         doc["frequency"] = (freq > 40 && freq < 60) ? freq : 50.0;
         
-        // THD obliczane z poprawnie wyłuskanych harmonicznych
         doc["thd_voltage"] = (hV_vals[1] > 5.0) ? (sqrt(sumSqHarmonicsV) / hV_vals[1]) * 100.0 : 0;
-        doc["thd_current"] = (hI_vals[1] > 0.05) ? (sqrt(sumSqHarmonicsI) / hI_vals[1]) * 100.0 : 0;
+        doc["thd_current"] = (hI_vals[1] > 0.1) ? (sqrt(sumSqHarmonicsI) / hI_vals[1]) * 100.0 : 0;
 
         JsonArray hV = doc["harmonics_v"].to<JsonArray>();
         JsonArray hI = doc["harmonics_i"].to<JsonArray>();
