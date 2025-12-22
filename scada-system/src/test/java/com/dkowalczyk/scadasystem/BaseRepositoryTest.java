@@ -6,25 +6,36 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
- * Abstract base class for JPA repository integration tests.
- * * <p>Provides common test configuration:
- * <ul>
- * <li>"test" profile with H2 database in PostgreSQL compatibility mode</li>
- * <li>Automatic JPA configuration (@DataJpaTest)</li>
- * <li>Injected TestEntityManager for persist/flush/clear operations</li>
- * <li>Disabled MQTT auto-configuration (via @DataJpaTest)</li>
- * </ul>
- * * <p>Usage:
+ * Base class for JPA repository tests using H2 in-memory database.
+ *
+ * <p>Configures only JPA slice ({@code @DataJpaTest}) with PostgreSQL compatibility mode.
+ * Provides {@link TestEntityManager} for direct entity operations and {@link #flushAndClear()}
+ * utility to synchronize persistence context with database.
+ *
+ * <p>Example usage:
  * <pre>
- * class MyRepositoryTest extends BaseRepositoryTest {
- * @Autowired
- * private MyRepository repository;
- * * @Test
- * void testSomething() {
- * // use entityManager and repository
- * }
+ * class MeasurementRepositoryTest extends BaseRepositoryTest {
+ *     &#64;Autowired
+ *     private MeasurementRepository repository;
+ *
+ *     &#64;Test
+ *     void shouldFindByDateRange() {
+ *         Measurement m = new Measurement();
+ *         entityManager.persist(m);
+ *         flushAndClear(); // Write to DB and clear cache
+ *
+ *         List&lt;Measurement&gt; result = repository.findByTimestampBetween(...);
+ *         assertThat(result).hasSize(1);
+ *     }
  * }
  * </pre>
+ *
+ * @see BaseServiceTest for service layer tests
+ * @see BaseControllerTest for controller tests
+ * @see BaseIntegrationTest for full context tests
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
  */
 @DataJpaTest
 @ActiveProfiles("test")

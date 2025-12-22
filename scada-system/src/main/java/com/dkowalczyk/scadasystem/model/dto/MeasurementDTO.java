@@ -4,8 +4,10 @@ import lombok.*;
 import java.time.Instant;
 
 /**
- * Data Transfer Object for electrical measurements.
- * Includes both raw measurement values and calculated PN-EN 50160 power quality indicators.
+ * Data Transfer Object for electrical measurements with PN-EN 50160 indicators.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
  */
 @Data
 @Builder

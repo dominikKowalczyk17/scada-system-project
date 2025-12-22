@@ -10,15 +10,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST API for main dashboard - unified endpoint for frontend.
- * <p>
- * WHY: Frontend dashboard needs multiple pieces of data:
- * - Latest measurement (voltage, current, power, THD)
- * - Waveforms reconstructed from harmonics (for graphs)
- * - Recent history (last 100 measurements for trends)
- * - PN-EN 50160 power quality indicators (separate section)
- * <p>
- * This controller provides unified endpoints that reduce API calls.
+ * REST API for main dashboard with unified data endpoints.
+ *
+ * <p>Provides latest measurements, waveforms, history, and PN-EN 50160 power quality
+ * indicators in single API calls to reduce frontend requests.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
  */
 @RestController
 @RequestMapping("/api/dashboard")
@@ -28,18 +26,8 @@ public class DashboardController {
     private final MeasurementService measurementService;
 
     /**
-     * Get complete dashboard data in a single request.
-     * <p>
-     * GET /api/dashboard
-     * <p>
-     * This endpoint provides general measurement data (voltage, current, power, etc.)
-     * for the main dashboard section. For PN-EN 50160 power quality indicators,
-     * use /api/dashboard/power-quality-indicators endpoint.
-     *
-     * @return DashboardDTO containing:
-     * - latestMeasurement: Current electrical parameters
-     * - waveforms: Voltage and current waveforms (200 samples each)
-     * - recentHistory: Last 100 measurements
+     * Returns complete dashboard data: latest measurement, waveforms (200 samples),
+     * and recent history (100 measurements).
      */
     @GetMapping
     public ResponseEntity<DashboardDTO> getDashboard() {

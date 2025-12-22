@@ -9,6 +9,12 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Health check endpoints for monitoring service status and scheduled jobs.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
+ */
 @RestController
 @RequestMapping("/health")
 @RequiredArgsConstructor

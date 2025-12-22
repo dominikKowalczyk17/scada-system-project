@@ -10,10 +10,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO for daily statistics API responses.
+ * DTO for daily statistics API responses (clean JSON without internal fields).
  *
- * Excludes internal fields (id, createdAt, updatedAt) and provides
- * a clean JSON structure for the frontend dashboard.
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
  */
 @Data
 @Builder

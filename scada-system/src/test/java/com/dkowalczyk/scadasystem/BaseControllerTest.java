@@ -18,6 +18,37 @@ import com.dkowalczyk.scadasystem.service.MeasurementService;
 import com.dkowalczyk.scadasystem.service.StatsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Base class for REST controller tests using MockMvc with mocked services.
+ *
+ * <p>Loads only web layer ({@code @WebMvcTest}) with all service dependencies mocked.
+ * Provides pre-configured validation behavior for {@code StatsService.getStatsInDateRange()}
+ * that validates date parameters (order, future dates, 365-day limit).
+ *
+ * <p>Example usage:
+ * <pre>
+ * &#64;WebMvcTest(MeasurementController.class)
+ * class MeasurementControllerTest extends BaseControllerTest {
+ *     &#64;Test
+ *     void shouldReturnMeasurements() throws Exception {
+ *         when(measurementService.getLatest(10))
+ *             .thenReturn(List.of(new Measurement()));
+ *
+ *         mockMvc.perform(get("/api/measurements/latest")
+ *                 .param("limit", "10"))
+ *             .andExpect(status().isOk())
+ *             .andExpect(jsonPath("$.data").isArray());
+ *     }
+ * }
+ * </pre>
+ *
+ * @see BaseRepositoryTest for repository tests
+ * @see BaseServiceTest for service layer tests
+ * @see BaseIntegrationTest for full context tests
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
+ */
 @WebMvcTest
 @ActiveProfiles("test")
 public abstract class BaseControllerTest {

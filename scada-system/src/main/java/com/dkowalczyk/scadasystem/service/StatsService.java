@@ -74,7 +74,7 @@ public class StatsService {
         }
 
         if (ChronoUnit.DAYS.between(from, to) > 365) {
-            throw new IllegalArgumentException("Date range cannot exceed 366 days");
+            throw new IllegalArgumentException("Date range cannot exceed 365 days");
         }
 
         if (from.isAfter(LocalDate.now())) {

@@ -9,8 +9,23 @@ import com.dkowalczyk.scadasystem.model.dto.ValidationResult;
 import com.dkowalczyk.scadasystem.util.Constants;
 import com.dkowalczyk.scadasystem.util.MathUtils;
 
+/**
+ * Validates measurement data against safety thresholds and PN-EN 50160 standards.
+ *
+ * <p>Checks voltage, current, frequency, power factor, THD, and power calculation consistency.
+ * Returns warnings for standard deviations and errors for critical safety violations.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
+ */
 @Service
 public class MeasurementValidator {
+    /**
+     * Validates measurement request against safety and quality standards.
+     *
+     * @param request measurement data from ESP32
+     * @return validation result with warnings and errors (Polish messages for user display)
+     */
     public ValidationResult validate(MeasurementRequest request) {
         List<String> warnings = new ArrayList<>();
         List<String> errors = new ArrayList<>();

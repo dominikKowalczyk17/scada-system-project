@@ -6,14 +6,12 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * DTO for main dashboard API response - combines real-time data, waveforms, and recent history.
- * <p>
- * WHY: Frontend dashboard needs multiple pieces of data in a single API call:
- * - Latest measurement (voltage, current, power, THD, etc.)
- * - Waveforms reconstructed from harmonics (for voltage/current graphs)
- * - Recent measurement history (for trend visualization)
- * <p>
- * This unified response reduces API calls from 3 to 1.
+ * DTO for main dashboard combining latest measurement, waveforms, and recent history.
+ *
+ * <p>Unified response reduces frontend API calls from 3 to 1.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
  */
 @Data
 @Builder
