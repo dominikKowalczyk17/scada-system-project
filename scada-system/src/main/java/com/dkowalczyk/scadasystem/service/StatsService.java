@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
@@ -71,7 +72,7 @@ public class StatsService {
         Instant endOfDay = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
 
         List<Measurement> measurements =
-                measurementRepository.findByTimeBetweenOrderByTimeDesc(startOfDay, endOfDay);
+                measurementRepository.findByIsValidTrueAndTimeBetween(startOfDay, endOfDay, Pageable.unpaged());
 
         if (measurements.isEmpty()) {
             return StatsDTO.builder().date(date).build();

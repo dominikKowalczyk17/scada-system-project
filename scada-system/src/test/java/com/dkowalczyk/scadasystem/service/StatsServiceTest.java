@@ -13,6 +13,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -193,7 +194,7 @@ class StatsServiceTest {
         // Given: No measurements for the date
         Instant startOfDay = testDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant endOfDay = testDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
-        when(measurementRepository.findByTimeBetweenOrderByTimeDesc(startOfDay, endOfDay))
+        when(measurementRepository.findByIsValidTrueAndTimeBetween(startOfDay, endOfDay, Pageable.unpaged()))
                 .thenReturn(Collections.emptyList());
 
         // When: Calculate daily stats
@@ -206,7 +207,7 @@ class StatsServiceTest {
         assertThat(result.getMeasurementCount()).isZero();
 
         // Verify no save was called
-        verify(measurementRepository).findByTimeBetweenOrderByTimeDesc(startOfDay, endOfDay);
+        verify(measurementRepository).findByIsValidTrueAndTimeBetween(startOfDay, endOfDay, Pageable.unpaged());
         verifyNoInteractions(dailyStatsRepository);
     }
 
@@ -221,7 +222,7 @@ class StatsServiceTest {
         List<Measurement> measurements = createNormalMeasurements();
         Instant startOfDay = testDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant endOfDay = testDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
-        when(measurementRepository.findByTimeBetweenOrderByTimeDesc(startOfDay, endOfDay))
+        when(measurementRepository.findByIsValidTrueAndTimeBetween(startOfDay, endOfDay, Pageable.unpaged()))
                 .thenReturn(measurements);
         when(dailyStatsRepository.save(any(DailyStats.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -264,7 +265,7 @@ class StatsServiceTest {
         assertThat(result.getDataCompleteness()).isGreaterThan(0);
 
         // Verify repository interactions
-        verify(measurementRepository).findByTimeBetweenOrderByTimeDesc(startOfDay, endOfDay);
+        verify(measurementRepository).findByIsValidTrueAndTimeBetween(startOfDay, endOfDay, Pageable.unpaged());
         verify(dailyStatsRepository).save(any(DailyStats.class));
     }
 
@@ -514,7 +515,7 @@ class StatsServiceTest {
     private void mockRepositoryCalls(List<Measurement> measurements) {
         Instant startOfDay = testDate.atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant endOfDay = testDate.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
-        when(measurementRepository.findByTimeBetweenOrderByTimeDesc(startOfDay, endOfDay))
+        when(measurementRepository.findByIsValidTrueAndTimeBetween(startOfDay, endOfDay, Pageable.unpaged()))
                 .thenReturn(measurements);
         when(dailyStatsRepository.save(any(DailyStats.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));

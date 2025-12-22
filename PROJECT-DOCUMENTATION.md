@@ -600,60 +600,398 @@ Szczegółowa dokumentacja backendu znajduje się w **[BACKEND-IMPLEMENTATION.md
 ### 5.1. Struktura projektu (Maven + Spring Boot)
 
 ```
-scada-system/
-├── src/main/java/com/dkowalczyk/scadasystem/
-│   ├── ScadaSystemApplication.java              # Main class
-│   ├── config/
-│   │   ├── MqttConfig.java                      # MQTT Client (Spring Integration)
-│   │   ├── WebSocketConfig.java                 # WebSocket (STOMP)
-│   │   ├── CorsConfig.java                      # CORS policy
-│   │   └── JpaConfig.java                       # JPA/Hibernate config
-│   ├── controller/
-│   │   ├── MeasurementController.java           # REST: /api/measurements
-│   │   ├── StatsController.java                 # REST: /api/stats
-│   │   ├── HealthController.java                # REST: /health
-│   │   └── DashboardController.java             # REST: /api/dashboard, /api/dashboard/power-quality-indicators
-│   ├── model/
-│   │   ├── entity/
-│   │   │   ├── Measurement.java                 # JPA entity (table: measurements)
-│   │   │   └── DailyStats.java                  # JPA entity (table: daily_stats)
-│   │   └── dto/
-│   │       ├── MeasurementDTO.java              # REST response
-│   │       ├── DashboardDTO.java                # Dashboard data
-│   │       ├── PowerQualityIndicatorsDTO.java   # PN-EN 50160 indicators
-│   │       └── WaveformDTO.java                 # Waveform data
-│   ├── repository/
-│   │   ├── MeasurementRepository.java           # Spring Data JPA
-│   │   └── DailyStatsRepository.java
-│   ├── service/
-│   │   ├── MeasurementService.java              # Business logic (save, aggregate, calculate indicators)
-│   │   ├── MqttMessageHandler.java              # MQTT subscriber (@ServiceActivator)
-│   │   ├── WebSocketService.java                # WebSocket broadcaster
-│   │   ├── StatsService.java                    # Statistics calculations
-│   │   ├── WaveformService.java                 # Waveform reconstruction
-│   │   └── DataAggregationService.java          # Scheduled job (daily stats)
-│   ├── exception/
-│   │   ├── GlobalExceptionHandler.java          # @ControllerAdvice
-│   │   └── MeasurementNotFoundException.java
-│   └── util/
-│       ├── Constants.java                       # PN-EN 50160 limits, system specs
-│       ├── DateTimeUtils.java
-│       └── MathUtils.java
-├── src/main/resources/
-│   ├── application.properties                   # Main config
-│   ├── application-dev.properties               # Dev profile
-│   ├── application-test.properties              # Test profile (H2 DB)
-│   └── db/migration/                            # Flyway migrations
-│       ├── V1__Create_measurements_table.sql
-│       ├── V2__Create_daily_stats_table.sql
-│       └── V3__Remove_unmeasurable_fields_and_add_indicators.sql
-└── src/test/
-    └── java/com/dkowalczyk/scadasystem/
-        ├── ScadaSystemApplicationTests.java     # Context load test
-        ├── controller/
-        │   └── MeasurementControllerTest.java   # REST API tests
-        └── service/
-            └── MeasurementServiceTest.java      # Business logic tests
+└── 📁scada-system-project
+    └── 📁esp32-mock-generator
+        └── 📁include
+            ├── config.h.example
+        └── 📁src
+            ├── main.cpp
+        ├── .gitignore
+        ├── platformio.ini
+        ├── README.md
+    └── 📁mosquitto
+        └── 📁config
+            ├── mosquitto.conf
+    └── 📁scada-system
+        └── 📁src
+            └── 📁main
+                └── 📁java
+                    └── 📁com
+                        └── 📁dkowalczyk
+                            └── 📁scadasystem
+                                └── 📁config
+                                    ├── AsyncConfig.java
+                                    ├── CorsConfig.java
+                                    ├── JpaConfig.java
+                                    ├── MqttConfig.java
+                                    ├── WebSocketConfig.java
+                                └── 📁controller
+                                    ├── DashboardController.java
+                                    ├── HealthController.java
+                                    ├── MeasurementController.java
+                                    ├── StatsController.java
+                                    ├── WebSocketController.java
+                                └── 📁exception
+                                    ├── GlobalExceptionHandler.java
+                                    ├── MeasurementNotFoundException.java
+                                    ├── ValidationException.java
+                                └── 📁model
+                                    └── 📁dto
+                                        ├── DashboardDTO.java
+                                        ├── HistoryRequest.java
+                                        ├── MeasurementDTO.java
+                                        ├── MeasurementRequest.java
+                                        ├── PowerQualityIndicatorsDTO.java
+                                        ├── RealtimeDashboardDTO.java
+                                        ├── StatsDTO.java
+                                        ├── ValidationResult.java
+                                        ├── WaveformDTO.java
+                                    └── 📁entity
+                                        ├── DailyStats.java
+                                        ├── Measurement.java
+                                    └── 📁event
+                                        ├── MeasurementSavedEvent.java
+                                └── 📁repository
+                                    ├── DailyStatsRepository.java
+                                    ├── MeasurementRepository.java
+                                └── 📁service
+                                    ├── DataAggregationService.java
+                                    ├── MeasurementService.java
+                                    ├── MeasurementValidator.java
+                                    ├── MqttMessageHandler.java
+                                    ├── StatsService.java
+                                    ├── WaveformService.java
+                                    ├── WebSocketService.java
+                                └── 📁util
+                                    ├── Constants.java
+                                    ├── DateTimeUtils.java
+                                    ├── MathUtils.java
+                                ├── ScadaSystemApplication.java
+                └── 📁resources
+                    └── 📁db
+                        └── 📁migration
+                            ├── V1__Create_measurements_table.sql
+                            ├── V2__Create_daily_stats_table.sql
+                            ├── V3__Remove_unmeasurable_fields_and_add_indicators.sql
+                    ├── application.properties
+            └── 📁test
+                └── 📁java
+                    └── 📁com
+                        └── 📁dkowalczyk
+                            └── 📁scadasystem
+                                └── 📁controller
+                                    ├── StatsControllerTest.java
+                                └── 📁service
+                                    ├── MeasurementServiceTest.java
+                                    ├── MeasurementValidatorTest.java
+                                    ├── StatsServiceTest.java
+                                    ├── WaveformServiceTest.java
+                                └── 📁util
+                                    ├── MathUtilsTests.java
+                                ├── ScadaSystemApplicationTests.java
+                └── 📁resources
+                    ├── application-test.properties
+        └── 📁target
+            └── 📁classes
+                └── 📁com
+                    └── 📁dkowalczyk
+                        └── 📁scadasystem
+                            └── 📁config
+                                ├── AsyncConfig.class
+                                ├── CorsConfig.class
+                                ├── JpaConfig.class
+                                ├── MqttConfig.class
+                                ├── WebSocketConfig.class
+                            └── 📁controller
+                                ├── DashboardController.class
+                                ├── HealthController.class
+                                ├── MeasurementController.class
+                                ├── StatsController.class
+                                ├── WebSocketController.class
+                            └── 📁exception
+                                ├── GlobalExceptionHandler.class
+                                ├── MeasurementNotFoundException.class
+                                ├── ValidationException.class
+                            └── 📁model
+                                └── 📁dto
+                                    ├── DashboardDTO.class
+                                    ├── DashboardDTO$DashboardDTOBuilder.class
+                                    ├── HistoryRequest.class
+                                    ├── MeasurementDTO.class
+                                    ├── MeasurementDTO$MeasurementDTOBuilder.class
+                                    ├── MeasurementRequest.class
+                                    ├── PowerQualityIndicatorsDTO.class
+                                    ├── PowerQualityIndicatorsDTO$PowerQualityIndicatorsDTOBuilder.class
+                                    ├── RealtimeDashboardDTO.class
+                                    ├── RealtimeDashboardDTO$RealtimeDashboardDTOBuilder.class
+                                    ├── StatsDTO.class
+                                    ├── StatsDTO$StatsDTOBuilder.class
+                                    ├── ValidationResult.class
+                                    ├── WaveformDTO.class
+                                    ├── WaveformDTO$WaveformDTOBuilder.class
+                                └── 📁entity
+                                    ├── DailyStats.class
+                                    ├── DailyStats$DailyStatsBuilder.class
+                                    ├── Measurement.class
+                                    ├── Measurement$MeasurementBuilder.class
+                                └── 📁event
+                                    ├── MeasurementSavedEvent.class
+                            └── 📁repository
+                                ├── DailyStatsRepository.class
+                                ├── MeasurementRepository.class
+                            └── 📁service
+                                ├── DataAggregationService.class
+                                ├── MeasurementService.class
+                                ├── MeasurementValidator.class
+                                ├── MqttMessageHandler.class
+                                ├── StatsService.class
+                                ├── WaveformService.class
+                                ├── WebSocketService.class
+                            └── 📁util
+                                ├── Constants.class
+                                ├── DateTimeUtils.class
+                                ├── MathUtils.class
+                            ├── ScadaSystemApplication.class
+                └── 📁db
+                    └── 📁migration
+                        ├── V1__Create_measurements_table.sql
+                        ├── V2__Create_daily_stats_table.sql
+                        ├── V3__Remove_unmeasurable_fields_and_add_indicators.sql
+                ├── application.properties
+            └── 📁generated-sources
+                └── 📁annotations
+            └── 📁generated-test-sources
+                └── 📁test-annotations
+            └── 📁test-classes
+                └── 📁com
+                    └── 📁dkowalczyk
+                        └── 📁scadasystem
+                            └── 📁controller
+                                ├── StatsControllerTest.class
+                            └── 📁service
+                                ├── MeasurementServiceTest.class
+                                ├── MeasurementValidatorTest.class
+                                ├── StatsServiceTest.class
+                                ├── WaveformServiceTest.class
+                            └── 📁util
+                                ├── MathUtilsTests.class
+                            ├── ScadaSystemApplicationTests.class
+                ├── application-test.properties
+        ├── HELP.md
+        ├── mvnw
+        ├── mvnw.cmd
+        ├── pom.xml
+    └── 📁tools
+        ├── mqtt-mock-publisher.js
+        ├── mqtt-poor-quality-publisher.js
+        ├── package-lock.json
+        ├── package.json
+        ├── README.md
+    └── 📁webapp
+        └── 📁coverage
+            └── 📁lcov-report
+                └── 📁webapp
+                    └── 📁src
+                        └── 📁components
+                            ├── AlertPanel.tsx.html
+                            ├── GridSection.tsx.html
+                            ├── HarmonicsChart.tsx.html
+                            ├── index.html
+                            ├── LiveChart.tsx.html
+                            ├── ParameterCard.tsx.html
+                            ├── PowerQualitySection.tsx.html
+                            ├── StatusIndicator.tsx.html
+                            ├── StreamingChart.tsx.html
+                            ├── WaveformChart.tsx.html
+                        └── 📁hooks
+                            ├── index.html
+                            ├── useDashboardData.ts.html
+                            ├── useHistoryData.ts.html
+                            ├── useLatestMeasurement.ts.html
+                            ├── usePowerQualityIndicators.ts.html
+                            ├── useWebSocket.ts.html
+                        └── 📁lib
+                            ├── api.ts.html
+                            ├── constants.ts.html
+                            ├── dateUtils.ts.html
+                            ├── index.html
+                            ├── queryClient.ts.html
+                            ├── utils.ts.html
+                        └── 📁types
+                            ├── api.ts.html
+                            ├── index.html
+                        └── 📁ui
+                            ├── Button.tsx.html
+                            ├── Card.tsx.html
+                            ├── Icon.tsx.html
+                            ├── index.html
+                            ├── index.ts.html
+                        └── 📁views
+                            ├── Dashboard.tsx.html
+                            ├── History.tsx.html
+                            ├── index.html
+                        ├── App.tsx.html
+                        ├── index.html
+                        ├── main.tsx.html
+                    ├── index.html
+                    ├── screenshot.mjs.html
+                ├── base.css
+                ├── block-navigation.js
+                ├── favicon.png
+                ├── index.html
+                ├── prettify.css
+                ├── prettify.js
+                ├── sort-arrow-sprite.png
+                ├── sorter.js
+            └── 📁webapp
+                └── 📁src
+                    └── 📁components
+                        ├── AlertPanel.tsx.html
+                        ├── GridSection.tsx.html
+                        ├── HarmonicsChart.tsx.html
+                        ├── index.html
+                        ├── LiveChart.tsx.html
+                        ├── ParameterCard.tsx.html
+                        ├── PowerQualitySection.tsx.html
+                        ├── StatusIndicator.tsx.html
+                        ├── StreamingChart.tsx.html
+                        ├── WaveformChart.tsx.html
+                    └── 📁hooks
+                        ├── index.html
+                        ├── useDashboardData.ts.html
+                        ├── useHistoryData.ts.html
+                        ├── useLatestMeasurement.ts.html
+                        ├── usePowerQualityIndicators.ts.html
+                        ├── useWebSocket.ts.html
+                    └── 📁lib
+                        ├── api.ts.html
+                        ├── constants.ts.html
+                        ├── dateUtils.ts.html
+                        ├── index.html
+                        ├── queryClient.ts.html
+                        ├── utils.ts.html
+                    └── 📁types
+                        ├── api.ts.html
+                        ├── index.html
+                    └── 📁ui
+                        ├── Button.tsx.html
+                        ├── Card.tsx.html
+                        ├── Icon.tsx.html
+                        ├── index.html
+                        ├── index.ts.html
+                    └── 📁views
+                        ├── Dashboard.tsx.html
+                        ├── History.tsx.html
+                        ├── index.html
+                    ├── App.tsx.html
+                    ├── index.html
+                    ├── main.tsx.html
+                ├── index.html
+                ├── screenshot.mjs.html
+            ├── base.css
+            ├── block-navigation.js
+            ├── coverage-final.json
+            ├── favicon.png
+            ├── index.html
+            ├── lcov.info
+            ├── prettify.css
+            ├── prettify.js
+            ├── sort-arrow-sprite.png
+            ├── sorter.js
+        └── 📁public
+            ├── vite.svg
+        └── 📁src
+            └── 📁assets
+                ├── react.svg
+            └── 📁components
+                ├── AlertPanel.tsx
+                ├── GridSection.tsx
+                ├── HarmonicsChart.tsx
+                ├── LiveChart.tsx
+                ├── ParameterCard.tsx
+                ├── PowerQualitySection.tsx
+                ├── StatusIndicator.tsx
+                ├── StreamingChart.tsx
+                ├── WaveformChart.tsx
+            └── 📁hooks
+                ├── useDashboardData.ts
+                ├── useHistoryData.ts
+                ├── useLatestMeasurement.ts
+                ├── usePowerQualityIndicators.ts
+                ├── useWebSocket.ts
+            └── 📁lib
+                ├── api.ts
+                ├── constants.ts
+                ├── dateUtils.ts
+                ├── queryClient.ts
+                ├── utils.ts
+            └── 📁test
+                └── 📁components
+                    ├── HarmonicsChart.test.tsx
+                    ├── StreamingChart.test.tsx
+                    ├── WaveformChart.test.tsx
+                └── 📁hooks
+                    ├── useDashboardData.test.ts
+                    ├── useHistoryData.test.ts
+                    ├── usePowerQualityIndicators.test.ts
+                    ├── useWebSocket.test.ts
+                └── 📁lib
+                    ├── api.test.ts
+                    ├── constants.test.ts
+                    ├── dateUtils.test.ts
+                    ├── utils.test.ts
+                └── 📁ui
+                    ├── Button.test.tsx
+                    ├── Card.test.tsx
+                    ├── Icon.test.tsx
+                    ├── ParameterCard.test.tsx
+                    ├── PowerQualitySection.test.tsx
+                    ├── StatusIndicator.test.tsx
+                └── 📁utils
+                    ├── api-mock.ts
+                    ├── index.ts
+                    ├── mocks.ts
+                    ├── test-utils.tsx
+                    ├── TestWrapper.tsx
+                ├── setup.ts
+            └── 📁types
+                ├── api.ts
+            └── 📁ui
+                ├── Button.tsx
+                ├── Card.tsx
+                ├── Icon.tsx
+                ├── index.ts
+            └── 📁views
+                ├── Dashboard.tsx
+                ├── History.tsx
+            ├── App.css
+            ├── App.tsx
+            ├── index.css
+            ├── main.tsx
+        ├── .gitignore
+        ├── eslint.config.js
+        ├── index.html
+        ├── package-lock.json
+        ├── package.json
+        ├── postcss.config.js
+        ├── README.md
+        ├── screenshot.mjs
+        ├── tailwind.config.ts
+        ├── tsconfig.app.json
+        ├── tsconfig.json
+        ├── tsconfig.node.json
+        ├── vite.config.ts
+        ├── vitest.config.ts
+    ├── .gitignore
+    ├── CI-CD-SETUP.md
+    ├── CLAUDE.md
+    ├── docker-compose.prod.yml
+    ├── docker-compose.yml
+    ├── ESP32-MEASUREMENT-SPECS.md
+    ├── FUTURE-IMPROVEMENTS.md
+    ├── POWER-QUALITY-INDICATORS.md
+    ├── PROJECT-DOCUMENTATION.md
+    └── ZMIANY-WSKAZNIKI-PN-EN-50160.md
 ```
 
 ### 5.2. Kluczowe komponenty

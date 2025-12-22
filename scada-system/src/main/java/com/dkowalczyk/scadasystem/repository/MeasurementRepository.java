@@ -1,6 +1,8 @@
 package com.dkowalczyk.scadasystem.repository;
 
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
+
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -15,7 +17,7 @@ public interface MeasurementRepository extends JpaRepository<Measurement, Long> 
     /**
      * Znajdź ostatni pomiar
      */
-    Optional<Measurement> findTopByOrderByTimeDesc();
+    Optional<Measurement> findTopByIsValidTrueOrderByTimeDesc();
 
     /**
      * Znajdź 100 ostatnich pomiarów dla dashboardu (recent history).
@@ -23,15 +25,12 @@ public interface MeasurementRepository extends JpaRepository<Measurement, Long> 
      *
      * @return Lista ostatnich 100 pomiarów posortowana od najnowszego
      */
-    List<Measurement> findTop100ByOrderByTimeDesc();
+    List<Measurement> findTop100ByIsValidTrueOrderByTimeDesc();
 
     /**
      * Historia pomiarów w zakresie czasowym
      */
-    List<Measurement> findByTimeBetweenOrderByTimeDesc(
-            Instant from,
-            Instant to
-    );
+    List<Measurement> findByIsValidTrueAndTimeBetween(Instant from, Instant to, Pageable pageable);
 
     /**
      * Statystyki dzienne (agregacje)
@@ -44,6 +43,7 @@ public interface MeasurementRepository extends JpaRepository<Measurement, Long> 
             AVG(m.powerActive) as avgPower
         FROM Measurement m
         WHERE m.time > :since
+        AND m.isValid = true
     """)
     Object getDailyStats(Instant since);
 }

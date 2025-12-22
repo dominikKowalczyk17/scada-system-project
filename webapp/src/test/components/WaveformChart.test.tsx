@@ -141,12 +141,11 @@ describe('WaveformChart - Comprehensive Suite', () => {
       expect(voltageAxis).toHaveAttribute('data-domain', expectedDomain);
     });
 
-    it('configures right Y-Axis for current with auto domain', () => {
+    it('configures right Y-Axis for current with fixed domain [-5, 5]', () => {
       render(React.createElement(WaveformChart, defaultProps));
       const currentAxis = screen.getByTestId('y-axis-i-axis');
       expect(currentAxis).toHaveAttribute('data-orientation', 'right');
-      expect(currentAxis).toHaveAttribute('data-domain', JSON.stringify(['auto', 'auto']));
-      expect(screen.getByTestId('y-tick-i-axis')).toHaveTextContent('230.12');
+      expect(currentAxis).toHaveAttribute('data-domain', JSON.stringify([-5, 5]));
     });
   });
 

@@ -90,7 +90,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 orientation="right"
                 stroke="#f59e0b"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                domain={['auto', 'auto']}
+                domain={[-5, 5]}
                 width={60}
                 tickFormatter={(value) => value.toFixed(2)}
               />
