@@ -1,16 +1,10 @@
 package com.dkowalczyk.scadasystem.controller;
 
+import com.dkowalczyk.scadasystem.BaseControllerTest;
 import com.dkowalczyk.scadasystem.model.dto.StatsDTO;
-import com.dkowalczyk.scadasystem.model.entity.DailyStats;
-import com.dkowalczyk.scadasystem.repository.DailyStatsRepository;
-import com.dkowalczyk.scadasystem.service.StatsService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,18 +20,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Uses MockMvc to test HTTP layer with mocked service layer.
  */
 @WebMvcTest(StatsController.class)
-@ActiveProfiles("test")
 @DisplayName("StatsController Integration Tests")
-class StatsControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private StatsService statsService;
-
-    @MockitoBean
-    private DailyStatsRepository dailyStatsRepository;
+class StatsControllerTest extends BaseControllerTest {
 
     // ========================================
     // GET /api/stats/daily Tests
@@ -145,12 +129,12 @@ class StatsControllerTest {
         // Given: Stats for date range exist
         LocalDate from = LocalDate.of(2025, 11, 1);
         LocalDate to = LocalDate.of(2025, 11, 7);
-        List<DailyStats> mockEntities = List.of(
-                createMockDailyStats(from),
-                createMockDailyStats(from.plusDays(3)),
-                createMockDailyStats(to)
+        List<StatsDTO> mockEntities = List.of(
+                createMockStatsDTO(from),
+                createMockStatsDTO(from.plusDays(3)),
+                createMockStatsDTO(to)
         );
-        when(dailyStatsRepository.findByDateBetweenOrderByDateAsc(from, to))
+        when(statsService.getsStatsInDataRange(from, to))
                 .thenReturn(mockEntities);
 
         // When & Then: GET request with date range should return 200 OK
@@ -266,13 +250,13 @@ class StatsControllerTest {
         // In 2025: March 30 is DST transition day
         LocalDate from = LocalDate.of(2025, 3, 28);
         LocalDate to = LocalDate.of(2025, 3, 31);
-        List<DailyStats> mockEntities = List.of(
-                createMockDailyStats(from),
-                createMockDailyStats(LocalDate.of(2025, 3, 30)), // DST transition
-                createMockDailyStats(to)
+        List<StatsDTO> mockDtos = List.of(
+                createMockStatsDTO(from),
+                createMockStatsDTO(LocalDate.of(2025, 3, 30)), // DST transition
+                createMockStatsDTO(to)
         );
-        when(dailyStatsRepository.findByDateBetweenOrderByDateAsc(from, to))
-                .thenReturn(mockEntities);
+        when(statsService.getsStatsInDataRange(from, to))
+                .thenReturn(mockDtos);
 
         // When & Then: Should handle DST correctly (no errors)
         mockMvc.perform(get("/api/stats/range")
@@ -288,13 +272,13 @@ class StatsControllerTest {
         // Given: Date range including Feb 29 in leap year 2024
         LocalDate from = LocalDate.of(2024, 2, 28);
         LocalDate to = LocalDate.of(2024, 3, 1);
-        List<DailyStats> mockEntities = List.of(
-                createMockDailyStats(from),
-                createMockDailyStats(LocalDate.of(2024, 2, 29)), // Leap day
-                createMockDailyStats(to)
+        List<StatsDTO> mockDtos = List.of(
+                createMockStatsDTO(from),
+                createMockStatsDTO(LocalDate.of(2024, 2, 29)),
+                createMockStatsDTO(to)
         );
-        when(dailyStatsRepository.findByDateBetweenOrderByDateAsc(from, to))
-                .thenReturn(mockEntities);
+        when(statsService.getsStatsInDataRange(from, to))
+                .thenReturn(mockDtos);
 
         // When & Then: Should handle leap year correctly
         mockMvc.perform(get("/api/stats/range")
@@ -320,34 +304,6 @@ class StatsControllerTest {
 
     private StatsDTO createMockStatsDTO(LocalDate date) {
         return StatsDTO.builder()
-                .date(date)
-                .avgVoltage(230.0)
-                .minVoltage(225.0)
-                .maxVoltage(235.0)
-                .stdDevVoltage(2.5)
-                .avgPowerActive(1500.0)
-                .minPower(1200.0)
-                .peakPower(1800.0)
-                .totalEnergyKwh(36.0)
-                .avgPowerFactor(0.95)
-                .minPowerFactor(0.90)
-                .avgFrequency(50.0)
-                .minFrequency(49.9)
-                .maxFrequency(50.1)
-                .voltageSagCount(0)
-                .voltageSwellCount(0)
-                .interruptionCount(0)
-                .thdViolationsCount(0)
-                .frequencyDevCount(0)
-                .powerFactorPenaltyCount(0)
-                .measurementCount(28800)
-                .dataCompleteness(1.0)
-                .build();
-    }
-
-    private DailyStats createMockDailyStats(LocalDate date) {
-        return DailyStats.builder()
-                .id(1L)
                 .date(date)
                 .avgVoltage(230.0)
                 .minVoltage(225.0)

@@ -1,14 +1,10 @@
 package com.dkowalczyk.scadasystem.controller;
 
-import com.dkowalczyk.scadasystem.service.DataAggregationService;
+import com.dkowalczyk.scadasystem.BaseControllerTest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,15 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - Verify proper JSON structure for monitoring systems
  */
 @WebMvcTest(HealthController.class)
-@ActiveProfiles("test")
 @DisplayName("HealthController Integration Tests")
-class HealthControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private DataAggregationService dataAggregationService;
+class HealthControllerTest extends BaseControllerTest {
 
     // ========================================
     // GET /health Tests

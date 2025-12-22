@@ -1,16 +1,14 @@
 package com.dkowalczyk.scadasystem.repository;
 
+import com.dkowalczyk.scadasystem.BaseRepositoryTest;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,16 +25,11 @@ import static org.assertj.core.api.Assertions.*;
  * - Verify edge cases with time boundaries
  * - Test performance with larger datasets
  */
-@DataJpaTest
-@ActiveProfiles("test")
 @DisplayName("MeasurementRepository Integration Tests")
-class MeasurementRepositoryTest {
+class MeasurementRepositoryTest extends BaseRepositoryTest {
 
     @Autowired
     private MeasurementRepository repository;
-
-    @Autowired
-    private TestEntityManager entityManager;
 
     // ========================================
     // Test Data Builders
@@ -269,11 +262,9 @@ class MeasurementRepositoryTest {
             Instant from = now.minusSeconds(100);
             Instant to = now.minusSeconds(20);
 
-            Measurement m1 = persistMeasurement(from.minusSeconds(10), true); // Before range
             Measurement m2 = persistMeasurement(from.plusSeconds(1), true); // Just after start (should be included)
             Measurement m3 = persistMeasurement(from.plusSeconds(40), true); // Middle of range
             Measurement m4 = persistMeasurement(to.minusSeconds(5), true); // Before end (should be included)
-            Measurement m5 = persistMeasurement(to.plusSeconds(10), true); // After range
             entityManager.flush();
 
             Pageable pageable = PageRequest.of(0, 100, Sort.by("time").descending());

@@ -1,15 +1,11 @@
 package com.dkowalczyk.scadasystem.controller;
 
+import com.dkowalczyk.scadasystem.BaseControllerTest;
 import com.dkowalczyk.scadasystem.model.dto.*;
-import com.dkowalczyk.scadasystem.service.MeasurementService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.List;
@@ -30,15 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - Verify proper HTTP status codes
  */
 @WebMvcTest(DashboardController.class)
-@ActiveProfiles("test")
 @DisplayName("DashboardController Integration Tests")
-class DashboardControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private MeasurementService measurementService;
+class DashboardControllerTest extends BaseControllerTest {
 
     // ========================================
     // Test Data Builders

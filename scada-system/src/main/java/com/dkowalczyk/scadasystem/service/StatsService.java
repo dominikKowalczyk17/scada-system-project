@@ -65,6 +65,28 @@ public class StatsService {
     }
 
     /**
+     * Get statistics for a specific date range (for reports).
+     */
+    public List<StatsDTO> getsStatsInDataRange(LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("From date must be before or equal to To date");
+        }
+
+        if (Duration.between(from.atStartOfDay(), to.plusDays(1).atStartOfDay()).toDays() > 366) {
+            throw new IllegalArgumentException("Date range cannot exceed 366 days");
+        }
+
+        if (from.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("'from' date cannot be in the future");
+        }
+
+        return repository.findByDateBetweenOrderByDateAsc(from, to)
+                .stream()
+                .map(StatsDTO::new)
+                .toList();
+    }
+
+    /**
      * Calculate and persist daily statistics based on measurement data.
      */
     public StatsDTO calculateDailyStats(LocalDate date) {
