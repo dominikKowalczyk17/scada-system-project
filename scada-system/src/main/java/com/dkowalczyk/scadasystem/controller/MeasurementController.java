@@ -22,8 +22,11 @@ public class MeasurementController {
     private final MeasurementService measurementService;
 
     /**
-     * Przyjmuje pomiar (REST API - opcjonalne, głównie dla testów)
-     * ESP32 wysyła dane przez MQTT, nie przez HTTP POST
+     * Accepts measurement via REST API (optional, mainly for testing).
+     * <p>
+     * NOTE: ESP32 sends data via MQTT, not HTTP POST. This endpoint is provided
+     * for manual testing and development purposes.
+     * <p>
      * POST /api/measurements
      */
     @PostMapping
@@ -34,7 +37,8 @@ public class MeasurementController {
     }
 
     /**
-     * Pobiera ostatni pomiar
+     * Returns the latest valid measurement.
+     * <p>
      * GET /api/measurements/latest
      */
     @GetMapping("/latest")
@@ -45,8 +49,13 @@ public class MeasurementController {
     }
 
     /**
-     * Pobiera historię pomiarów
-     * GET /api/measurements/history?from=timestamp&to=timestamp&limit=100
+     * Returns measurement history within specified time range.
+     * <p>
+     * GET /api/measurements/history?from=timestamp&amp;to=timestamp&amp;limit=100
+     *
+     * @param from  start timestamp (epoch seconds), defaults to 1 hour ago
+     * @param to    end timestamp (epoch seconds), defaults to now
+     * @param limit maximum number of measurements to return (max 1000)
      */
     @GetMapping("/history")
     public ResponseEntity<List<MeasurementDTO>> getHistory(

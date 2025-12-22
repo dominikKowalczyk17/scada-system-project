@@ -71,7 +71,7 @@ public class StatsController {
 
     /**
      * Get statistics for a custom date range
-     * GET /api/stats/range?from=2025-11-01&to=2025-11-13
+     * GET /api/stats/range?from=2025-11-01&amp;to=2025-11-13
      */
     @Operation(summary = "Get statistics for a custom date range",
                description = "Returns a list of daily statistics for the specified date range (inclusive)")
