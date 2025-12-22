@@ -393,9 +393,9 @@ class GlobalExceptionHandlerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isInternalServerError())
-                    // Message is returned as-is (this is acceptable for logged-in users)
-                    // For production, consider sanitizing messages
-                    .andExpect(jsonPath("$.message").exists());
+                    .andExpect(jsonPath("$.message").value("An unexpected error occurred"))
+                    .andExpect(jsonPath("$.errorId").exists())
+                    .andExpect(jsonPath("$.message").value(not(containsString("jdbc:postgresql"))));
         }
 
         @Test
