@@ -11,30 +11,25 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repository for querying electrical measurement data.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
+ */
 @Repository
 public interface MeasurementRepository extends JpaRepository<Measurement, Long> {
 
-    /**
-     * Znajdź ostatni pomiar
-     */
+    /** Finds the most recent valid measurement. */
     Optional<Measurement> findTopByIsValidTrueOrderByTimeDesc();
 
-    /**
-     * Znajdź 100 ostatnich pomiarów dla dashboardu (recent history).
-     * Spring automatycznie generuje query z LIMIT 100.
-     *
-     * @return Lista ostatnich 100 pomiarów posortowana od najnowszego
-     */
+    /** Finds last 100 valid measurements for dashboard recent history. */
     List<Measurement> findTop100ByIsValidTrueOrderByTimeDesc();
 
-    /**
-     * Historia pomiarów w zakresie czasowym
-     */
+    /** Finds valid measurements within time range with pagination. */
     List<Measurement> findByIsValidTrueAndTimeBetween(Instant from, Instant to, Pageable pageable);
 
-    /**
-     * Statystyki dzienne (agregacje)
-     */
+    /** Calculates daily aggregated statistics (min/max/avg voltage and power) since given time. */
     @Query("""
         SELECT
             MIN(m.voltageRms) as minVoltage,

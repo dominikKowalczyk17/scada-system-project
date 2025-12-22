@@ -1,14 +1,11 @@
 package com.dkowalczyk.scadasystem.repository;
 
+import com.dkowalczyk.scadasystem.BaseRepositoryTest;
 import com.dkowalczyk.scadasystem.model.entity.DailyStats;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,16 +21,11 @@ import static org.assertj.core.api.Assertions.*;
  * - Verify date range queries (including boundaries)
  * - Test edge cases: leap years, year boundaries, DST transitions
  */
-@DataJpaTest
-@ActiveProfiles("test")
 @DisplayName("DailyStatsRepository Integration Tests")
-class DailyStatsRepositoryTest {
+class DailyStatsRepositoryTest extends BaseRepositoryTest {
 
     @Autowired
     private DailyStatsRepository repository;
-
-    @Autowired
-    private TestEntityManager entityManager;
 
     // ========================================
     // Test Data Builders

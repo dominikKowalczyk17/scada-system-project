@@ -1,20 +1,15 @@
 package com.dkowalczyk.scadasystem.controller;
 
+import com.dkowalczyk.scadasystem.BaseControllerTest;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementDTO;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementRequest;
-import com.dkowalczyk.scadasystem.service.MeasurementService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.List;
@@ -36,18 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - AssertJ-style matchers for fluent assertions
  */
 @WebMvcTest(MeasurementController.class)
-@ActiveProfiles("test")
 @DisplayName("MeasurementController Integration Tests")
-class MeasurementControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockitoBean
-    private MeasurementService measurementService;
+class MeasurementControllerTest extends BaseControllerTest {
 
     // ========================================
     // Test Data Builders (DRY principle)

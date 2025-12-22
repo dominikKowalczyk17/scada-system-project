@@ -1,17 +1,16 @@
 package com.dkowalczyk.scadasystem.service;
 
+import com.dkowalczyk.scadasystem.BaseServiceTest;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementDTO;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementRequest;
 import com.dkowalczyk.scadasystem.model.dto.PowerQualityIndicatorsDTO;
 import com.dkowalczyk.scadasystem.model.dto.ValidationResult;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
 import com.dkowalczyk.scadasystem.repository.MeasurementRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -22,7 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class MeasurementServiceTest {
+class MeasurementServiceTest extends BaseServiceTest {
 
     @Mock
     private MeasurementRepository repository;
@@ -37,11 +36,6 @@ class MeasurementServiceTest {
 
     @InjectMocks
     private MeasurementService measurementService;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void getLatestPowerQualityIndicators_returnsDtoWhenMeasurementExists() {

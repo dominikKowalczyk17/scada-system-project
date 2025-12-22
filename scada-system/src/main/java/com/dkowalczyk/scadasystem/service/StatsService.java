@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -62,6 +63,28 @@ public class StatsService {
      */
     public Optional<StatsDTO> getStatsForDate(LocalDate date) {
         return repository.findByDate(date).map(StatsDTO::new);
+    }
+
+    /**
+     * Get statistics for a specific date range (for reports).
+     */
+    public List<StatsDTO> getStatsInDateRange(LocalDate from, LocalDate to) {
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("From date must be before or equal to To date");
+        }
+
+        if (ChronoUnit.DAYS.between(from, to) > 365) {
+            throw new IllegalArgumentException("Date range cannot exceed 365 days");
+        }
+
+        if (from.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("'from' date cannot be in the future");
+        }
+
+        return repository.findByDateBetweenOrderByDateAsc(from, to)
+                .stream()
+                .map(StatsDTO::new)
+                .toList();
     }
 
     /**

@@ -19,6 +19,16 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Global exception handler for REST API error responses.
+ *
+ * <p>Translates all exceptions into consistent JSON error responses with:
+ * error type, message, timestamp, and optional error ID for tracking.
+ * Handles validation errors, type mismatches, not found, and unexpected errors.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);

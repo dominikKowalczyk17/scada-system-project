@@ -1,7 +1,6 @@
 package com.dkowalczyk.scadasystem.controller;
 
 import com.dkowalczyk.scadasystem.model.dto.StatsDTO;
-import com.dkowalczyk.scadasystem.repository.DailyStatsRepository;
 import com.dkowalczyk.scadasystem.service.StatsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @RestController
@@ -24,7 +22,6 @@ import java.util.List;
 public class StatsController {
 
     private final StatsService statsService;
-    private final DailyStatsRepository dailyStatsRepository;
 
     /**
      * Get today's statistics
@@ -83,35 +80,13 @@ public class StatsController {
         @ApiResponse(responseCode = "400", description = "Invalid date range (from > to, future dates, or range > 365 days)"),
         @ApiResponse(responseCode = "404", description = "No data available for the specified range")
     })
+
     @GetMapping("/range")
     public ResponseEntity<List<StatsDTO>> getRangeStats(
-            @Parameter(description = "Start date (inclusive) in ISO format (YYYY-MM-DD)", example = "2025-11-01", required = true)
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-
-            @Parameter(description = "End date (inclusive) in ISO format (YYYY-MM-DD)", example = "2025-11-13", required = true)
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
-        // Validation: from must be before or equal to to
-        if (from.isAfter(to)) {
-            throw new IllegalArgumentException("'from' date must be before or equal to 'to' date");
-        }
-
-        // Validation: from cannot be in the future
-        if (from.isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("'from' date cannot be in the future");
-        }
-
-        // Validation: limit date range to 365 days to prevent overload
-        long daysDiff = ChronoUnit.DAYS.between(from, to);
-        if (daysDiff > 365) {
-            throw new IllegalArgumentException("Date range cannot exceed 365 days. Requested: " + daysDiff + " days");
-        }
-
-        // Query database for the date range
-        List<StatsDTO> stats = dailyStatsRepository.findByDateBetweenOrderByDateAsc(from, to)
-                .stream()
-                .map(StatsDTO::new)
-                .toList();
+        List<StatsDTO> stats = statsService.getStatsInDateRange(from, to);
 
         return ResponseEntity.ok(stats);
     }

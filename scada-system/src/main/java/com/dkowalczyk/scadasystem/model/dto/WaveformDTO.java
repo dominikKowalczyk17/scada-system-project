@@ -4,11 +4,12 @@ import lombok.Builder;
 import lombok.Data;
 
 /**
- * DTO for voltage and current waveforms reconstructed from harmonics.
- * <p>
- * WHY: Frontend needs full waveform data (200 samples) to draw voltage/current graphs.
- * ESP32 sends only harmonic amplitudes (8 numbers) to save bandwidth.
- * Backend reconstructs waveforms using WaveformService.
+ * DTO for reconstructed voltage and current waveforms (200 samples each).
+ *
+ * <p>ESP32 sends 8 harmonic amplitudes; backend reconstructs full waveforms for frontend graphs.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
  */
 @Data
 @Builder

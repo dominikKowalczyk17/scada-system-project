@@ -9,23 +9,16 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository for querying DailyStats entities.
- * Spring Data JPA automatically generates implementation based on method names.
+ * Repository for querying daily aggregated statistics.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
  */
 public interface DailyStatsRepository extends JpaRepository<DailyStats, Long> {
 
-    /**
-     * Find statistics for specific date.
-     * @param date the date to query
-     * @return Optional containing DailyStats if found, empty otherwise
-     */
+    /** Finds statistics for specific date. */
     Optional<DailyStats> findByDate(LocalDate date);
 
-    /**
-     * Find statistics for a date range (inclusive).
-     * @param from start date (inclusive)
-     * @param to end date (inclusive)
-     * @return List of DailyStats ordered by date
-     */
+    /** Finds statistics for date range (inclusive), ordered by date ascending. */
     List<DailyStats> findByDateBetweenOrderByDateAsc(LocalDate from, LocalDate to);
 }

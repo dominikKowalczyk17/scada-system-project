@@ -11,9 +11,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 /**
  * Entity representing aggregated daily statistics of power quality measurements.
- * 
- * Includes voltage, frequency, power, THD, and event counters
+ *
+ * <p>Includes voltage, frequency, power, THD, and event counters
  * for a given date according to IEC 61000 standards.
+ *
+ * @author Bachelor Thesis - SCADA System Project
+ * @since 1.0
  */
 @Entity
 @Table(name = "daily_stats")

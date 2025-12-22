@@ -1,6 +1,6 @@
 package com.dkowalczyk.scadasystem.exception;
 
-import com.dkowalczyk.scadasystem.controller.MeasurementController;
+import com.dkowalczyk.scadasystem.BaseIntegrationTest;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementRequest;
 import com.dkowalczyk.scadasystem.service.MeasurementService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,9 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -32,10 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - Test all exception types handled by GlobalExceptionHandler
  * - Ensure no sensitive information leaks in error responses
  */
-@WebMvcTest({MeasurementController.class, GlobalExceptionHandler.class})
-@ActiveProfiles("test")
 @DisplayName("GlobalExceptionHandler Integration Tests")
-class GlobalExceptionHandlerTest {
+class GlobalExceptionHandlerTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
