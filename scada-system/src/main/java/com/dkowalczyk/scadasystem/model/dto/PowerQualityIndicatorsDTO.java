@@ -2,6 +2,7 @@ package com.dkowalczyk.scadasystem.model.dto;
 
 import lombok.Builder;
 import lombok.Data;
+
 import java.time.Instant;
 
 /**
@@ -16,7 +17,7 @@ import java.time.Instant;
  * - Group 4: Voltage waveform distortions (THD and harmonics, partial - H1-H8 only)
  * <p>
  * NOT included (cannot be measured with current hardware):
- * - Group 3: Voltage fluctuations & flicker (requires IEC 61000-4-15 equipment)
+ * - Group 3: Voltage fluctuations and flicker (requires IEC 61000-4-15 equipment)
  * - Group 5: Supply interruptions (implemented separately as events)
  */
 @Data

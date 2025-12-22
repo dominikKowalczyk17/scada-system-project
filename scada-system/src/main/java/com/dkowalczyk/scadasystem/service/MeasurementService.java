@@ -108,7 +108,7 @@ public class MeasurementService {
      */
     @Transactional
     public MeasurementDTO saveMeasurement(MeasurementRequest request) {
-        // Konwersja DTO → Entity
+        // Convert DTO to Entity
         // If ESP32 doesn't provide timestamp, use current server time
         Instant timestamp = (request.getTimestamp() != null)
                 ? Instant.ofEpochSecond(request.getTimestamp())
@@ -134,7 +134,7 @@ public class MeasurementService {
         // Calculate PN-EN 50160 power quality indicators
         calculatePowerQualityIndicators(measurement);
 
-        // Zapis do bazy
+        // Save to database
         Measurement saved = repository.save(measurement);
         log.info("Saved measurement: id={}, voltage={}, current={}, voltage_deviation={}%, frequency_deviation={}Hz",
                 saved.getId(), saved.getVoltageRms(), saved.getCurrentRms(),
@@ -142,10 +142,10 @@ public class MeasurementService {
                 saved.getFrequencyDeviationHz() != null ? String.format("%.3f", saved.getFrequencyDeviationHz()) : "null");
 
         if (!validationResult.isValid()) {
-            log.warn("Saved INVALID measurement: id={}, reasons={}", 
+            log.warn("Saved INVALID measurement: id={}, reasons={}",
                      saved.getId(), validationResult.getErrors());
         }
-        // Konwersja Entity → DTO
+        // Convert Entity to DTO
         MeasurementDTO dto = toDTO(saved);
 
         // Publish event - listener will broadcast after transaction commits
@@ -160,7 +160,7 @@ public class MeasurementService {
             log.debug("Skipping broadcast for invalid measurement id={}", event.getMeasurement().getId());
             return;
         }
-        // Broadcast poza transakcją
+        // Broadcast outside transaction
         WaveformDTO waveforms = reconstructWaveforms(event.getMeasurement());
         webSocketService.broadcastMeasurement(event.getDto());
 
@@ -194,8 +194,8 @@ public class MeasurementService {
     }
 
     public List<MeasurementDTO> getHistory(Instant from, Instant to, int limit) {
-        // Tworzymy request z limitem i sortowaniem po stronie bazy
-        Pageable pageable = 
+        // Create pageable request with limit and database-side sorting
+        Pageable pageable =
             PageRequest.of(0, limit, Sort.by("time").descending());
 
         return repository.findByIsValidTrueAndTimeBetween(from, to, pageable)
@@ -205,15 +205,15 @@ public class MeasurementService {
     }
 
     /**
-     * Pobiera dane dla głównego dashboardu (unified endpoint).
+     * Returns main dashboard data via unified endpoint.
      * <p>
-     * WHY: Zamiast 3 osobnych requestów (latest + history + waveforms),
-     * frontend robi 1 request i dostaje wszystko.
+     * WHY: Instead of 3 separate requests (latest + history + waveforms),
+     * frontend makes 1 request and gets everything, reducing network overhead.
      *
-     * @return DashboardDTO z najnowszym pomiarem, przebiegami i historią
+     * @return DashboardDTO with latest measurement, waveforms, and recent history
      */
     public Optional<DashboardDTO> getDashboardData() {
-        // 1. Pobierz ostatni pomiar
+        // 1. Get latest measurement
         Optional<Measurement> latestMeasurement = repository.findTopByIsValidTrueOrderByTimeDesc();
         if (latestMeasurement.isEmpty()) {
             log.warn("No measurements found in database for dashboard");
@@ -223,16 +223,16 @@ public class MeasurementService {
         Measurement latest = latestMeasurement.get();
         MeasurementDTO latestDTO = toDTO(latest);
 
-        // 2. Rekonstruuj przebiegi z harmonicznych
+        // 2. Reconstruct waveforms from harmonics
         WaveformDTO waveforms = reconstructWaveforms(latest);
 
-        // 3. Pobierz ostatnie 100 pomiarów (historia)
+        // 3. Get last 100 measurements (history)
         List<MeasurementDTO> recentHistory = repository.findTop100ByIsValidTrueOrderByTimeDesc()
                 .stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
 
-        // 4. Zbuduj DashboardDTO
+        // 4. Build DashboardDTO
         DashboardDTO dashboard = DashboardDTO.builder()
                 .latestMeasurement(latestDTO)
                 .waveforms(waveforms)

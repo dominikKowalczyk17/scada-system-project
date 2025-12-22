@@ -60,7 +60,7 @@ public class MqttConfig {
     }
 
     /**
-     * Message Channel dla przychodzących wiadomości MQTT
+     * Message Channel for incoming MQTT messages from ESP32 nodes.
      */
     @Bean
     public MessageChannel mqttInputChannel() {
@@ -68,7 +68,7 @@ public class MqttConfig {
     }
 
     /**
-     * MQTT Inbound Adapter - subskrybuje topic i odbiera wiadomości
+     * MQTT Inbound Adapter that subscribes to topics and receives messages from broker.
      */
     @Bean
     public MessageProducer mqttInbound() {

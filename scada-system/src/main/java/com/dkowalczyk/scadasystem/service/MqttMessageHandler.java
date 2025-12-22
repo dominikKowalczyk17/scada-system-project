@@ -17,8 +17,13 @@ public class MqttMessageHandler {
     private final ObjectMapper objectMapper;
 
     /**
-     * Obsługuje wiadomości MQTT z ESP32
-     * @param message Wiadomość MQTT z kanału mqttInputChannel
+     * Handles incoming MQTT messages from ESP32 measurement nodes.
+     * <p>
+     * Parses JSON payload, validates measurement data, and saves to database
+     * via MeasurementService. Triggered automatically when messages arrive on
+     * the mqttInputChannel.
+     *
+     * @param message MQTT message from mqttInputChannel containing JSON measurement data
      */
     @ServiceActivator(inputChannel = "mqttInputChannel")
     public void handleMqttMessage(Message<?> message) {
@@ -29,10 +34,10 @@ public class MqttMessageHandler {
             log.info("Received MQTT message from topic: {}", topic);
             log.debug("Payload: {}", payload);
 
-            // Parsowanie JSON z ESP32
+            // Parse JSON from ESP32
             MeasurementRequest request = objectMapper.readValue(payload, MeasurementRequest.class);
 
-            // Zapis pomiaru
+            // Save measurement
             measurementService.saveMeasurement(request);
             log.info("Measurement processed successfully");
 
