@@ -198,7 +198,8 @@ class HealthControllerTest {
                     .andExpect(jsonPath("$.aggregation_job.schedule").exists())
                     .andExpect(jsonPath("$.aggregation_job.last_run_time").exists())
                     .andExpect(jsonPath("$.aggregation_job.last_processed_date").exists())
-                    .andExpect(jsonPath("$.aggregation_job.last_run_success").exists());
+                    .andExpect(jsonPath("$.aggregation_job.last_run_success").exists())
+                    .andExpect(jsonPath("$.aggregation_job.last_error").value(nullValue()));
         }
     }
 
@@ -250,11 +251,11 @@ class HealthControllerTest {
         @DisplayName("should indicate staleness if job hasn't run recently")
         void shouldIndicateStaleness() throws Exception {
             // Given: Job last ran 48 hours ago (stale)
-            LocalDateTime staletime = LocalDateTime.now().minusHours(48);
+            LocalDateTime staleTime = LocalDateTime.now().minusHours(48);
             LocalDate oldDate = LocalDate.now().minusDays(2);
 
             when(dataAggregationService.isHealthy()).thenReturn(true);
-            when(dataAggregationService.getLastRunTime()).thenReturn(staletime);
+            when(dataAggregationService.getLastRunTime()).thenReturn(staleTime);
             when(dataAggregationService.getLastProcessedDate()).thenReturn(oldDate);
             when(dataAggregationService.isLastRunSuccess()).thenReturn(true);
             when(dataAggregationService.getLastError()).thenReturn(null);
@@ -263,7 +264,7 @@ class HealthControllerTest {
             mockMvc.perform(get("/health/scheduled-jobs"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.aggregation_job.last_run_time").exists())
-                    .andExpect(jsonPath("$.aggregation_job.last_processed_date").value(not(LocalDate.now().minusDays(1).toString())));
+                    .andExpect(jsonPath("$.aggregation_job.last_processed_date").value(oldDate.toString()));
         }
     }
 

@@ -2,6 +2,9 @@ package com.dkowalczyk.scadasystem.exception;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -13,10 +16,12 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MeasurementNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(
@@ -72,15 +77,27 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", ex.getMessage());
+        String errorId = UUID.randomUUID().toString();
+        log.error("Unexpected error occurred. Error ID: {}", errorId, ex);
+        return buildErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "Internal Server Error",
+            "An unexpected error occurred",
+            errorId);
     }
 
     private ResponseEntity<Map<String, Object>> buildErrorResponse(
-            HttpStatus status, String error, String message) {
+            HttpStatus status, String error, String message, String errorId) {
         Map<String, Object> body = new HashMap<>();
         body.put("error", error);
         body.put("message", message != null ? message : error);
         body.put("timestamp", Instant.now());
+        if (errorId != null) body.put("errorId", errorId);
         return ResponseEntity.status(status).body(body);
+    }
+
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(
+            HttpStatus status, String error, String message) {
+        return buildErrorResponse(status, error, message, null);
     }
 }

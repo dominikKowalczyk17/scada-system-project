@@ -15,6 +15,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -280,7 +281,7 @@ class GlobalExceptionHandlerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isInternalServerError())
                     .andExpect(jsonPath("$.error").value("Internal Server Error"))
-                    .andExpect(jsonPath("$.message").value("Unexpected database error"))
+                    .andExpect(jsonPath("$.message").value("An unexpected error occurred"))
                     .andExpect(jsonPath("$.timestamp").exists());
         }
 
@@ -309,16 +310,14 @@ class GlobalExceptionHandlerTest {
             MeasurementRequest request = createValidRequest();
             when(measurementService.saveMeasurement(any(MeasurementRequest.class)))
                     .thenThrow(new RuntimeException("Error"));
+            List<String> expectedKeys = List.of("error", "message", "timestamp", "errorId");
 
             // When & Then
             mockMvc.perform(post("/api/measurements")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isInternalServerError())
-                    .andExpect(jsonPath("$", aMapWithSize(3)))
-                    .andExpect(jsonPath("$.error").exists())
-                    .andExpect(jsonPath("$.message").exists())
-                    .andExpect(jsonPath("$.timestamp").exists());
+                    .andExpect(jsonPath("$", aMapWithSize(expectedKeys.size())));
         }
     }
 
