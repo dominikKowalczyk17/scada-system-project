@@ -1,7 +1,6 @@
 package com.dkowalczyk.scadasystem.util;
 
 
-import com.dkowalczyk.scadasystem.BaseIntegrationTest;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
 
 import org.junit.jupiter.api.DisplayName;
@@ -14,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class MathUtilsTests extends BaseIntegrationTest {
+public class MathUtilsTests {
 
     private static final double DELTA = 0.001;
 
