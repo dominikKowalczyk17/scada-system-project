@@ -86,7 +86,7 @@ public class StatsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
 
-        List<StatsDTO> stats = statsService.getsStatsInDataRange(from, to);
+        List<StatsDTO> stats = statsService.getStatsInDateRange(from, to);
 
         return ResponseEntity.ok(stats);
     }

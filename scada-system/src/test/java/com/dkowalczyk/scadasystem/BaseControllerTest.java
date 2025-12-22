@@ -13,7 +13,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.dkowalczyk.scadasystem.repository.DailyStatsRepository;
 import com.dkowalczyk.scadasystem.service.DataAggregationService;
 import com.dkowalczyk.scadasystem.service.MeasurementService;
 import com.dkowalczyk.scadasystem.service.StatsService;
@@ -38,12 +37,9 @@ public abstract class BaseControllerTest {
     @MockitoBean
     protected DataAggregationService dataAggregationService;
 
-    @MockitoBean
-    protected DailyStatsRepository dailyStatsRepository;
-
     @BeforeEach
     void setupDefaultValidation() {
-        lenient().when(statsService.getsStatsInDataRange(any(), any()))
+        lenient().when(statsService.getStatsInDateRange(any(), any()))
                 .thenAnswer(invocation -> {
                     LocalDate from = invocation.getArgument(0);
                     LocalDate to = invocation.getArgument(1);

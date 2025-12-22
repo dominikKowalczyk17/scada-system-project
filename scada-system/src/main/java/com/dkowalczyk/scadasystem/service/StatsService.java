@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -67,12 +68,12 @@ public class StatsService {
     /**
      * Get statistics for a specific date range (for reports).
      */
-    public List<StatsDTO> getsStatsInDataRange(LocalDate from, LocalDate to) {
+    public List<StatsDTO> getStatsInDateRange(LocalDate from, LocalDate to) {
         if (from.isAfter(to)) {
             throw new IllegalArgumentException("From date must be before or equal to To date");
         }
 
-        if (Duration.between(from.atStartOfDay(), to.plusDays(1).atStartOfDay()).toDays() > 366) {
+        if (ChronoUnit.DAYS.between(from, to) > 365) {
             throw new IllegalArgumentException("Date range cannot exceed 366 days");
         }
 

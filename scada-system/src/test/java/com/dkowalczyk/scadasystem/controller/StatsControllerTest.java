@@ -134,7 +134,7 @@ class StatsControllerTest extends BaseControllerTest {
                 createMockStatsDTO(from.plusDays(3)),
                 createMockStatsDTO(to)
         );
-        when(statsService.getsStatsInDataRange(from, to))
+        when(statsService.getStatsInDateRange(from, to))
                 .thenReturn(mockEntities);
 
         // When & Then: GET request with date range should return 200 OK
@@ -195,7 +195,7 @@ class StatsControllerTest extends BaseControllerTest {
         // Given: No stats for date range
         LocalDate from = LocalDate.of(2025, 11, 1);
         LocalDate to = LocalDate.of(2025, 11, 7);
-        when(dailyStatsRepository.findByDateBetweenOrderByDateAsc(from, to))
+        when(statsService.getStatsInDateRange(from, to))
                 .thenReturn(List.of());
 
         // When & Then: GET request should return 200 OK with empty array
@@ -255,7 +255,7 @@ class StatsControllerTest extends BaseControllerTest {
                 createMockStatsDTO(LocalDate.of(2025, 3, 30)), // DST transition
                 createMockStatsDTO(to)
         );
-        when(statsService.getsStatsInDataRange(from, to))
+        when(statsService.getStatsInDateRange(from, to))
                 .thenReturn(mockDtos);
 
         // When & Then: Should handle DST correctly (no errors)
@@ -277,7 +277,7 @@ class StatsControllerTest extends BaseControllerTest {
                 createMockStatsDTO(LocalDate.of(2024, 2, 29)),
                 createMockStatsDTO(to)
         );
-        when(statsService.getsStatsInDataRange(from, to))
+        when(statsService.getStatsInDateRange(from, to))
                 .thenReturn(mockDtos);
 
         // When & Then: Should handle leap year correctly
