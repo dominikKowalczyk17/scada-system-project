@@ -133,9 +133,15 @@ export function StreamingChart({
             <span className="text-base sm:text-lg">{title}</span>
           </CardTitle>
           <div className="flex gap-3 text-xs text-muted-foreground">
-            <span>Min: {format_value(recent_stats.min)} {unit}</span>
-            <span>Śr: {format_value(recent_stats.avg)} {unit}</span>
-            <span>Max: {format_value(recent_stats.max)} {unit}</span>
+            <span>
+              Min: {format_value(recent_stats.min)} {unit}
+            </span>
+            <span>
+              Śr: {format_value(recent_stats.avg)} {unit}
+            </span>
+            <span>
+              Max: {format_value(recent_stats.max)} {unit}
+            </span>
           </div>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -152,8 +158,9 @@ export function StreamingChart({
                 stroke="#6b7280"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
                 height={40}
+                interval={2}
                 label={{
-                  value: "Próbki (nowsze →)",
+                  value: "Próbki",
                   position: "insideBottom",
                   offset: -5,
                   style: { fill: "#e5e7eb", fontSize: 11 },
@@ -166,10 +173,14 @@ export function StreamingChart({
                 width={60}
                 label={{
                   value: `${unit}`,
-                  angle: -90,
+                  angle: 0,
                   position: "insideLeft",
                   offset: 10,
-                  style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
+                  style: {
+                    fill: "#e5e7eb",
+                    fontSize: 12,
+                    textAnchor: "middle",
+                  },
                 }}
                 tickFormatter={(value) => format_value(value)}
               />
