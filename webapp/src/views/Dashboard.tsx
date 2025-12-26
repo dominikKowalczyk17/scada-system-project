@@ -85,7 +85,11 @@ const Dashboard = () => {
             <div className="flex items-center gap-4 sm:gap-6">
               <div className="flex items-center gap-2">
                 <Activity
-                  className={`w-4 h-4 sm:w-5 sm:h-5 ${isConnected ? "text-success animate-pulse" : "text-muted-foreground"}`}
+                  className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                    isConnected
+                      ? "text-success animate-pulse"
+                      : "text-muted-foreground"
+                  }`}
                 />
                 <span className="text-xs sm:text-sm text-muted-foreground">
                   {isConnected ? "Aktualizacja na żywo" : "Łączenie..."}
@@ -168,13 +172,15 @@ const Dashboard = () => {
                 status={getVoltageStatus(
                   dashboardData.latest_measurement.voltage_rms
                 )}
-                statusLabel={getStatusLabel(getVoltageStatus(dashboardData.latest_measurement.voltage_rms))}
+                statusLabel={getStatusLabel(
+                  getVoltageStatus(dashboardData.latest_measurement.voltage_rms)
+                )}
                 min="207"
                 max="253"
                 trend={getTrend(
                   dashboardData.latest_measurement.voltage_rms,
                   dashboardData.recent_history,
-                  'voltage_rms'
+                  "voltage_rms"
                 )}
               />
               <ParameterCard
@@ -184,13 +190,15 @@ const Dashboard = () => {
                 status={getCurrentStatus(
                   dashboardData.latest_measurement.current_rms
                 )}
-                statusLabel={getStatusLabel(getCurrentStatus(dashboardData.latest_measurement.current_rms))}
+                statusLabel={getStatusLabel(
+                  getCurrentStatus(dashboardData.latest_measurement.current_rms)
+                )}
                 min="0"
                 max="16"
                 trend={getTrend(
                   dashboardData.latest_measurement.current_rms,
                   dashboardData.recent_history,
-                  'current_rms'
+                  "current_rms"
                 )}
               />
               <ParameterCard
@@ -206,7 +214,7 @@ const Dashboard = () => {
                 trend={getTrend(
                   dashboardData.latest_measurement.power_active / 1000,
                   dashboardData.recent_history,
-                  'power_active'
+                  "power_active"
                 )}
               />
               <ParameterCard
@@ -216,13 +224,15 @@ const Dashboard = () => {
                 status={getFrequencyStatus(
                   dashboardData.latest_measurement.frequency
                 )}
-                statusLabel={getStatusLabel(getFrequencyStatus(dashboardData.latest_measurement.frequency))}
+                statusLabel={getStatusLabel(
+                  getFrequencyStatus(dashboardData.latest_measurement.frequency)
+                )}
                 min="49.50"
                 max="50.50"
                 trend={getTrend(
                   dashboardData.latest_measurement.frequency,
                   dashboardData.recent_history,
-                  'frequency'
+                  "frequency"
                 )}
               />
             </div>
@@ -234,12 +244,14 @@ const Dashboard = () => {
                 value={dashboardData.latest_measurement.cos_phi.toFixed(3)}
                 unit="cos φ"
                 status={
-                  dashboardData.latest_measurement.cos_phi >= POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
+                  dashboardData.latest_measurement.cos_phi >=
+                  POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
                     ? "normal"
                     : "warning"
                 }
                 statusLabel={getStatusLabel(
-                  dashboardData.latest_measurement.cos_phi >= POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
+                  dashboardData.latest_measurement.cos_phi >=
+                    POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
                     ? "normal"
                     : "warning"
                 )}
@@ -248,7 +260,7 @@ const Dashboard = () => {
                 trend={getTrend(
                   dashboardData.latest_measurement.cos_phi,
                   dashboardData.recent_history,
-                  'cos_phi'
+                  "cos_phi"
                 )}
               />
               <ParameterCard
@@ -264,7 +276,7 @@ const Dashboard = () => {
                 trend={getTrend(
                   dashboardData.latest_measurement.power_reactive / 1000,
                   dashboardData.recent_history,
-                  'power_reactive'
+                  "power_reactive"
                 )}
               />
               <ParameterCard
@@ -272,12 +284,14 @@ const Dashboard = () => {
                 value={dashboardData.latest_measurement.thd_voltage.toFixed(1)}
                 unit="%"
                 status={
-                  dashboardData.latest_measurement.thd_voltage > POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT
+                  dashboardData.latest_measurement.thd_voltage >
+                  POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT
                     ? "critical"
                     : "normal"
                 }
                 statusLabel={getStatusLabel(
-                  dashboardData.latest_measurement.thd_voltage > POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT
+                  dashboardData.latest_measurement.thd_voltage >
+                    POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT
                     ? "critical"
                     : "normal"
                 )}
@@ -286,7 +300,7 @@ const Dashboard = () => {
                 trend={getTrend(
                   dashboardData.latest_measurement.thd_voltage,
                   dashboardData.recent_history,
-                  'thd_voltage'
+                  "thd_voltage"
                 )}
               />
               <ParameterCard
@@ -294,12 +308,14 @@ const Dashboard = () => {
                 value={dashboardData.latest_measurement.thd_current.toFixed(1)}
                 unit="%"
                 status={
-                  dashboardData.latest_measurement.thd_current > POWER_QUALITY_LIMITS.CURRENT_THD_LIMIT
+                  dashboardData.latest_measurement.thd_current >
+                  POWER_QUALITY_LIMITS.CURRENT_THD_LIMIT
                     ? "warning"
                     : "normal"
                 }
                 statusLabel={getStatusLabel(
-                  dashboardData.latest_measurement.thd_current > POWER_QUALITY_LIMITS.CURRENT_THD_LIMIT
+                  dashboardData.latest_measurement.thd_current >
+                    POWER_QUALITY_LIMITS.CURRENT_THD_LIMIT
                     ? "warning"
                     : "normal"
                 )}
@@ -308,7 +324,7 @@ const Dashboard = () => {
                 trend={getTrend(
                   dashboardData.latest_measurement.thd_current,
                   dashboardData.recent_history,
-                  'thd_current'
+                  "thd_current"
                 )}
               />
             </div>
@@ -329,7 +345,7 @@ const Dashboard = () => {
                 unit="V"
                 stroke_color="#3b82f6"
                 y_domain={[200, 260]}
-                max_buffer_size={60}
+                max_buffer_size={30}
                 format_value={(v) => v.toFixed(1)}
                 latest_measurement={websocket_data?.latest_measurement}
               />
@@ -339,7 +355,7 @@ const Dashboard = () => {
                 unit="A"
                 stroke_color="#f59e0b"
                 y_domain={[0, "auto"]}
-                max_buffer_size={60}
+                max_buffer_size={30}
                 format_value={(v) => v.toFixed(2)}
                 latest_measurement={websocket_data?.latest_measurement}
               />
@@ -349,7 +365,7 @@ const Dashboard = () => {
                 unit="Hz"
                 stroke_color="#10b981"
                 y_domain={[49.5, 50.5]}
-                max_buffer_size={60}
+                max_buffer_size={30}
                 format_value={(v) => v.toFixed(2)}
                 latest_measurement={websocket_data?.latest_measurement}
               />
@@ -359,7 +375,7 @@ const Dashboard = () => {
                 unit="W"
                 stroke_color="#8b5cf6"
                 y_domain={[0, "auto"]}
-                max_buffer_size={60}
+                max_buffer_size={30}
                 format_value={(v) => (v / 1000).toFixed(2)}
                 latest_measurement={websocket_data?.latest_measurement}
               />
