@@ -33,10 +33,12 @@ const Dashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Helper function to determine status based on value
+  // Helper function to determine status based on value (PN-EN 50160 compliance)
   const getVoltageStatus = (voltage: number): "normal" | "warning" | "critical" => {
-    if (voltage < POWER_QUALITY_LIMITS.VOLTAGE_CRITICAL_MIN || voltage > POWER_QUALITY_LIMITS.VOLTAGE_CRITICAL_MAX) return "critical"; // IEC 61000 limits ±10%
-    if (voltage < POWER_QUALITY_LIMITS.VOLTAGE_WARNING_MIN || voltage > POWER_QUALITY_LIMITS.VOLTAGE_WARNING_MAX) return "warning";
+    // PN-EN 50160: 230V ±10% (207-253V) for 95% of week
+    if (voltage < POWER_QUALITY_LIMITS.VOLTAGE_MIN || voltage > POWER_QUALITY_LIMITS.VOLTAGE_MAX) {
+      return "critical";
+    }
     return "normal";
   };
 
@@ -47,8 +49,10 @@ const Dashboard = () => {
   };
 
   const getFrequencyStatus = (freq: number): "normal" | "warning" | "critical" => {
-    if (freq < POWER_QUALITY_LIMITS.FREQUENCY_CRITICAL_MIN || freq > POWER_QUALITY_LIMITS.FREQUENCY_CRITICAL_MAX) return "critical";
-    if (freq < POWER_QUALITY_LIMITS.FREQUENCY_WARNING_MIN || freq > POWER_QUALITY_LIMITS.FREQUENCY_WARNING_MAX) return "warning";
+    // PN-EN 50160: 50Hz ±1% (49.5-50.5 Hz) for 99.5% of year
+    if (freq < POWER_QUALITY_LIMITS.FREQUENCY_MIN || freq > POWER_QUALITY_LIMITS.FREQUENCY_MAX) {
+      return "critical";
+    }
     return "normal";
   };
 
@@ -230,12 +234,16 @@ const Dashboard = () => {
                 value={dashboardData.latest_measurement.cos_phi.toFixed(3)}
                 unit="cos φ"
                 status={
-                  dashboardData.latest_measurement.cos_phi > 0.9
+                  dashboardData.latest_measurement.cos_phi >= POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
                     ? "normal"
                     : "warning"
                 }
-                statusLabel={getStatusLabel(dashboardData.latest_measurement.cos_phi > 0.9 ? "normal" : "warning")}
-                min="0.8"
+                statusLabel={getStatusLabel(
+                  dashboardData.latest_measurement.cos_phi >= POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
+                    ? "normal"
+                    : "warning"
+                )}
+                min="0.85"
                 max="1.0"
                 trend={getTrend(
                   dashboardData.latest_measurement.cos_phi,
@@ -264,11 +272,15 @@ const Dashboard = () => {
                 value={dashboardData.latest_measurement.thd_voltage.toFixed(1)}
                 unit="%"
                 status={
-                  dashboardData.latest_measurement.thd_voltage > 8
+                  dashboardData.latest_measurement.thd_voltage > POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT
                     ? "critical"
                     : "normal"
                 }
-                statusLabel={getStatusLabel(dashboardData.latest_measurement.thd_voltage > 8 ? "critical" : "normal")}
+                statusLabel={getStatusLabel(
+                  dashboardData.latest_measurement.thd_voltage > POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT
+                    ? "critical"
+                    : "normal"
+                )}
                 min="0"
                 max="8"
                 trend={getTrend(
@@ -282,13 +294,17 @@ const Dashboard = () => {
                 value={dashboardData.latest_measurement.thd_current.toFixed(1)}
                 unit="%"
                 status={
-                  dashboardData.latest_measurement.thd_current > 8
+                  dashboardData.latest_measurement.thd_current > POWER_QUALITY_LIMITS.CURRENT_THD_LIMIT
                     ? "warning"
                     : "normal"
                 }
-                statusLabel={getStatusLabel(dashboardData.latest_measurement.thd_current > 8 ? "warning" : "normal")}
+                statusLabel={getStatusLabel(
+                  dashboardData.latest_measurement.thd_current > POWER_QUALITY_LIMITS.CURRENT_THD_LIMIT
+                    ? "warning"
+                    : "normal"
+                )}
                 min="0"
-                max="8"
+                max="5"
                 trend={getTrend(
                   dashboardData.latest_measurement.thd_current,
                   dashboardData.recent_history,

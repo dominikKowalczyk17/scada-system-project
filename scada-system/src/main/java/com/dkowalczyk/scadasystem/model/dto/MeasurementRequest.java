@@ -25,17 +25,17 @@ public class MeasurementRequest {
     @NotNull(message = "voltageRms is required")
     @DecimalMin(value = "0.0", message = "voltageRms must be non-negative")
     @DecimalMax(value = "500.0", message = "voltageRms must not exceed 500V")
-    @JsonProperty("voltage_rms")
+    @JsonProperty("v_rms")
     private Double voltageRms;
 
     @NotNull(message = "currentRms is required")
     @DecimalMin(value = "0.0", message = "currentRms must be non-negative")
     @DecimalMax(value = "100.0", message = "currentRms must not exceed 100A")
-    @JsonProperty("current_rms")
+    @JsonProperty("i_rms")
     private Double currentRms;
 
     @DecimalMin(value = "0.0", message = "powerActive must be non-negative")
-    @JsonProperty("power_active")
+    @JsonProperty("p_act")
     private Double powerActive;
 
     @DecimalMin(value = "0.0", message = "powerApparent must be non-negative")
@@ -53,21 +53,22 @@ public class MeasurementRequest {
     @NotNull(message = "frequency is required")
     @DecimalMin(value = "45.0", message = "frequency must be at least 45Hz")
     @DecimalMax(value = "65.0", message = "frequency must not exceed 65Hz")
+    @JsonProperty("freq")
     private Double frequency;
 
     @DecimalMin(value = "0.0", message = "thdVoltage must be non-negative")
     @DecimalMax(value = "100.0", message = "thdVoltage must not exceed 100%")
-    @JsonProperty("thd_voltage")
+    @JsonProperty("thd_v")
     private Double thdVoltage;
 
     @DecimalMin(value = "0.0", message = "thdCurrent must be non-negative")
     @DecimalMax(value = "100.0", message = "thdCurrent must not exceed 100%")
-    @JsonProperty("thd_current")
+    @JsonProperty("thd_i")
     private Double thdCurrent;
 
-    @JsonProperty("harmonics_v")
+    @JsonProperty("harm_v")
     private Double[] harmonicsV;
 
-    @JsonProperty("harmonics_i")
+    @JsonProperty("harm_i")
     private Double[] harmonicsI;
 }

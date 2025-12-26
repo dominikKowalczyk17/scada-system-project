@@ -25,6 +25,8 @@ interface MockYAxisProps {
 
 interface MockTooltipProps {
   labelFormatter?: (value: number) => string;
+  content?: React.ComponentType<{ active?: boolean; payload?: Array<{ payload: Record<string, unknown> }> }>;
+  cursor?: Record<string, unknown>;
 }
 
 interface MockBarProps {
@@ -50,9 +52,17 @@ vi.mock('recharts', () => ({
     <div data-testid="y-axis" data-scale={scale} data-domain={JSON.stringify(domain)} data-label={label?.value} />
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
-  Tooltip: ({ labelFormatter }: MockTooltipProps) => (
+  Tooltip: ({ labelFormatter, content: Content }: MockTooltipProps) => (
     <div data-testid="tooltip">
-       <span data-testid="tooltip-label-sample">{labelFormatter?.(100)}</span>
+      {labelFormatter && <span data-testid="tooltip-label-sample">{labelFormatter(100)}</span>}
+      {Content && (
+        <div data-testid="tooltip-custom">
+          <Content
+            active={true}
+            payload={[{ payload: { harmonic: 'H2', frequency: 100, voltage: 8.5, current: 0.8 } }]}
+          />
+        </div>
+      )}
     </div>
   ),
   Bar: ({ dataKey, fill, name, radius }: MockBarProps) => (
@@ -66,8 +76,17 @@ vi.mock('recharts', () => ({
 }));
 
 describe('HarmonicsChart Component - Comprehensive Suite', () => {
-  const harmonicsVoltage = [230.0, 8.5, 6.2, 4.1, 2.3, 1.1, 0.5, 0.2]; // H1-H8
-  const harmonicsCurrent = [15.0, 0.8, 0.6, 0.4, 0.2, 0.1, 0.05, 0.02];
+  // H1-H25 (25 harmonics measured at 3000Hz sampling rate)
+  const harmonicsVoltage = [
+    230.0, 8.5, 6.2, 4.1, 2.3, 1.1, 0.5, 0.2, // H1-H8
+    0.15, 0.12, 0.09, 0.07, 0.06, 0.05, 0.04, 0.03, // H9-H16
+    0.025, 0.02, 0.015, 0.012, 0.01, 0.008, 0.006, 0.005, 0.004 // H17-H25
+  ];
+  const harmonicsCurrent = [
+    15.0, 0.8, 0.6, 0.4, 0.2, 0.1, 0.05, 0.02, // H1-H8
+    0.015, 0.012, 0.009, 0.007, 0.006, 0.005, 0.004, 0.003, // H9-H16
+    0.0025, 0.002, 0.0015, 0.0012, 0.001, 0.0008, 0.0006, 0.0005, 0.0004 // H17-H25
+  ];
   const defaultProps = {
     harmonicsVoltage,
     harmonicsCurrent,
@@ -85,7 +104,7 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
     it('renders the technical Info box explaining Nyquist limit', () => {
       render(React.createElement(HarmonicsChart, defaultProps));
       expect(screen.getByText(/Ograniczenie Nyquista/i)).toBeInTheDocument();
-      expect(screen.getByText(/800Hz/i)).toBeInTheDocument();
+      expect(screen.getByText(/3000Hz/i)).toBeInTheDocument();
     });
 
     it('renders THD values with exactly 2 decimal places', () => {
@@ -101,10 +120,11 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
       render(React.createElement(HarmonicsChart, defaultProps));
       const chart = screen.getByTestId('bar-chart');
       const data = JSON.parse(chart.getAttribute('data-raw') || '[]');
-      
+
       expect(data[0]).toMatchObject({ harmonic: 'H1', frequency: 50, voltage: 230 });
       expect(data[2]).toMatchObject({ harmonic: 'H3', frequency: 150, voltage: 6.2 });
-      expect(data.length).toBe(8);
+      expect(data[24]).toMatchObject({ harmonic: 'H25', frequency: 1250, voltage: 0.004 });
+      expect(data.length).toBe(25);
     });
 
     it('X-Axis tick formatter adds "Hz" suffix', () => {
@@ -112,9 +132,12 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
       expect(screen.getByTestId('x-tick-sample')).toHaveTextContent('50Hz');
     });
 
-    it('Tooltip label formatter adds "Hz" suffix', () => {
+    it('renders custom tooltip with harmonic and frequency info', () => {
       render(React.createElement(HarmonicsChart, defaultProps));
-      expect(screen.getByTestId('tooltip-label-sample')).toHaveTextContent('100 Hz');
+      const customTooltip = screen.getByTestId('tooltip-custom');
+      expect(customTooltip).toBeInTheDocument();
+      expect(customTooltip).toHaveTextContent('H2');
+      expect(customTooltip).toHaveTextContent('100 Hz');
     });
   });
 
@@ -160,14 +183,14 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
 
   describe('Edge Cases', () => {
     it('renders correctly with mismatched array lengths', () => {
-      // If voltage has 8 points but current has 0
+      // If voltage has 25 points but current has 0
       render(React.createElement(HarmonicsChart, {
         ...defaultProps,
         harmonicsCurrent: []
       }));
       const chart = screen.getByTestId('bar-chart');
       const data = JSON.parse(chart.getAttribute('data-raw') || '[]');
-      expect(data.length).toBe(8);
+      expect(data.length).toBe(25);
       expect(data[0].current).toBeUndefined();
     });
 
