@@ -26,13 +26,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a web-based SCADA system for monitoring electrical power quality in home installations, developed as a **bachelor's thesis for an engineer's degree**. The system consists of a Spring Boot backend and React frontend, designed to collect and analyze electrical parameters from ESP32 based circuit based on this circuit https://www.elektroda.pl/rtvforum/topic3929533.html, measurement nodes via MQTT.
+This is a web-based SCADA system for monitoring electrical power quality in home installations, developed as a **bachelor's thesis for an engineer's degree**. The system consists of a Spring Boot backend and React frontend, designed to collect and analyze electrical parameters from ESP32 based circuit (https://www.elektroda.pl/rtvforum/topic3929533.html) measurement nodes via MQTT.
 
 **Academic Context:**
 - Bachelor's thesis project for engineering degree
 - Educational/demonstration SCADA system with 1000 PLN budget constraint
 - Focus on learning objectives and practical implementation of SCADA concepts
-- Hardware implementation includes 3 ESP32 measurement nodes with custom circuit (SCT013 current sensor + TV16 voltage transformer) integrated in single enclosure
+- Hardware implementation includes ESP32 measurement node with custom circuit (SCT013 current sensor + TV16 voltage transformer) integrated in single enclosure
 - Load simulation capabilities for educational power quality demonstrations
 
 ## Development Commands
@@ -91,22 +91,22 @@ scada-system-project/
 │   │   └── application.properties
 │   ├── src/test/                # Tests (JUnit 5, uses H2 database)
 │   └── pom.xml
-├── webapp/                       # React frontend (TypeScript + Vite + shadcn/ui)
+├── webapp/                       # React frontend (TypeScript + Vite)
 │   ├── src/
 │   │   ├── components/          # React components
-│   │   ├── lib/                 # Utilities
-│   │   └── pages/               # Page components
-│   ├── src/test/                # Vitest tests + setup
+│   │   ├── views/              # Page components (Dashboard, History)
+│   │   ├── hooks/              # Custom React hooks
+│   │   ├── lib/                # Utilities
+│   │   ├── types/              # TypeScript types
+│   │   ├── ui/                 # shadcn/ui base components
+│   │   └── test/               # Vitest tests
 │   ├── package.json
-│   ├── vitest.config.ts         # Vitest configuration
 │   └── README.md
 ├── .github/workflows/
 │   ├── ci.yml                   # Continuous Integration
 │   └── cd.yml                   # Continuous Deployment (manual)
 ├── docker-compose.yml           # Local development (PostgreSQL + Mosquitto)
-├── BACKEND-IMPLEMENTATION.md    # Detailed backend architecture guide
-├── DEV-SETUP.md                 # Development environment setup
-├── CI-CD-SETUP.md               # CI/CD pipeline documentation
+├── PROJECT-DOCUMENTATION.md    # Comprehensive project documentation (for thesis)
 └── CLAUDE.md                    # This file
 ```
 
@@ -121,12 +121,13 @@ scada-system-project/
 - H2 in-memory database for testing
 
 **Frontend:**
-- React 18 with TypeScript
+- React 19.1 with TypeScript
 - Vite build tool
 - React Router for navigation
 - shadcn/ui component library with Radix UI primitives
 - TailwindCSS for styling
 - TanStack Query for data fetching
+- Recharts for data visualization
 - Vitest for testing
 - React Testing Library for component testing
 - Node.js 20.19.0+ or 22.12.0+ required
@@ -146,7 +147,7 @@ scada-system-project/
 ### Key Components
 
 **Data Flow:**
-1. ESP32 nodes (with SCT013 + TV16 sensors) → MQTT (Mosquitto) → Spring Integration → PostgreSQL
+1. ESP32 node (with SCT013 + TV16 sensors) → MQTT (Mosquitto) → Spring Integration → PostgreSQL
 2. Real-time data via WebSocket to React dashboard
 3. Historical data analysis and IEC 61000 compliance reporting
 
@@ -162,8 +163,8 @@ ESP32 (WiFi) → Mosquitto Broker (RPI:1883) → Spring Boot Backend
 **Electrical Parameters Monitored:**
 - Voltage, Current, Active/Reactive Power, Power Factor, Frequency
 - Harmonic analysis (8 harmonics) and THD (Total Harmonic Distortion)
-- Power quality events (interruptions, voltage deviations, phase asymmetry)
-- IEC 61000 compliance monitoring
+- Power quality indicators (voltage deviation, frequency deviation, THD)
+- IEC 61000 compliance monitoring (partial - harmonics H1-H8 only)
 
 ## Key Dependencies
 
@@ -177,13 +178,13 @@ ESP32 (WiFi) → Mosquitto Broker (RPI:1883) → Spring Boot Backend
 - lombok (reduce boilerplate)
 
 **Frontend (package.json):**
-- React 18.3+ with React Router
+- React 19.1+ with React Router
 - TypeScript support
 - Vite for development and building
 - shadcn/ui component library (Radix UI primitives)
 - **TanStack Query (React Query)** for server state management
 - **Axios** for HTTP client
-- **Recharts** for data visualization (chosen for React-native API, TypeScript support, and ease of use)
+- **Recharts** for data visualization
 - **Native WebSocket API** for real-time updates (no STOMP/SockJS needed)
 - TailwindCSS for styling
 - ESLint for code quality
@@ -202,8 +203,6 @@ ESP32 (WiFi) → Mosquitto Broker (RPI:1883) → Spring Boot Backend
 - Maven 3.9+ (included via Maven wrapper)
 
 ### Local Development Setup
-
-**See DEV-SETUP.md for complete setup instructions**
 
 1. **Start infrastructure:**
    ```bash
@@ -249,8 +248,6 @@ ESP32 (WiFi) → Mosquitto Broker (RPI:1883) → Spring Boot Backend
 - Run with: `npm test` or `npm run test:watch`
 - Coverage: `npm run test:coverage`
 
-See CI-CD-SETUP.md for CI/CD pipeline details.
-
 **Hardware Setup:**
 - Raspberry Pi 4B WiFi 4GB RAM + 32GB microSD (existing equipment)
 - 1x ESP32-WROOM-32 development board with custom measurement circuit from elektroda.pl (SCT013 current sensor + TV16 voltage transformer)
@@ -266,6 +263,9 @@ All database schema changes are managed via Flyway migrations in `scada-system/s
 
 - `V1__Create_measurements_table.sql` - Main measurements table
 - `V2__Create_daily_stats_table.sql` - Daily statistics aggregation
+- `V3__Remove_unmeasurable_fields_and_add_indicators.sql` - Removed unmeasurable fields, added PN-EN 50160 indicators
+- `V4__Update_power_metrics_for_non_sinusoidal.py` - Migrated from cos_phi to correct non-sinusoidal parameters
+- `V5__Replace_non_sinusoidal_power_metrics.sql` - Final migration with correct power metrics (power_reactive_fund, power_distortion, power_factor, phase_shift)
 
 **Important:**
 - Never modify existing migrations after they've been applied
@@ -275,10 +275,10 @@ All database schema changes are managed via Flyway migrations in `scada-system/s
 
 ## Implementation Status
 
-**Backend - Completed (✅ 95%):**
+**Backend - Completed (95%):**
 - MQTT Integration (MqttConfig, MqttMessageHandler)
 - Database layer (Measurement, DailyStats entities)
-- Flyway migrations
+- Flyway migrations (V1-V5)
 - REST API (MeasurementController, StatsController, HealthController, DashboardController)
 - WebSocket real-time broadcasting (/ws/measurements → /topic/dashboard)
 - Service layer (MeasurementService, WebSocketService, StatsService, WaveformService)
@@ -286,33 +286,32 @@ All database schema changes are managed via Flyway migrations in `scada-system/s
 - Exception handling & validation
 - Utilities (Constants, DateTimeUtils, MathUtils)
 - CI/CD pipeline (GitHub Actions)
-- Testing framework (JUnit 5 + H2 in-memory tests)
+- Testing framework (JUnit 5 + H2 in-memory tests, 17 test files)
 - ESP32 Mock Data Generator (PlatformIO firmware)
 
-**Frontend - In Progress (⚠️ 45%):**
-- ✅ Basic project structure (React + TypeScript + Vite)
-- ✅ shadcn/ui components setup
-- ✅ Dashboard layout mockup (hardcoded data)
-- ✅ Vitest testing framework
-- ✅ **Completed (Issue #42):**
-  - TanStack Query (React Query) integration
-  - Backend API connection (GET /api/dashboard)
-  - WebSocket real-time updates (ws://backend:8080/ws/measurements)
-  - Recharts data visualization
-  - Loading states & error handling
-- ✅ **Completed (Issue #44):**
-  - Real-time streaming charts (oscilloscope-like behavior)
-  - Circular buffer with 60 measurements (3 minutes)
-  - Optimized performance (no animations, memoized data, ref-based buffer)
-  - 4 streaming parameters: Voltage, Current, Frequency, Active Power
-- ✅ Waveform chart (voltage/current sinusoid)
-- ✅ Harmonics bar chart visualization
-- 🔴 **To Do:**
-  - Historical data view
-  - Statistics dashboard
-  - Settings & configuration page
+**Frontend - Completed (75%):**
+- ✅ Real-time Dashboard (Dashboard.tsx, 412 lines)
+- ✅ Historical data view (History.tsx, 462 lines) with time range filters and CSV export
+- ✅ 9 components for all visualizations (~2000 lines total)
+  - StreamingChart (oscilloscope-like real-time charts, circular buffer 60 measurements)
+  - WaveformChart (voltage/current sinusoid visualization)
+  - HarmonicsChart (bar chart H1-H8)
+  - PowerQualitySection (PN-EN 50160 compliance indicators)
+  - ParameterCard, StatusIndicator, GridSection, AlertPanel, LiveChart
+- ✅ 5 custom hooks (useDashboardData, useWebSocket, usePowerQualityIndicators, useHistoryData, useLatestMeasurement)
+- ✅ React Router navigation
+- ✅ TanStack Query (React Query) integration for server state
+- ✅ Axios HTTP client with proper error handling
+- ✅ Recharts data visualization library
+- ✅ WebSocket real-time updates (native API, no STOMP)
+- ✅ Responsive design with TailwindCSS
+- ✅ Polish language UI
+- ✅ Vitest testing framework (17 test files)
+- ✅ Playwright E2E testing setup
+- ❌ Statistics dashboard view (backend API exists at /api/stats/* but no UI)
+- ❌ Settings/configuration page (no UI)
 
-**See BACKEND-IMPLEMENTATION.md for detailed implementation status and architecture explanations.**
+**Note:** Frontend is feature-complete for core monitoring functionality. Missing pages (Statistics, Settings) are not critical for thesis demonstration.
 
 ## CI/CD Pipeline
 
@@ -332,7 +331,7 @@ All database schema changes are managed via Flyway migrations in `scada-system/s
 - Deploy to Raspberry Pi via SSH over Tailscale
 - Health checks and post-deployment verification
 
-**See CI-CD-SETUP.md for complete pipeline documentation.**
+**See PROJECT-DOCUMENTATION.md for complete technical documentation for thesis.**
 
 ## Important Design Decisions
 
@@ -346,40 +345,27 @@ All database schema changes are managed via Flyway migrations in `scada-system/s
 
 5. **Vitest over Jest:** Frontend uses Vitest (optimized for Vite) for faster test execution
 
-6. **IEC 61000 Standards:** Power quality monitoring follows international standards for voltage limits, THD thresholds, and harmonic analysis
+6. **IEC 61000 Standards:** Power quality monitoring follows international standards for voltage limits, THD thresholds, and harmonic analysis (partial - harmonics H1-H8 only)
 
 7. **Tailscale VPN for Deployment:** CD pipeline uses Tailscale for secure connectivity without port forwarding or exposing SSH to internet
 
 8. **Automatic JAR Versioning:** Deployments use `github.run_number` for versioning (e.g., `0.0.152`) with symlink strategy for easy rollbacks
 
-## Presentation/Demo Setup
-
-For presentations or demos without access to external WiFi:
-
-**Architecture:** Laptop WiFi Hotspot → Raspberry Pi (backend) + ESP32 (sensors)
-
-- Laptop creates WiFi hotspot ("SCADA-Demo")
-- Raspberry Pi runs all backend services (PostgreSQL, Mosquitto, Spring Boot)
-- ESP32 sends real measurements via MQTT over WiFi
-- Laptop browser displays dashboard from RPI
-- **No external WiFi/network needed!**
-
-**See PRESENTATION-SETUP.md for complete step-by-step guide.**
-
-Key features:
-- Fully wireless setup
-- Real measurements from elektroda.pl custom circuit (SCT013 + TV16)
-- Production-ready architecture (same as home deployment)
-- Portable and demo-ready
-- 15-minute setup time on-site
+9. **Non-sinusoidal Power Calculations:** System correctly handles non-sinusoidal waveforms with proper metrics (power_reactive_fund, power_distortion, power_factor, phase_shift) instead of simplified cos φ
 
 ## Additional Documentation
 
-- **BACKEND-IMPLEMENTATION.md** - Complete backend architecture guide with "WHY" explanations
-- **DEV-SETUP.md** - Step-by-step local development environment setup
+- **PROJECT-DOCUMENTATION.md** - Complete technical documentation for thesis writing (all technical details in one place)
+- **POWER-QUALITY-INDICATORS.md** - Detailed PN-EN 50160 power quality indicators mapping
+- **ESP32-MEASUREMENT-SPECS.md** - ESP32 measurement capabilities and limitations
+- **FUTURE-IMPROVEMENTS.md** - Planned enhancements (real waveform data support, etc.)
 - **CI-CD-SETUP.md** - CI/CD pipeline configuration and troubleshooting
-- **PRESENTATION-SETUP.md** - Wireless demo setup without external WiFi (laptop hotspot + RPI + ESP32)
-- **Desktop/energy-monitor-plan.md** - Initial project planning (Polish)
-- **Desktop/energy-monitor-structure.md** - Detailed Spring Boot structure (Polish)
-- **Desktop/energy-monitor-devops.md** - DevOps implementation plan (Polish)
-- Zawsze aktualizuj pliki .md po zakończeniu każdego issue, żeby dokumentacja i stan projektu były aktualne.
+- **deployment/README.md** - Deployment-specific configurations
+
+## Notes
+
+- Always update documentation after completing tasks/issues
+- Frontend uses React 19.1 (latest) with modern hooks and patterns
+- Backend uses Spring Boot 3.5.6 (latest stable)
+- All database migrations are version-controlled with Flyway
+- System is designed for educational/demonstration purposes, not regulatory compliance
