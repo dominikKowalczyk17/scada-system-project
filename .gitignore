@@ -3,12 +3,17 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+.settings/
+.project
+.classpath
+.factorypath
 
 # OS
 .DS_Store
@@ -20,6 +25,11 @@ Thumbs.db
 /webapp/coverage/
 /scada-system/target/
 *.class
+.pio/
+.springBootWrapper/
+
+# Spring Boot generated files
+HELP.md
 
 # Environment files
 .env
