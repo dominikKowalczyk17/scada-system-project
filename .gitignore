@@ -9,6 +9,11 @@ yarn-error.log*
 .vscode/
 *.swp
 *.swo
+# Eclipse IDE
+.settings/
+.project
+.classpath
+.factorypath
 
 # OS
 .DS_Store
