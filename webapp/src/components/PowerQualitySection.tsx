@@ -42,12 +42,14 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
       );
     }
     return (
-      <span className={cn(
-        "ml-2 px-2 py-0.5 rounded text-xs font-semibold",
-        within_limits
-          ? "bg-success/10 text-success border border-success/20"
-          : "bg-destructive/10 text-destructive border border-destructive/20"
-      )}>
+      <span
+        className={cn(
+          "ml-2 px-2 py-0.5 rounded text-xs font-semibold",
+          within_limits
+            ? "bg-success/10 text-success border border-success/20"
+            : "bg-destructive/10 text-destructive border border-destructive/20",
+        )}
+      >
         {within_limits ? "W normie" : "Poza normą"}
       </span>
     );
@@ -66,16 +68,16 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
             data.overall_compliant === null
               ? "bg-muted/10 text-muted-foreground border border-muted/20"
               : data.overall_compliant
-              ? "bg-success/10 text-success border border-success/20"
-              : "bg-destructive/10 text-destructive border border-destructive/20"
+                ? "bg-success/10 text-success border border-success/20"
+                : "bg-destructive/10 text-destructive border border-destructive/20",
           )}
         >
           <Activity className="w-3 h-3" />
           {data.overall_compliant === null
             ? "Brak pełnych danych"
             : data.overall_compliant
-            ? "Wszystko OK"
-            : "Wykryto odchylenia"}
+              ? "Wszystko OK"
+              : "Wykryto odchylenia"}
         </span>
       </div>
 
@@ -132,11 +134,11 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
             <div className="space-y-3">
               <div>
                 <div className="text-2xl font-bold text-foreground">
-                  {data.voltage_rms.toFixed(1)} V
+                  {(data.voltage_rms ?? 0).toFixed(1)} V
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
                   Odchylenie:{" "}
-                  {data.voltage_deviation_percent !== null ? (
+                  {data.voltage_deviation_percent !== null && data.voltage_deviation_percent !== undefined ? (
                     <>
                       {data.voltage_deviation_percent > 0 ? "+" : ""}
                       {data.voltage_deviation_percent.toFixed(2)}%
@@ -174,11 +176,11 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
             <div className="space-y-3">
               <div>
                 <div className="text-2xl font-bold text-foreground">
-                  {data.frequency.toFixed(2)} Hz
+                  {(data.frequency ?? 0).toFixed(2)} Hz
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
                   Odchylenie:{" "}
-                  {data.frequency_deviation_hz !== null ? (
+                  {data.frequency_deviation_hz !== null && data.frequency_deviation_hz !== undefined ? (
                     <>
                       {data.frequency_deviation_hz > 0 ? "+" : ""}
                       {data.frequency_deviation_hz.toFixed(2)} Hz
@@ -218,10 +220,11 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
             <div className="space-y-3">
               <div>
                 <div className="text-2xl font-bold text-foreground">
-                  {data.thd_voltage.toFixed(1)}%
+                  {(data.thd_voltage ?? 0).toFixed(1)}%
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  Harmoniczne: H2-H8 (8 wartości)
+                  Harmoniczne: H2-H8 ({data.harmonics_voltage?.length ?? 0}{" "}
+                  wartości)
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs">
@@ -251,8 +254,8 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
                   data.overall_compliant === null
                     ? "text-muted-foreground font-semibold"
                     : data.overall_compliant
-                    ? "text-success font-semibold"
-                    : "text-destructive font-semibold"
+                      ? "text-success font-semibold"
+                      : "text-destructive font-semibold"
                 }
               >
                 {data.status_message}

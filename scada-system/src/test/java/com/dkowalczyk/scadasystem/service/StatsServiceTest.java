@@ -500,7 +500,7 @@ class StatsServiceTest {
                 .powerActive(power)
                 .powerApparent(power / cosPhi)
                 .powerReactive(Math.sqrt(Math.pow(power / cosPhi, 2) - Math.pow(power, 2)))
-                .cosPhi(cosPhi)
+                .powerFactor(cosPhi)
                 .frequency(frequency)
                 .thdVoltage(thdVoltage)
                 .thdCurrent(3.0)

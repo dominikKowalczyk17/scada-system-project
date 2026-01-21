@@ -39,7 +39,7 @@ describe('StreamingChart Component', () => {
     power_active: 0,
     power_reactive: 0,
     power_apparent: 0,
-    cos_phi: 1,
+    power_factor: 1,
     frequency: 50,
     thd_voltage: 0,
     thd_current: 0,

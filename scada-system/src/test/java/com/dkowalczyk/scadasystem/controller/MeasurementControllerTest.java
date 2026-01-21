@@ -46,7 +46,7 @@ class MeasurementControllerTest extends BaseControllerTest {
         request.setPowerActive(1150.0);
         request.setPowerApparent(1200.0);
         request.setPowerReactive(200.0);
-        request.setCosPhi(0.95);
+        request.setPowerFactor(0.95);
         request.setFrequency(50.0);
         request.setThdVoltage(2.5);
         request.setThdCurrent(5.0);
@@ -162,7 +162,7 @@ class MeasurementControllerTest extends BaseControllerTest {
         void shouldReturn400_whenCosPhiOutOfRange(double invalidCosPhi) throws Exception {
             // Given
             MeasurementRequest request = createValidRequest();
-            request.setCosPhi(invalidCosPhi);
+            request.setPowerFactor(invalidCosPhi);
 
             // When & Then
             mockMvc.perform(post("/api/measurements")

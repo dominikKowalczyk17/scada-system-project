@@ -42,7 +42,7 @@ class DashboardControllerTest extends BaseControllerTest {
                 .powerActive(1150.0)
                 .powerApparent(1200.0)
                 .powerReactive(200.0)
-                .cosPhi(0.95)
+                .powerFactor(0.95)
                 .frequency(50.0)
                 .thdVoltage(2.5)
                 .thdCurrent(5.0)
@@ -167,7 +167,7 @@ class DashboardControllerTest extends BaseControllerTest {
                     .andExpect(jsonPath("$.latest_measurement.power_active").value(1150.0))
                     .andExpect(jsonPath("$.latest_measurement.power_apparent").value(1200.0))
                     .andExpect(jsonPath("$.latest_measurement.power_reactive").value(200.0))
-                    .andExpect(jsonPath("$.latest_measurement.cos_phi").value(0.95))
+                    .andExpect(jsonPath("$.latest_measurement.power_factor").value(0.95))
                     .andExpect(jsonPath("$.latest_measurement.thd_voltage").value(2.5))
                     .andExpect(jsonPath("$.latest_measurement.thd_current").value(5.0));
         }

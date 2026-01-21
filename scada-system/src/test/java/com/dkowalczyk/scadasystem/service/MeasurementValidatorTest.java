@@ -19,7 +19,7 @@ public class MeasurementValidatorTest {
         MeasurementRequest request = new MeasurementRequest();
         request.setVoltageRms(400.0);
         request.setFrequency(50.0);
-        request.setCosPhi(1.0);
+        request.setPowerFactor(1.0);
         request.setCurrentRms(10.0);
         request.setPowerActive(2300.0);
         request.setPowerReactive(0.0);
@@ -41,7 +41,7 @@ public class MeasurementValidatorTest {
         MeasurementRequest request = new MeasurementRequest();
         request.setVoltageRms(230.0);
         request.setFrequency(50.0);
-        request.setCosPhi(1.0);
+        request.setPowerFactor(1.0);
         request.setCurrentRms(5.0);
         request.setPowerActive(1150.0);
         request.setPowerReactive(0.0);
@@ -67,7 +67,7 @@ public class MeasurementValidatorTest {
         request.setPowerReactive(0.0);
         request.setPowerApparent(500.0);
         request.setFrequency(50.0);
-        request.setCosPhi(1.0);
+        request.setPowerFactor(1.0);
         request.setThdVoltage(0.0);
 
         // WHEN
@@ -89,7 +89,7 @@ public class MeasurementValidatorTest {
         request.setPowerReactive(0.0);
         request.setPowerApparent(500.0);
         request.setFrequency(50.0);
-        request.setCosPhi(1.0);
+        request.setPowerFactor(1.0);
         request.setThdVoltage(0.0);
 
         // WHEN

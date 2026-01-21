@@ -29,7 +29,7 @@ export function createMockMeasurement(
     power_active: 1200.0,
     power_reactive: 300.0,
     power_apparent: 1237.0,
-    cos_phi: 0.97,
+    power_factor: 0.97,
     frequency: 50.0,
     thd_voltage: 2.5,
     thd_current: 5.0,
@@ -73,12 +73,6 @@ export function createMockRealtimeDashboard(
   return {
     latest_measurement: createMockMeasurement(),
     waveforms: createMockWaveform(),
-    recent_history: [
-      createMockMeasurement({ time: new Date(Date.now() - 9000).toISOString() }),
-      createMockMeasurement({ time: new Date(Date.now() - 6000).toISOString() }),
-      createMockMeasurement({ time: new Date(Date.now() - 3000).toISOString() }),
-      createMockMeasurement(),
-    ],
     ...overrides,
   };
 }
