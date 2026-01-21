@@ -71,4 +71,18 @@ public class MeasurementRequest {
 
     @JsonProperty("harm_i")
     private Double[] harmonicsI;
+
+    /**
+     * Raw voltage waveform samples (2 cycles, ~120 samples).
+     * Optional - if not provided, frontend will reconstruct from harmonics.
+     */
+    @JsonProperty("waveform_v")
+    private Double[] waveformV;
+
+    /**
+     * Raw current waveform samples (2 cycles, ~120 samples).
+     * Optional - if not provided, frontend will reconstruct from harmonics.
+     */
+    @JsonProperty("waveform_i")
+    private Double[] waveformI;
 }

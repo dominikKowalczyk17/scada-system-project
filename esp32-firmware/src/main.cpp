@@ -71,14 +71,24 @@ void processingTask(void * pvParameters) {
 
         // 2. Przygotowanie danych i RMS
         double sumU2 = 0, sumI2 = 0, sumP = 0;
+
+        // Store raw waveform samples for frontend (BEFORE FFT modifies vReal/iReal arrays)
+        double waveformV_out[SAMPLES];
+        double waveformI_out[SAMPLES];
+
         for (int i = 0; i < SAMPLES; i++) {
             float uScaled = (rawBufferU[i] - offsetU) * vCoeff;
             float iRaw = (float)rawBufferI[i] - offsetI;
-            if (abs(iRaw) < ADC_DEAD_ZONE) iRaw = 0; 
+            if (abs(iRaw) < ADC_DEAD_ZONE) iRaw = 0;
             float iScaled = iRaw * iCoeff;
-            
+
             vReal[i] = (double)uScaled; vImag[i] = 0;
             iReal[i] = (double)iScaled; iImag[i] = 0;
+
+            // Save raw samples for waveform display
+            waveformV_out[i] = uScaled;
+            waveformI_out[i] = iScaled;
+
             sumU2 += uScaled * uScaled;
             sumI2 += iScaled * iScaled;
             sumP += uScaled * iScaled;
@@ -167,7 +177,19 @@ void processingTask(void * pvParameters) {
             hI_arr.add(round(harmonicsI_out[h] * 1000) / 1000.0);
         }
 
-        char buffer[1024];
+        // Add raw waveform data (2 cycles ~120 samples for good visualization)
+        JsonArray waveV_arr = doc["waveform_v"].to<JsonArray>();
+        JsonArray waveI_arr = doc["waveform_i"].to<JsonArray>();
+        int samplesPerCycle = round(SAMPLING_FREQ / freq);  // Use detected frequency, not hardcoded 50Hz
+        int samplesToSend = samplesPerCycle * 2;
+        if (samplesToSend > SAMPLES) samplesToSend = SAMPLES;
+
+        for (int i = 0; i < samplesToSend; i++) {
+            waveV_arr.add(round(waveformV_out[i] * 100) / 100.0);  // 2 decimals for voltage
+            waveI_arr.add(round(waveformI_out[i] * 1000) / 1000.0);  // 3 decimals for current
+        }
+
+        char buffer[2048];
         serializeJson(doc, buffer);
         if (client.connected()) client.publish(MQTT_TOPIC, buffer);
         Serial.println(buffer);
@@ -183,7 +205,7 @@ void setup() {
   Serial.begin(115200);
   setup_wifi();
   client.setServer(MQTT_SERVER, 1883);
-  client.setBufferSize(1024);
+  client.setBufferSize(2048);  // Increased to handle waveform arrays
 
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);

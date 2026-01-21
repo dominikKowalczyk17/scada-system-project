@@ -173,6 +173,30 @@ public class Measurement {
     private Double[] harmonicsI;
 
     /**
+     * Raw voltage waveform samples from ESP32 (2 cycles, ~120 samples at 50Hz).
+     * <p>
+     * Contains actual sampled voltage values BEFORE FFT processing.
+     * Used for accurate waveform visualization showing real distortions, clipping, asymmetry.
+     * <p>
+     * Optional field - if not provided, frontend will reconstruct waveform from harmonics.
+     */
+    @Column(name = "waveform_v")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    private Double[] waveformV;
+
+    /**
+     * Raw current waveform samples from ESP32 (2 cycles, ~120 samples at 50Hz).
+     * <p>
+     * Contains actual sampled current values BEFORE FFT processing.
+     * Used for accurate waveform visualization showing real distortions, clipping, asymmetry.
+     * <p>
+     * Optional field - if not provided, frontend will reconstruct waveform from harmonics.
+     */
+    @Column(name = "waveform_i")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    private Double[] waveformI;
+
+    /**
      * PN-EN 50160 Group 1 indicator: Voltage deviation from declared value.
      * <p>
      * Formula: (U_measured - U_nominal) / U_nominal * 100%

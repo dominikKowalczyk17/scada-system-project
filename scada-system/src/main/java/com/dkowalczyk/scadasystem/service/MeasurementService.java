@@ -32,12 +32,24 @@ public class MeasurementService {
     private final MeasurementValidator validator;
 
     /**
-     * Helper method to reconstruct voltage and current waveforms from harmonics.
+     * Helper method to get voltage and current waveforms.
+     * <p>
+     * Uses raw waveform data if available (sent by ESP32), otherwise falls back
+     * to reconstructing from harmonics for backward compatibility.
      * <p>
      * WHY EXTRACTED: This logic is reused in both getDashboardData() and broadcastAfterCommit()
      * to avoid code duplication.
      */
     private WaveformDTO reconstructWaveforms(Measurement measurement) {
+        // Use raw waveform data if available (preferred - shows real distortions)
+        if (measurement.getWaveformV() != null && measurement.getWaveformI() != null) {
+            return WaveformDTO.builder()
+                    .voltage(convertToDoubleArray(measurement.getWaveformV()))
+                    .current(convertToDoubleArray(measurement.getWaveformI()))
+                    .build();
+        }
+
+        // Fallback: Reconstruct from harmonics (for backward compatibility)
         double frequency = measurement.getFrequency() != null ? measurement.getFrequency() : 50.0;
         double cosPhi = measurement.getCosPhi() != null ? measurement.getCosPhi() : 1.0;
         cosPhi = Math.min(1.0, Math.max(-1.0, cosPhi));
@@ -51,6 +63,18 @@ public class MeasurementService {
                 .voltage(voltageWaveform)
                 .current(currentWaveform)
                 .build();
+    }
+
+    /**
+     * Helper to convert Double[] (boxed) to double[] (primitive) for DTO.
+     */
+    private double[] convertToDoubleArray(Double[] boxed) {
+        if (boxed == null) return new double[0];
+        double[] primitive = new double[boxed.length];
+        for (int i = 0; i < boxed.length; i++) {
+            primitive[i] = boxed[i] != null ? boxed[i] : 0.0;
+        }
+        return primitive;
     }
 
     /**
@@ -126,6 +150,8 @@ public class MeasurementService {
                 .thdCurrent(request.getThdCurrent())
                 .harmonicsV(request.getHarmonicsV())
                 .harmonicsI(request.getHarmonicsI())
+                .waveformV(request.getWaveformV())  // Raw waveform data from ESP32
+                .waveformI(request.getWaveformI())  // Raw waveform data from ESP32
                 .build();
 
         ValidationResult validationResult = validator.validate(request);

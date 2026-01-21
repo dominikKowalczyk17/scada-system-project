@@ -29,16 +29,38 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
       </Card>
     )
   }
-  // Transformacja danych do formatu Recharts
+
+  // Auto-scale voltage axis
+  const maxVoltage = Math.max(...waveforms.voltage.map(Math.abs));
+  const voltageDomain = [-maxVoltage * 1.1, maxVoltage * 1.1];
+
+  // Auto-scale current axis based on actual data range
+  const maxCurrent = Math.max(...waveforms.current.map(Math.abs));
+  // Use at least 0.01A margin for very small currents (phone chargers ~0.02-0.05A)
+  const currentMargin = Math.max(maxCurrent * 0.2, 0.01);
+  const currentDomain = [
+    -(maxCurrent + currentMargin),
+    maxCurrent + currentMargin
+  ];
+
+  // Determine if current should be displayed in mA (for better readability at low currents)
+  const useMilliamps = maxCurrent < 0.5; // Below 0.5A, show in mA
+  const currentMultiplier = useMilliamps ? 1000 : 1;
+  const currentUnit = useMilliamps ? "mA" : "A";
+
+  // Transform current data for display
   const chartData = waveforms.voltage.map((v, index) => ({
     sample: index,
     time: (index / waveforms.voltage.length) * (1000 / frequency),
     voltage: v,
-    current: waveforms.current[index],
+    current: waveforms.current[index] * currentMultiplier,
   }));
 
-  const maxVoltage = Math.max(...waveforms.voltage.map(Math.abs));
-  const voltageDomain = [-maxVoltage * 1.1, maxVoltage * 1.1];
+  // Adjust current domain for display units
+  const displayCurrentDomain = [
+    currentDomain[0] * currentMultiplier,
+    currentDomain[1] * currentMultiplier
+  ];
 
   return (
     <Card>
@@ -50,7 +72,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
           </CardTitle>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
-          Napięcie (niebieski) i Prąd (pomarańczowy) na niezależnych osiach ({frequency.toFixed(1)} Hz)
+          Napięcie (niebieski, V) i Prąd (pomarańczowy, {currentUnit}) na niezależnych osiach ({frequency.toFixed(1)} Hz)
         </p>
       </CardHeader>
       <CardContent className="pt-2 pb-2 px-2 sm:px-4">
@@ -73,8 +95,8 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
               />
               
               {/* LEWA OŚ DLA NAPIĘCIA */}
-              <YAxis 
-                yAxisId="v-axis" 
+              <YAxis
+                yAxisId="v-axis"
                 orientation="left"
                 stroke="#3b82f6"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
@@ -82,20 +104,38 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 {...{ "data-testid": "y-axis-v-axis", "data-domain": JSON.stringify(voltageDomain) }}
                 width={60}
                 tickFormatter={(value) => value.toFixed(0)}
+                label={{
+                  value: "Napięcie (V)",
+                  angle: -90,
+                  position: "insideLeft",
+                  offset: 10,
+                  style: { fill: "#3b82f6", fontSize: 12 },
+                }}
               />
               
-              {/* PRAWA OŚ DLA PRĄDU */}
-              <YAxis 
-                yAxisId="i-axis" 
+              {/* PRAWA OŚ DLA PRĄDU - AUTO-SCALED */}
+              <YAxis
+                yAxisId="i-axis"
                 orientation="right"
                 stroke="#f59e0b"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                domain={[-5, 5]}
+                domain={displayCurrentDomain}
                 width={60}
-                tickFormatter={(value) => value.toFixed(2)}
+                tickFormatter={(value) =>
+                  useMilliamps
+                    ? value.toFixed(0) // mA - no decimals
+                    : value.toFixed(2) // A - 2 decimals
+                }
+                label={{
+                  value: `Prąd (${currentUnit})`,
+                  angle: 90,
+                  position: "insideRight",
+                  offset: 10,
+                  style: { fill: "#f59e0b", fontSize: 12 },
+                }}
               />
 
-              <Tooltip 
+              <Tooltip
                 contentStyle={{
                   backgroundColor: "#1f2937",
                   border: "1px solid #374151",
@@ -105,6 +145,15 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
                 itemStyle={{ color: "#e5e7eb" }}
                 labelFormatter={(time) => `${time.toFixed(1)} ms`}
+                formatter={(value: number, name: string) => {
+                  if (name === "Prąd (A)" || name === `Prąd (${currentUnit})`) {
+                    return [
+                      useMilliamps ? `${value.toFixed(0)} mA` : `${value.toFixed(3)} A`,
+                      `Prąd (${currentUnit})`
+                    ];
+                  }
+                  return [`${value.toFixed(1)} V`, "Napięcie (V)"];
+                }}
               />
 
               <Line
@@ -125,7 +174,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 stroke="#f59e0b"
                 strokeWidth={2}
                 dot={false}
-                name="Prąd (A)"
+                name={`Prąd (${currentUnit})`}
                 isAnimationActive={false}
               />
             </LineChart>
