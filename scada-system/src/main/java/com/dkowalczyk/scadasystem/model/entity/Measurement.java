@@ -78,19 +78,47 @@ public class Measurement {
     private Double powerApparent;
 
     /**
-     * Reactive power in var (not a PN-EN 50160 indicator).
-     * Formula: Q = U_rms * I_rms * sin(phi)
+     * Reactive power of fundamental Q₁ in var (Budeanu theory, not a PN-EN 50160 indicator).
+     * <p>
+     * Formula: Q₁ = U₁ * I₁ * sin(φ₁)
+     * where φ₁ is the phase shift of fundamental (H1) only, extracted from FFT.
+     * <p>
+     * Note: For distorted waveforms, this is NOT the total reactive power.
+     * The total "reactive" component includes both Q₁ and distortion power D.
+     * <p>
      * Used for power factor compensation and load diagnostics.
      */
     private Double powerReactive;
 
     /**
-     * Power factor (not a PN-EN 50160 indicator).
-     * Formula: cos(phi) = P / S
-     * Calculated from phase shift between voltage and current fundamental components.
+     * Distortion power D in var (Budeanu theory, not a PN-EN 50160 indicator).
+     * <p>
+     * Formula: D = sqrt(S² - P² - Q₁²)
+     * <p>
+     * This represents the power component caused by harmonics (non-sinusoidal distortion).
+     * For purely sinusoidal waveforms, D = 0.
+     * <p>
+     * Reference: IEEE Std 1459-2010, Budeanu power theory
+     */
+    @Column(name = "power_distortion")
+    private Double powerDistortion;
+
+    /**
+     * Power factor λ = P/S (not a PN-EN 50160 indicator).
+     * <p>
+     * Formula: λ = P / S
+     * <p>
+     * IMPORTANT: This is NOT cos(φ)!
+     * - cos(φ) is only valid for purely sinusoidal waveforms
+     * - λ = P/S is valid for all waveforms (including distorted)
+     * <p>
+     * For sinusoidal waveforms: λ = cos(φ)
+     * For distorted waveforms: λ < cos(φ₁) due to harmonics
+     * <p>
      * Used for load diagnostics and energy billing.
      */
-    private Double cosPhi;
+    @Column(name = "power_factor")
+    private Double powerFactor;
 
     /**
      * Frequency measured via zero-crossing detection (PN-EN 50160 Group 2 source data).

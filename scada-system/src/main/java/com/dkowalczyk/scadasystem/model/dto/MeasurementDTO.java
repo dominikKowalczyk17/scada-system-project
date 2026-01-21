@@ -20,8 +20,9 @@ public class MeasurementDTO {
     private Double currentRms;
     private Double powerActive;
     private Double powerApparent;
-    private Double powerReactive;
-    private Double cosPhi;
+    private Double powerReactive;       // Q₁ - reactive power of fundamental
+    private Double powerDistortion;     // D - distortion power from harmonics
+    private Double powerFactor;         // λ = P/S (NOT cos(φ)!)
     private Double frequency;
     private Double thdVoltage;
     private Double thdCurrent;

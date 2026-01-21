@@ -45,10 +45,22 @@ public class MeasurementRequest {
     @JsonProperty("power_reactive")
     private Double powerReactive;
 
-    @DecimalMin(value = "-1.0", message = "cosPhi must be between -1 and 1")
-    @DecimalMax(value = "1.0", message = "cosPhi must be between -1 and 1")
-    @JsonProperty("cos_phi")
-    private Double cosPhi;
+    /**
+     * Distortion power (D) from harmonics - Budeanu theory.
+     * D = sqrt(S² - P² - Q₁²)
+     */
+    @DecimalMin(value = "0.0", message = "powerDistortion must be non-negative")
+    @JsonProperty("power_distortion")
+    private Double powerDistortion;
+
+    /**
+     * Power factor λ = P/S (valid for distorted waveforms).
+     * Note: This is NOT cos(φ) which is only valid for sinusoidal waveforms!
+     */
+    @DecimalMin(value = "0.0", message = "powerFactor must be between 0 and 1")
+    @DecimalMax(value = "1.0", message = "powerFactor must be between 0 and 1")
+    @JsonProperty("power_factor")
+    private Double powerFactor;
 
     @NotNull(message = "frequency is required")
     @DecimalMin(value = "45.0", message = "frequency must be at least 45Hz")

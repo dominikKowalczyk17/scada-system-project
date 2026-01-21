@@ -216,10 +216,25 @@ function generateMeasurement(scenario) {
     harmonicsI.push(Math.round(Math.random() * 0.003 * 1000) / 1000);
   }
 
-  // Calculate power values
+  // Calculate power values (Budeanu Theory)
   const pActive = actualVRMS * actualIRMS * scenario.cosPhi;
   const sApparent = actualVRMS * actualIRMS;
-  const qReactive = Math.sqrt(Math.max(0, sApparent * sApparent - pActive * pActive));
+
+  // Reactive power of fundamental Q₁ = U₁ * I₁ * sin(φ₁)
+  const u1_rms = vFundamental / Math.sqrt(2);
+  const i1_rms = iFundamental / Math.sqrt(2);
+  const phaseShift = Math.acos(scenario.cosPhi);
+  const qReactive_H1 = u1_rms * i1_rms * Math.sin(phaseShift);
+
+  // Distortion power D = sqrt(S² - P² - Q₁²)
+  const s2 = sApparent * sApparent;
+  const p2 = pActive * pActive;
+  const q12 = qReactive_H1 * qReactive_H1;
+  const d2 = Math.max(0, s2 - p2 - q12);
+  const powerDistortion = Math.sqrt(d2);
+
+  // Power factor λ = P/S (NOT cos(φ)!)
+  const powerFactor = sApparent > 0.05 ? pActive / sApparent : 1.0;
 
   // Calculate THD with thresholds matching ESP32 firmware
   // Pass actual harmonic amplitudes, not normalized coefficients
@@ -235,8 +250,9 @@ function generateMeasurement(scenario) {
     i_rms: Math.round(actualIRMS * 1000) / 1000,
     p_act: Math.round(pActive * 10) / 10,
     power_apparent: Math.round(sApparent * 10) / 10,
-    power_reactive: Math.round(qReactive * 10) / 10,
-    cos_phi: Math.round(scenario.cosPhi * 100) / 100,
+    power_reactive: Math.round(Math.abs(qReactive_H1) * 10) / 10,    // Q₁ - fundamental only
+    power_distortion: Math.round(powerDistortion * 10) / 10,         // D - from harmonics
+    power_factor: Math.round(powerFactor * 100) / 100,               // λ = P/S
     freq: Math.round(frequency * 10) / 10,
     freq_valid: true,
     thd_v: Math.round(thdV * 100) / 100,

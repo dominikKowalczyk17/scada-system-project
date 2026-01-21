@@ -101,15 +101,19 @@ void processingTask(void * pvParameters) {
         // 3. FFT Napięcia z poprawką na stabilność freq
         FFT.windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
         FFT.compute(vReal, vImag, SAMPLES, FFT_FORWARD);
-        FFT.complexToMagnitude(vReal, vImag, SAMPLES);
-        
-        // Zerowanie DC bin dla dokładniejszego majorPeak
-        vReal[0] = 0; 
+
+        // EXTRACT PHASE BEFORE complexToMagnitude destroys it!
+        // We need phase of H1 for power calculations (Budeanu theory)
+        vReal[0] = 0; // DC removal first
         double freq = FFT.majorPeak(vReal, SAMPLES, SAMPLING_FREQ);
-        
         int baseBin = round(freq / (SAMPLING_FREQ / (double)SAMPLES));
         if (baseBin < 1) baseBin = 1;
 
+        // Phase of fundamental H1 for voltage (before magnitude conversion)
+        double phaseV_H1 = atan2(vImag[baseBin], vReal[baseBin]);
+
+        // Now convert to magnitude
+        FFT.complexToMagnitude(vReal, vImag, SAMPLES);
         double hV_base = (vReal[baseBin] / SAMPLES) * 2.0;
         double sumSqHarmonicsV = 0;
         double harmonicsV_out[MAX_CALC_HARMONIC + 1] = {0};
@@ -124,9 +128,13 @@ void processingTask(void * pvParameters) {
         // 4. FFT Prądu
         FFT.windowing(iReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
         FFT.compute(iReal, iImag, SAMPLES, FFT_FORWARD);
+
+        // Phase of fundamental H1 for current (before magnitude conversion)
+        double phaseI_H1 = atan2(iImag[baseBin], iReal[baseBin]);
+
+        // Now convert to magnitude
         FFT.complexToMagnitude(iReal, iImag, SAMPLES);
         iReal[0] = 0; // DC removal dla prądu
-
         double hI_base = (iReal[baseBin] / SAMPLES) * 2.0;
         double sumSqHarmonicsI = 0;
         double harmonicsI_out[MAX_CALC_HARMONIC + 1] = {0};
@@ -138,15 +146,42 @@ void processingTask(void * pvParameters) {
             if (h > 1) sumSqHarmonicsI += pow(amp, 2);
         }
 
-        // 5. Parametry mocy i Noise Gate
-        float sApparent = vRMS * iRMS;
-        float qReactive = (sApparent > abs(pActive)) ? sqrt(pow(sApparent, 2) - pow(pActive, 2)) : 0;
-        float cosPhi = (sApparent > 0.05) ? abs(pActive) / sApparent : 1.0;
+        // 5. Power Calculations (Budeanu Theory)
+        // For distorted waveforms we must distinguish between:
+        // - Q1: Reactive power of fundamental (H1) - from phase shift
+        // - D: Distortion power - from harmonics
+        // Reference: IEEE Std 1459-2010, Budeanu power theory
 
+        float sApparent = vRMS * iRMS;  // S = U_rms * I_rms (always valid)
+
+        // Phase shift of fundamental (H1 only)
+        double phaseShift_H1 = phaseI_H1 - phaseV_H1;
+
+        // Reactive power of fundamental Q1 = U1 * I1 * sin(φ1)
+        // U1 = hV_base (peak), I1 = hI_base (peak)
+        // Convert peak to RMS: U1_rms = hV_base / sqrt(2), I1_rms = hI_base / sqrt(2)
+        float u1_rms = hV_base / 1.41421356;
+        float i1_rms = hI_base / 1.41421356;
+        float qReactive_H1 = u1_rms * i1_rms * sin(phaseShift_H1);
+
+        // Distortion power D = sqrt(S^2 - P^2 - Q1^2)
+        float s2 = pow(sApparent, 2);
+        float p2 = pow(pActive, 2);
+        float q12 = pow(qReactive_H1, 2);
+        float d2 = s2 - p2 - q12;
+        float powerDistortion = (d2 > 0) ? sqrt(d2) : 0;
+
+        // Power factor λ = P/S (NOT cos(φ)!)
+        // cos(φ) is only valid for sinusoidal waveforms
+        float powerFactor = (sApparent > 0.05) ? abs(pActive) / sApparent : 1.0;
+        if (powerFactor > 1.0) powerFactor = 1.0;
+
+        // Noise gate - zero out power readings for very low currents
         if (iRMS < NOISE_GATE_RMS) {
-            iRMS = 0; pActive = 0; sApparent = 0; qReactive = 0; cosPhi = 1.0;
+            iRMS = 0; pActive = 0; sApparent = 0;
+            qReactive_H1 = 0; powerDistortion = 0; powerFactor = 1.0;
             // NOTE: hI_base and harmonics are NOT zeroed here - they're needed for THD calculation
-            // THD threshold check (line 160) will determine if THD should be calculated
+            // THD threshold check will determine if THD should be calculated
             for(int i=1; i<=MAX_CALC_HARMONIC; i++) harmonicsI_out[i] = 0;
         }
 
@@ -162,8 +197,9 @@ void processingTask(void * pvParameters) {
         doc["i_rms"] = round(iRMS * 1000) / 1000.0;
         doc["p_act"] = round(abs(pActive) * 10) / 10.0;
         doc["power_apparent"] = round(sApparent * 10) / 10.0;
-        doc["power_reactive"] = round(qReactive * 10) / 10.0;
-        doc["cos_phi"] = (cosPhi > 1.0) ? 1.0 : round(cosPhi * 100) / 100.0;
+        doc["power_reactive"] = round(abs(qReactive_H1) * 10) / 10.0;  // Q1 - reactive power of fundamental only
+        doc["power_distortion"] = round(powerDistortion * 10) / 10.0;  // D - distortion power from harmonics
+        doc["power_factor"] = round(powerFactor * 100) / 100.0;        // λ = P/S (NOT cos(φ)!)
         doc["freq"] = roundedFreq;
         doc["freq_valid"] = isFreqValid; // Dodatkowa flaga dla backendu
 
