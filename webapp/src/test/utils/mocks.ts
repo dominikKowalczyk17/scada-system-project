@@ -83,17 +83,38 @@ export function createMockRealtimeDashboard(
 export function createMockStats(overrides?: Partial<StatsDTO>): StatsDTO {
   return {
     date: new Date().toISOString().split('T')[0],
+    // Voltage
     avg_voltage: 230.5,
     min_voltage: 225.0,
     max_voltage: 235.0,
-    avg_current: 5.2,
-    max_current: 8.5,
+    std_dev_voltage: 2.5,
+
+    // Power
+    avg_power_active: 1250.0,
+    peak_power: 1800.0,
+    min_power: 800.0,
     total_energy_kwh: 27.6,
-    voltage_sag_count: 0,
+
+    // Power Factor
+    avg_power_factor: 0.95,
+    min_power_factor: 0.88,
+
+    // Frequency
+    avg_frequency: 50.0,
+    min_frequency: 49.8,
+    max_frequency: 50.2,
+
+    // Events
+    voltage_sag_count: 2,
     voltage_swell_count: 0,
+    interruption_count: 1,
     thd_violations_count: 0,
-    data_completeness: 1.0,
-    measurement_count: 28800,
+    frequency_dev_count: 3,
+    power_factor_penalty_count: 0,
+    
+    // Meta
+    measurement_count: 100,
+    data_completeness: 98.5,
     ...overrides,
   };
 }

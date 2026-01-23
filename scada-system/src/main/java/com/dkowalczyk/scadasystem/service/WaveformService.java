@@ -17,9 +17,9 @@ public class WaveformService {
 
     /**
      * Reconstructs waveform from harmonic amplitudes using formula:
-     * V(t) = H₁·sin(ω₁·t) + H₂·sin(ω₂·t) + ... + H₈·sin(ω₈·t)
+     * V(t) = H₁·sin(ω₁·t) + H₂·sin(ω₂·t) + ... + H₂₅·sin(ω₂₅·t)
      *
-     * @param harmonics       harmonic amplitudes [H1=fundamental, H2=2nd, ..., H8=8th]
+     * @param harmonics       harmonic amplitudes [H1=fundamental, H2=2nd, ..., H25=25th]
      * @param frequency       fundamental frequency in Hz (50Hz for EU)
      * @param samplesPerCycle number of samples per cycle (200 for smooth graph)
      * @param phaseShift      phase shift in radians (arccos(cosPhi) for current)

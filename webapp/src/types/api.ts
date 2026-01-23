@@ -74,17 +74,39 @@ export interface DashboardDTO {
 
 export interface StatsDTO {
   date: string;
+
+  // Voltage
   avg_voltage: number;
   min_voltage: number;
   max_voltage: number;
-  avg_current: number;
-  max_current: number;
+  std_dev_voltage: number;
+
+  // Power
+  avg_power_active: number;
+  peak_power: number;
+  min_power: number;
   total_energy_kwh: number;
+
+  // Power Factor
+  avg_power_factor: number;
+  min_power_factor: number;
+
+  // Frequency
+  avg_frequency: number;
+  min_frequency: number;
+  max_frequency: number;
+
+  // Events
   voltage_sag_count: number;
   voltage_swell_count: number;
+  interruption_count: number;
   thd_violations_count: number;
-  data_completeness: number;
+  frequency_dev_count: number;
+  power_factor_penalty_count: number;
+
+  // Meta
   measurement_count: number;
+  data_completeness: number;
 }
 
 export interface ErrorResponse {

@@ -145,13 +145,18 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
                 itemStyle={{ color: "#e5e7eb" }}
                 labelFormatter={(time) => `${time.toFixed(1)} ms`}
-                formatter={(value: number, name: string) => {
+                formatter={(value: number | undefined, name: string | undefined) => {
+                  if (value === undefined || name === undefined) {
+                    return ["---", name ?? "Nieznany"];
+                  }
+
                   if (name === "Prąd (A)" || name === `Prąd (${currentUnit})`) {
                     return [
                       useMilliamps ? `${value.toFixed(0)} mA` : `${value.toFixed(3)} A`,
                       `Prąd (${currentUnit})`
                     ];
                   }
+
                   return [`${value.toFixed(1)} V`, "Napięcie (V)"];
                 }}
               />

@@ -107,8 +107,8 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
               Ograniczenia pomiarowe
             </h4>
             <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
-              THD obliczane tylko z harmonicznych H2-H8 (ograniczenie Nyquista
-              przy 800Hz). Wartość reprezentuje{" "}
+              THD obliczane tylko z harmonicznych H2-H25 (ograniczenie Nyquista
+              przy 3000Hz). Wartość reprezentuje{" "}
               <strong>dolne ograniczenie</strong> rzeczywistego THD. Pełna norma
               IEC 61000-4-7 wymaga harmonicznych H2-H40.
             </p>
@@ -223,7 +223,7 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
                   {(data.thd_voltage ?? 0).toFixed(1)}%
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  Harmoniczne: H2-H8 ({data.harmonics_voltage?.length ?? 0}{" "}
+                  Harmoniczne: H2-H25 ({data.harmonics_voltage?.length ?? 0}{" "}
                   wartości)
                 </div>
               </div>
@@ -233,7 +233,7 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
               </div>
               <div className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
-                Pomiar częściowy (H2-H8)
+                Pomiar częściowy (H2-H25)
               </div>
             </div>
           </div>

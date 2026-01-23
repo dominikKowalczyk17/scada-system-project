@@ -21,7 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Code Style Preferences:**
 - **NO EMOJIS IN CODE**: Do not use emojis (✅, ⚠️, 🔥, etc.) in source code files (.java, .ts, .cpp, etc.)
-- Emojis are acceptable in documentation (.md files) and user-facing messages
+- Emojis are not acceptable in documentation (.md files) and user-facing messages
 - Use plain text symbols for code comments and serial output (e.g., "[OK]", "[WARN]", "[ERROR]" instead of ✓, ⚠️, ✗)
 
 ## Project Overview

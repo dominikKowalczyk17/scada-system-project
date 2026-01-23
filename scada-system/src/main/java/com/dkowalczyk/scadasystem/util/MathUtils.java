@@ -108,7 +108,7 @@ public class MathUtils {
      * WHY: ESP32 sends harmonic amplitudes (8 numbers) to save bandwidth.
      * This function reconstructs the full waveform (200 samples) for visualization.
      *
-     * @param harmonics       Array of harmonic amplitudes [H1, H2, ..., H8]
+     * @param harmonics       Array of harmonic amplitudes [H1, H2, ..., H25]
      *                        H1 = fundamental frequency, H2 = 2nd harmonic, etc.
      * @param frequency       Fundamental frequency in Hz (50Hz for EU, 60Hz for
      *                        USA)

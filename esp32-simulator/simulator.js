@@ -82,7 +82,7 @@ function generateWaveform(fundamental, harmonics, samples, frequency, phaseShift
     const t = i * dt;
     let value = 0;
 
-    // Sum of harmonics (H1 to H8)
+    // Sum of harmonics (H1 to H25)
     for (let h = 0; h < harmonics.length; h++) {
       const harmonicOrder = h + 1;
       const amplitude = fundamental * harmonics[h];
