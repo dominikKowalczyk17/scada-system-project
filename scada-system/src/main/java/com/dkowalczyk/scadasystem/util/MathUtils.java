@@ -38,7 +38,7 @@ public class MathUtils {
                     return Math.pow(d - mean, 2);
                 })
                 .sum();
-        return Math.sqrt(sumSquaredDiffs / values.size());
+        return Math.sqrt(sumSquaredDiffs / values.size() - 1);
     }
 
     /**
