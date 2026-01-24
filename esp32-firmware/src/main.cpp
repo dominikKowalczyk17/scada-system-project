@@ -18,6 +18,11 @@ const float NOISE_GATE_RMS = 0.01;
 const float ADC_DEAD_ZONE = 4.0;
 const float THD_I_THRESHOLD = NOISE_GATE_RMS * 1.414 * 0.15;  // ~0.0021A - synchronized with NOISE_GATE (15% margin)
 
+// Zero-crossing detection parameters
+const float ZERO_CROSSING_THRESHOLD = 5.0;  // LSB units (histereza ~2.75V po skalowaniu)
+const int MAX_ZERO_CROSSINGS = 20;          // Bufor na ~10 cykli przy 50 Hz
+const int MIN_ZERO_CROSSINGS = 2;           // Min 2 przejścia = 1 pełny okres (obniżone z 3)
+
 volatile int rawBufferU[SAMPLES];
 volatile int rawBufferI[SAMPLES];
 volatile bool dataReady = false;
@@ -51,6 +56,70 @@ void setup_wifi() {
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
     Serial.println("\nWiFi Connected.");
+}
+
+/**
+ * Oblicz częstotliwość AC używając prostej zero-crossing detection
+ * BRAK interpolacji - bezpośredni pomiar między próbkami
+ *
+ * @param rawBuffer Surowe próbki ADC (przed skalowaniem)
+ * @param numSamples Liczba próbek w buforze
+ * @param dcOffset DC offset do usunięcia
+ * @return Częstotliwość w Hz (lub 0.0 jeśli detekcja zawiodła)
+ */
+float calculateFrequencyFromZeroCrossing(volatile int* rawBuffer, int numSamples, float dcOffset) {
+    int zeroCrossingSamples[MAX_ZERO_CROSSINGS];  // Indeksy próbek, nie czasy
+    int crossingCount = 0;
+
+    // Debug: znajdź min/max wartości sygnału po usunięciu DC
+    // float minVal = 9999, maxVal = -9999;
+    // for (int i = 0; i < numSamples; i++) {
+    //     float v = (rawBuffer[i] - dcOffset);
+    //     if (v < minVal) minVal = v;
+    //     if (v > maxVal) maxVal = v;
+    // }
+
+    // Wykryj rising edge zero-crossings (bez interpolacji)
+    for (int i = 1; i < numSamples && crossingCount < MAX_ZERO_CROSSINGS; i++) {
+        float v_prev = (rawBuffer[i-1] - dcOffset);  // Raw ADC units
+        float v_curr = (rawBuffer[i] - dcOffset);
+
+        // Rising edge: negative → positive (z histerezą)
+        if (v_prev < -ZERO_CROSSING_THRESHOLD && v_curr > ZERO_CROSSING_THRESHOLD) {
+            zeroCrossingSamples[crossingCount++] = i;  // Zapisz tylko indeks próbki
+        }
+    }
+
+    // Debug output
+    // Serial.printf("[ZC-DEBUG] DC offset=%.1f, min=%.1f, max=%.1f, crossings=%d\n",
+    //               dcOffset, minVal, maxVal, crossingCount);
+
+    // Potrzeba min 2 przejścia dla wiarygodnej średniej (1 pełny okres)
+    if (crossingCount < MIN_ZERO_CROSSINGS) {
+        // Serial.printf("[ZC-DEBUG] Insufficient crossings (%d < %d)\n", crossingCount, MIN_ZERO_CROSSINGS);
+        return 0.0;
+    }
+
+    // Oblicz średni okres z kolejnych przejść
+    // Okres = różnica indeksów × 333 μs na próbkę
+    int totalSamples = 0;
+    for (int i = 1; i < crossingCount; i++) {
+        totalSamples += (zeroCrossingSamples[i] - zeroCrossingSamples[i-1]);
+    }
+
+    float avgSamples = (float)totalSamples / (float)(crossingCount - 1);
+    float avgPeriodUs = avgSamples * 333.0;  // 333 μs = okres próbkowania
+    float frequency = 1000000.0 / avgPeriodUs;  // Konwersja μs na Hz
+
+    // Serial.printf("[ZC-DEBUG] avgSamples=%.1f, frequency=%.2f Hz\n", avgSamples, frequency);
+
+    // Sanity check: odrzuć częstotliwości poza zakresem
+    if (frequency < 45.0 || frequency > 55.0) {
+        // Serial.printf("[ZC-DEBUG] Frequency out of range (%.2f Hz)\n", frequency);
+        return 0.0;
+    }
+
+    return frequency;
 }
 
 void processingTask(void * pvParameters) {
@@ -98,14 +167,24 @@ void processingTask(void * pvParameters) {
         float iRMS = sqrt(sumI2 / SAMPLES);
         float pActive = sumP / SAMPLES;
 
-        // 3. FFT Napięcia z poprawką na stabilność freq
-        FFT.windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-        FFT.compute(vReal, vImag, SAMPLES, FFT_FORWARD);
+        // 3. Pomiar częstotliwości: Zero-crossing (primary) z FFT fallback
+        double freq = calculateFrequencyFromZeroCrossing((volatile int*)rawBufferU, SAMPLES, offsetU);
+        bool freqFromZeroCrossing = (freq > 0.0);
 
-        // EXTRACT PHASE BEFORE complexToMagnitude destroys it!
-        // We need phase of H1 for power calculations (Budeanu theory)
-        vReal[0] = 0; // DC removal first
-        double freq = FFT.majorPeak(vReal, SAMPLES, SAMPLING_FREQ);
+        // Fallback na FFT jeśli zero-crossing zawiódł
+        if (!freqFromZeroCrossing) {
+            FFT.windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+            FFT.compute(vReal, vImag, SAMPLES, FFT_FORWARD);
+            vReal[0] = 0;
+            freq = FFT.majorPeak(vReal, SAMPLES, SAMPLING_FREQ);
+            Serial.println("[WARN] Zero-crossing failed, using FFT frequency");
+        } else {
+            // Zero-crossing sukces, ale nadal uruchom FFT dla harmonicznych
+            FFT.windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+            FFT.compute(vReal, vImag, SAMPLES, FFT_FORWARD);
+            vReal[0] = 0;
+        }
+
         int baseBin = round(freq / (SAMPLING_FREQ / (double)SAMPLES));
         if (baseBin < 1) baseBin = 1;
 
@@ -188,7 +267,8 @@ void processingTask(void * pvParameters) {
         float roundedFreq = round(freq * 10) / 10.0;
         bool isFreqValid = (freq >= 45.0 && freq <= 55.0);
         if (!isFreqValid) {
-            Serial.printf("[WARNING] Invalid Frequency: %.2f Hz\n", freq);
+            Serial.printf("[WARNING] Invalid Frequency: %.2f Hz (source: %s)\n",
+                          freq, freqFromZeroCrossing ? "zero-crossing" : "FFT");
         }
 
         // 6. JSON (zgodny z adnotacjami @JsonProperty w Twoim DTO)
