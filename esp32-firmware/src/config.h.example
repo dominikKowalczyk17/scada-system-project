@@ -1,0 +1,13 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// Dane logowania do sieci WiFi
+#define WIFI_SSID "your_wifi_ssid"
+#define WIFI_PASS "your_wifi_password"
+
+// Adres brokera MQTT (backend server)
+#define MQTT_SERVER "192.168.1.xxx"
+#define MQTT_PORT 1883
+#define MQTT_TOPIC "scada/measurements/node1"
+
+#endif

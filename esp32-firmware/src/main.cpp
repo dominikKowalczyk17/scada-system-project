@@ -14,12 +14,12 @@
 
 const float vCoeff = 0.550;
 const float iCoeff = 0.0096;
-const float NOISE_GATE_RMS = 0.01;
+const float NOISE_GATE_RMS = 0.05;  // Zwiększone z 0.01A - agresywniejsze filtrowanie przy małym obciążeniu
 const float ADC_DEAD_ZONE = 4.0;
-const float THD_I_THRESHOLD = NOISE_GATE_RMS * 1.414 * 0.15;  // ~0.0021A - synchronized with NOISE_GATE (15% margin)
+const float THD_I_THRESHOLD = NOISE_GATE_RMS * 1.414 * 0.15;  // ~0.0106A - synchronized with NOISE_GATE (15% margin)
 
 // Zero-crossing detection parameters
-const float ZERO_CROSSING_THRESHOLD = 5.0;  // LSB units (histereza ~2.75V po skalowaniu)
+const float ZERO_CROSSING_THRESHOLD = 8.0;  // LSB units (optymalna histereza ~4.4V - kompromis między czułością a odpornością na szum)
 const int MAX_ZERO_CROSSINGS = 20;          // Bufor na ~10 cykli przy 50 Hz
 const int MIN_ZERO_CROSSINGS = 2;           // Min 2 przejścia = 1 pełny okres (obniżone z 3)
 
@@ -36,6 +36,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 hw_timer_t * timer = NULL;
 unsigned long lastPublishTime = 0;
+double lastValidFreqZC = 50.0;  // Ostatnia prawidłowa częstotliwość z zero-crossing (fallback)
 
 void IRAM_ATTR onTimer() {
   if (!dataReady) {
@@ -71,15 +72,7 @@ float calculateFrequencyFromZeroCrossing(volatile int* rawBuffer, int numSamples
     int zeroCrossingSamples[MAX_ZERO_CROSSINGS];  // Indeksy próbek, nie czasy
     int crossingCount = 0;
 
-    // Debug: znajdź min/max wartości sygnału po usunięciu DC
-    // float minVal = 9999, maxVal = -9999;
-    // for (int i = 0; i < numSamples; i++) {
-    //     float v = (rawBuffer[i] - dcOffset);
-    //     if (v < minVal) minVal = v;
-    //     if (v > maxVal) maxVal = v;
-    // }
-
-    // Wykryj rising edge zero-crossings (bez interpolacji)
+    // Wykryj rising edge zero-crossings (bez interpolacji, stała histereza)
     for (int i = 1; i < numSamples && crossingCount < MAX_ZERO_CROSSINGS; i++) {
         float v_prev = (rawBuffer[i-1] - dcOffset);  // Raw ADC units
         float v_curr = (rawBuffer[i] - dcOffset);
@@ -100,14 +93,37 @@ float calculateFrequencyFromZeroCrossing(volatile int* rawBuffer, int numSamples
         return 0.0;
     }
 
-    // Oblicz średni okres z kolejnych przejść
+    // Oblicz średni okres z kolejnych przejść z filtracją outlierów
     // Okres = różnica indeksów × 333 μs na próbkę
+
+    // Krok 1: Oblicz wstępną średnią do określenia zakresu outlierów
     int totalSamples = 0;
     for (int i = 1; i < crossingCount; i++) {
         totalSamples += (zeroCrossingSamples[i] - zeroCrossingSamples[i-1]);
     }
+    float preliminaryAvg = (float)totalSamples / (float)(crossingCount - 1);
 
-    float avgSamples = (float)totalSamples / (float)(crossingCount - 1);
+    // Krok 2: Odrzuć outliery (odstępy > ±25% od średniej)
+    // Dla 50 Hz: oczekiwane ~60 próbek, zakres akceptowalny: 45-75 próbek (40-66.7 Hz)
+    float minAcceptable = preliminaryAvg * 0.75;  // -25%
+    float maxAcceptable = preliminaryAvg * 1.25;  // +25%
+
+    int validSamples = 0;
+    int validCount = 0;
+    for (int i = 1; i < crossingCount; i++) {
+        int interval = zeroCrossingSamples[i] - zeroCrossingSamples[i-1];
+        if (interval >= minAcceptable && interval <= maxAcceptable) {
+            validSamples += interval;
+            validCount++;
+        }
+    }
+
+    // Jeśli zbyt mało prawidłowych przejść po filtracji, zwróć błąd
+    if (validCount < MIN_ZERO_CROSSINGS - 1) {
+        return 0.0;  // Za mało prawidłowych odstępów
+    }
+
+    float avgSamples = (float)validSamples / (float)validCount;
     float avgPeriodUs = avgSamples * 333.0;  // 333 μs = okres próbkowania
     float frequency = 1000000.0 / avgPeriodUs;  // Konwersja μs na Hz
 
@@ -173,17 +189,18 @@ void processingTask(void * pvParameters) {
 
         // Fallback na FFT jeśli zero-crossing zawiódł
         if (!freqFromZeroCrossing) {
-            FFT.windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-            FFT.compute(vReal, vImag, SAMPLES, FFT_FORWARD);
-            vReal[0] = 0;
-            freq = FFT.majorPeak(vReal, SAMPLES, SAMPLING_FREQ);
-            Serial.println("[WARN] Zero-crossing failed, using FFT frequency");
-        } else {
-            // Zero-crossing sukces, ale nadal uruchom FFT dla harmonicznych
-            FFT.windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-            FFT.compute(vReal, vImag, SAMPLES, FFT_FORWARD);
-            vReal[0] = 0;
+            // Zero-crossing zawiódł - użyj ostatniej dobrej częstotliwości i skipnij pomiar
+            Serial.printf("[WARN] Zero-crossing failed, skipping measurement (last valid: %.1f Hz)\n", lastValidFreqZC);
+            continue;  // Pomiń ten cykl pomiaru, nie wysyłaj danych z FFT fallback
         }
+
+        // Zero-crossing sukces - zapisz jako ostatnią dobrą częstotliwość
+        lastValidFreqZC = freq;
+
+        // Uruchom FFT dla harmonicznych
+        FFT.windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+        FFT.compute(vReal, vImag, SAMPLES, FFT_FORWARD);
+        vReal[0] = 0;
 
         int baseBin = round(freq / (SAMPLING_FREQ / (double)SAMPLES));
         if (baseBin < 1) baseBin = 1;
@@ -297,7 +314,8 @@ void processingTask(void * pvParameters) {
         JsonArray waveV_arr = doc["waveform_v"].to<JsonArray>();
         JsonArray waveI_arr = doc["waveform_i"].to<JsonArray>();
         int samplesPerCycle = round(SAMPLING_FREQ / freq);  // Use detected frequency, not hardcoded 50Hz
-        int samplesToSend = samplesPerCycle * 2;
+        // Send only 1 cycle (64 samples) instead of 2 cycles to reduce JSON size
+        int samplesToSend = samplesPerCycle;  // Was: samplesPerCycle * 2
         if (samplesToSend > SAMPLES) samplesToSend = SAMPLES;
 
         for (int i = 0; i < samplesToSend; i++) {
@@ -305,10 +323,22 @@ void processingTask(void * pvParameters) {
             waveI_arr.add(round(waveformI_out[i] * 1000) / 1000.0);  // 3 decimals for current
         }
 
-        char buffer[2048];
-        serializeJson(doc, buffer);
-        if (client.connected()) client.publish(MQTT_TOPIC, buffer);
-        Serial.println(buffer);
+        char buffer[3072];  // Reduced from 8192 to avoid stack overflow (64 samples × 2 arrays ≈ 2KB JSON)
+        size_t len = serializeJson(doc, buffer, sizeof(buffer));
+        if (len >= sizeof(buffer)) {
+            Serial.printf("[ERROR] JSON buffer overflow! Size: %d, Capacity: %d\n", len, sizeof(buffer));
+        } else {
+            if (client.connected()) client.publish(MQTT_TOPIC, buffer);
+            // Serial.println(buffer);  // Commented to reduce serial clutter - JSON sent via MQTT
+            Serial.printf("[DATA] v=%.1fV i=%.3fA p=%.1fW f=%.1fHz%s (samples: %d, json: %d bytes)\n",
+                          round(vRMS * 10) / 10.0,
+                          round(iRMS * 1000) / 1000.0,
+                          round(abs(pActive) * 10) / 10.0,
+                          roundedFreq,
+                          freqFromZeroCrossing ? " [ZC]" : " [FFT]",
+                          samplesToSend,
+                          len);
+        }
       }
       dataReady = false; 
     }
@@ -321,7 +351,7 @@ void setup() {
   Serial.begin(115200);
   setup_wifi();
   client.setServer(MQTT_SERVER, 1883);
-  client.setBufferSize(2048);  // Increased to handle waveform arrays
+  client.setBufferSize(8192);  // Increased to handle waveform arrays (128 samples × 2 × ~30 bytes)
 
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
