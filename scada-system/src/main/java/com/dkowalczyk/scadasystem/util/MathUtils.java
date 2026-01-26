@@ -25,20 +25,18 @@ public class MathUtils {
     }
 
     /**
-     * Calculate standard deviation.
-     * Formula: √( Σ(xi - μ)² / n )
+     * Calculate sample standard deviation (with Bessel's correction).
+     * Formula: √( Σ(xi - μ)² / (n - 1) )
      */
     public static double standardDeviation(List<Double> values, double mean) {
-        if (values == null || values.isEmpty()) {
+        if (values == null || values.size() < 2) {
             return 0.0;
         }
 
         double sumSquaredDiffs = values.stream()
-                .mapToDouble(d -> {
-                    return Math.pow(d - mean, 2);
-                })
+                .mapToDouble(d -> Math.pow(d - mean, 2))
                 .sum();
-        return Math.sqrt(sumSquaredDiffs / values.size() - 1);
+        return Math.sqrt(sumSquaredDiffs / (values.size() - 1));
     }
 
     /**
