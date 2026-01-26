@@ -3,9 +3,9 @@
 **Title:** SCADA System for Monitoring Electrical Power Quality in Home Installations
 **Author:** Dominik Kowalczyk
 **Project:** Bachelor's Thesis (Inżynier's Degree)
-**Documentation Version:** 3.0
-**Last Updated:** 2025-01-13
-**Project Status:** ~85% Complete
+**Documentation Version:** 4.0
+**Last Updated:** 2026-01-26
+**Project Status:** ~90% Complete
 
 ---
 
@@ -63,9 +63,10 @@ SCADA (Supervisory Control And Data Acquisition) system for monitoring electrica
 **Main Constraints from Budget:**
 - Using ESP32 instead of professional analyzers (PQ3/PQ5 class)
 - 12-bit ADC instead of 16/24-bit external ADC
-- Sampling frequency 800-1000 Hz (instead of 5-20 kHz)
+- Sampling frequency 3000 Hz (instead of 5-20 kHz required for Class A)
 - Single-phase measurement (instead of three-phase)
 - No dedicated flicker measurement hardware (IEC 61000-4-15)
+- THD measurement limited to H2-H25 (instead of H2-H40 per IEC 61000-4-7)
 
 **Hardware:**
 - Raspberry Pi 4B 4GB + 32GB microSD (existing equipment)
@@ -79,20 +80,20 @@ SCADA (Supervisory Control And Data Acquisition) system for monitoring electrica
 - Voltage RMS, Current RMS (±1-3% accuracy after calibration)
 - Network frequency (±0.01-0.02 Hz)
 - Active, Reactive, Apparent Power
-- Power Factor (cos φ)
-- Voltage and Current THD (harmonics H2-H8, partial measurement)
-- 8 harmonics (50-400 Hz, Nyquist limit)
+- Power Factor (λ = P/S, not cos φ - for distorted waveforms)
+- Voltage and Current THD (harmonics H2-H25, partial measurement)
+- 25 harmonics (50-1250 Hz, limited by Nyquist at 3000 Hz sampling)
 
 **Power Quality Indicators (PN-EN 50160):**
 - Group 1: Voltage deviation from 230V (±10% limit) - **POSSIBLE**
 - Group 2: Frequency deviation from 50Hz (±0.5 Hz limit) - **POSSIBLE**
 - Group 3: Flicker (Pst/Plt) - **IMPOSSIBLE** (requires IEC 61000-4-15)
-- Group 4: THD and harmonics - **PARTIAL** (only H2-H8)
+- Group 4: THD and harmonics - **PARTIAL** (only H2-H25, standard requires H2-H40)
 - Group 5: Events (sags, swells, interruptions) - **PLANNED** (separate issue)
 
 **Dashboard and Visualization:**
 - Real-time charts (voltage, current, frequency, power)
-- Harmonics charts (bar chart H1-H8)
+- Harmonics charts (bar chart H1-H25)
 - Waveform charts (voltage/current sinusoid)
 - WebSocket streaming (updates every 3 seconds)
 - Historical data view with time range filters and CSV export
@@ -113,24 +114,24 @@ The system follows a classic three-tier SCADA architecture with IoT edge computi
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │ ESP32-WROOM-32 (C++ / Arduino Framework)         │   │
 │  │ ┌────────────────────────────────────────────────────┐   │   │
-│  │ │ ADC Sampling (800-1000 Hz, 12-bit)          │   │   │
-│  │ │ - GPIO 34: Voltage (TV16 → 0-3.3V)           │   │   │
+│  │ │ ADC Sampling (3000 Hz, 512 samples, 12-bit) │   │   │
+│  │ │ - GPIO 33: Voltage (TV16 → 0-3.3V)           │   │   │
 │  │ │ - GPIO 35: Current (SCT013 → 0-3.3V)        │   │   │
 │  │ └────────────────────────────────────────────────────┘   │   │
 │  │ ┌────────────────────────────────────────────────────┐   │   │
 │  │ │ Signal Processing                                 │   │   │
-│  │ │ - RMS calculation (window 10-20 cycles)         │   │   │
-│  │ │ - Zero-crossing detection (frequency)            │   │   │
-│  │ │ - DFT/Goertzel (harmonics H1-H8)           │   │   │
-│  │ │ - THD calculation                               │   │   │
-│  │ │ - Power calculations (P, Q, S, cos φ)          │   │   │
+│  │ │ - RMS calculation (512 samples, ~8.5 cycles)    │   │   │
+│  │ │ - Zero-crossing frequency + FFT fallback        │   │   │
+│  │ │ - FFT Hamming window (harmonics H1-H25)        │   │   │
+│  │ │ - THD calculation (partial, H2-H25)            │   │   │
+│  │ │ - Budeanu power (P, Q₁, D, S, λ=P/S)          │   │   │
 │  │ └────────────────────────────────────────────────────┘   │   │
 │  │ ┌────────────────────────────────────────────────────┐   │   │
 │  │ │ WiFi Communication                               │   │   │
 │  │ │ - MQTT Publish (every 3s)                     │   │   │
 │  │ │ - Topic: scada/measurements/node1              │   │   │
 │  │ │ - QoS: 1 (at least once delivery)              │   │   │
-│  │ │ - JSON payload (~300-500 bytes)                   │   │   │
+│  │ │ - JSON payload (~2-3 KB with waveforms)          │   │   │
 │  │ └────────────────────────────────────────────────────┘   │   │
 │  └──────────────────────────────────────────────────────────┘   │
 └────────────────────────┬────────────────────────────────────────┘
@@ -215,7 +216,7 @@ The system follows a classic three-tier SCADA architecture with IoT edge computi
 │  │ │ - Real-time metrics (voltage, current, power)   │   │  │
 │  │ │ - Streaming charts (Recharts, buffer 60)      │   │  │
 │  │ │ - Waveform visualization (U/I sinusoid)        │   │  │
-│  │ │ - Harmonics bar chart (H1-H8)                │   │  │
+│  │ │ - Harmonics bar chart (H1-H25)                │   │  │
 │  │ │ - Power quality indicators section             │   │  │
 │  │ └────────────────────────────────────────────────────┘   │  │
 │  │ ┌────────────────────────────────────────────────────┐   │  │
@@ -239,10 +240,10 @@ The system follows a classic three-tier SCADA architecture with IoT edge computi
 **Measurement → Storage → Aggregation → Visualization:**
 
 ```
-1. ESP32 ADC Sampling (800-1000 Hz)
-   ├─> Measurement window: 10-20 cycles (200-400 ms)
-   ├─> Calculations: RMS, FFT/DFT, THD, P, Q, S
-   └─> JSON payload (~300-500 bytes)
+1. ESP32 ADC Sampling (3000 Hz, 512 samples)
+   ├─> Measurement window: ~8.5 cycles (~170 ms at 50 Hz)
+   ├─> Calculations: RMS, FFT (Hamming), THD (H2-H25), Budeanu power
+   └─> JSON payload (~2-3 KB with raw waveforms)
 
 2. MQTT Publish (every 3 seconds)
    ├─> Topic: scada/measurements/node1
@@ -562,9 +563,10 @@ Process:
 - Nonlinearity: ±7-15 LSB (Limited SNR)
 
 **Sampling Frequency:**
-- With WiFi enabled: ~1000 samples/s (1 kS/s)
+- With WiFi enabled: 3000 samples/s (3 kS/s) via timer interrupt
 - Without WiFi: up to 100,000 samples/s (theoretical)
-- Target for project: 800-1000 Hz
+- Actual implementation: 3000 Hz (timer interrupt every 333 μs)
+- Buffer size: 512 samples (~170 ms acquisition time)
 - **Important:** Timer Interrupt ensures consistent sampling intervals
 
 **Measurement Circuit:**
@@ -579,20 +581,20 @@ According to Nyquist theorem, maximum measurable signal frequency cannot exceed 
 
 **Harmonics Limit Table:**
 
-| Sampling Rate | Nyquist Frequency | Max Harmonic (at 50Hz) | Harmonics Count |
+| Sampling Rate | Nyquist Frequency | Max Harmonic (at 50Hz) | Implementation |
 |---------------|-------------------|----------------------------|-----------------|
-| 800 Hz        | 400 Hz            | 8th harmonic (400 Hz)   | H1-H8           |
-| 1000 Hz       | 500 Hz            | 10th harmonic (500 Hz)  | H1-H10          |
+| 3000 Hz       | 1500 Hz           | 30th harmonic (theoretical) | H1-H25 (conservative) |
 
-**Project Decision:** Conservative 800-1000 Hz sampling allows harmonics H1-H8 measurement.
+**Actual Implementation:** 3000 Hz sampling with 512 samples, measuring harmonics H1-H25 (50-1250 Hz).
 
 **Implications for Power Quality Analysis:**
 
-IEC 61000-4-7 requires harmonic measurement up to 40th order (2000 Hz at 50Hz). Our system measures only up to 8th order, which means:
+IEC 61000-4-7 requires harmonic measurement up to 40th order (2000 Hz at 50Hz). Our system measures up to 25th order, which means:
 
-- THD (Total Harmonic Distortion) calculated only from harmonics 2-8
-- Actual THD may be higher (our measurements represent lower bound)
-- Higher-order harmonics (9-40) are NOT recorded
+- THD (Total Harmonic Distortion) calculated from harmonics 2-25
+- Actual THD may be slightly higher (harmonics 26-40 not measured)
+- Higher-order harmonics (26-40) are NOT recorded
+- **Note:** This is a significant improvement over the minimum viable product, capturing most relevant harmonics for residential loads
 
 ### 4.3. PN-EN 50160 Capabilities
 
@@ -620,7 +622,7 @@ Where:
 - `voltage_deviation_percent` (DOUBLE PRECISION) - Backend-calculated indicator
 
 **Measurement Method:**
-1. ESP32 samples voltage at 800-1000 Hz
+1. ESP32 samples voltage at 3000 Hz
 2. Calculates RMS in 10-20 cycle window (200-400 ms): RMS = sqrt(mean(samples²))
 3. Sends U_rms every 3 seconds via MQTT
 4. Backend aggregates 10-minute measurements (avg, min, max)
@@ -677,7 +679,7 @@ Where:
 - Dedicated measurement hardware
 
 **Our Limitations:**
-- Sampling only 800-1000 Hz (insufficient)
+- Sampling only 3000 Hz (insufficient)
 - No IEC 61000-4-15 filter implementation
 - ESP32 lacks computational resources for this algorithm
 
@@ -711,12 +713,12 @@ THD_U = sqrt(sum(U_h² for h=2..8)) / U_1 × 100%
 - `harmonics_v` (DOUBLE PRECISION[]) - Array of 8 values: [H1, H2, ..., H8]
 
 **Measurement Method:**
-1. ESP32 samples voltage at 800-1000 Hz
-2. Data buffer: 10-20 cycles (160-320 samples at 800 Hz)
+1. ESP32 samples voltage at 3000 Hz
+2. Data buffer: 512 samples (~8.5 cycles at 50 Hz, 3000 Hz sampling)
 3. Synchronize window with zero-crossing
 4. Apply Hanning window (reduce spectral leakage)
 5. Execute DFT/Goertzel on ESP32
-6. Extract harmonic amplitudes H1-H8 (50-400 Hz)
+6. Extract harmonic amplitudes H1-H25 (50-1250 Hz)
 7. Calculate THD: sqrt(sum(H2²..H8²)) / H1 × 100%
 
 **Accuracy:** Harmonic amplitude ±3-5%
@@ -743,16 +745,17 @@ U_h_percent = (U_h / U_1) × 100%
 | H6       | 300 Hz    | 0.5%              | MEASURED    |
 | H7       | 350 Hz    | 5%                | MEASURED    |
 | H8       | 400 Hz    | 0.5%              | MEASURED    |
-| H9       | 450 Hz    | 1.5%              | NOT MEASURED|
-| H10      | 500 Hz    | 0.5%              | NOT MEASURED|
-| H11      | 550 Hz    | 3.5%              | NOT MEASURED|
-| H13      | 650 Hz    | 3%                | NOT MEASURED|
-| ...      | ...       | ...               | NOT MEASURED|
-| H40      | 2000 Hz   | <0.5%             | NOT MEASURED|
+| H9       | 450 Hz    | 1.5%              | MEASURED    |
+| H10      | 500 Hz    | 0.5%              | MEASURED    |
+| H11      | 550 Hz    | 3.5%              | MEASURED    |
+| H13      | 650 Hz    | 3%                | MEASURED    |
+| H15      | 750 Hz    | 0.5%              | MEASURED    |
+| H17-H25  | 850-1250Hz | 0.5-2%           | MEASURED    |
+| H26-H40  | 1300-2000Hz | <0.5%           | NOT MEASURED|
 
-**Status:** PARTIALLY POSSIBLE (harmonics 1-8)
+**Status:** MOSTLY POSSIBLE (harmonics 1-25)
 
-**Limitation:** Standard requires measurement up to 40th harmonic (2000 Hz), not possible at 800-1000 Hz sampling due to Nyquist constraint.
+**Limitation:** Standard requires measurement up to 40th harmonic (2000 Hz). With 3000 Hz sampling (Nyquist 1500 Hz), we can measure up to H25 (1250 Hz). Higher harmonics (H26-H40) are not captured.
 
 ---
 
@@ -766,7 +769,7 @@ U_h_percent = (U_h / U_1) × 100%
 - Specialized grouping algorithms
 
 **Our Limitations:**
-- Short measurement windows (10-20 cycles = 0.2-0.4 s)
+- Short measurement windows (512 samples = ~170 ms at 3000 Hz)
 - Limited ESP32 computational resources
 - Not a priority for demonstration system
 
@@ -907,8 +910,8 @@ scada-system/
 | frequency            | DOUBLE PRECISION | Frequency [Hz] |
 | thd_voltage          | DOUBLE PRECISION | Voltage THD [%] |
 | thd_current          | DOUBLE PRECISION | Current THD [%] |
-| harmonics_v          | DOUBLE PRECISION[] | Voltage harmonics H1-H8 |
-| harmonics_i          | DOUBLE PRECISION[] | Current harmonics H1-H8 |
+| harmonics_v          | DOUBLE PRECISION[] | Voltage harmonics H1-H25 |
+| harmonics_i          | DOUBLE PRECISION[] | Current harmonics H1-H25 |
 | voltage_deviation_percent | DOUBLE PRECISION | PN-EN 50160 indicator |
 | frequency_deviation_hz | DOUBLE PRECISION | PN-EN 50160 indicator |
 | is_valid            | BOOLEAN          | Validation flag |
@@ -1092,7 +1095,7 @@ webapp/
     ├── components/              # Reusable UI components (~2000 lines)
     │   ├── AlertPanel.tsx           # 68 lines - Alert display
     │   ├── GridSection.tsx          # 63 lines - Grid layout
-    │   ├── HarmonicsChart.tsx       # 231 lines - H1-H8 bar chart
+    │   ├── HarmonicsChart.tsx       # 231 lines - H1-H25 bar chart
     │   ├── LiveChart.tsx            # 74 lines - Live data display
     │   ├── ParameterCard.tsx         # 70 lines - Parameter with status
     │   ├── PowerQualitySection.tsx  # 270 lines - PN-EN 50160 indicators
@@ -1154,7 +1157,7 @@ webapp/
 - Voltage deviation indicator with ±10% limit display
 - Frequency deviation indicator with ±0.5 Hz limit display
 - THD indicator with 8% limit display + partial measurement warning
-- Individual harmonics display (H1-H8) with standard limits
+- Individual harmonics display (H1-H25) with standard limits
 - Overall compliance status badge (green/red)
 - Clear status messages
 
@@ -1167,7 +1170,7 @@ webapp/
 - Automatic cleanup of old data
 
 **HarmonicsChart.tsx (231 lines)** - Harmonics visualization
-- Bar chart for 8 harmonics (H1-H8)
+- Bar chart for 25 harmonics (H1-H25)
 - X-axis: Harmonic number (H1, H2, ..., H8)
 - Y-axis: Amplitude as % of fundamental
 - Color coding for compliance with PN-EN 50160 limits
@@ -1312,7 +1315,7 @@ npm run lint          # ESLint linting
 **Main Components:**
 
 **1. ADC Sampling (Timer Interrupt)**
-- Hardware timer interrupts for consistent 800-1000 Hz sampling
+- Hardware timer interrupts for consistent 3000 Hz sampling
 - Core 0 dedicated to real-time tasks
 - No missed samples due to WiFi interrupts
 
@@ -1340,7 +1343,7 @@ float detectFrequency(float* samples, int sampleRate) {
   return (sampleRate * periods) / WINDOW_SIZE;
 }
 
-// DFT for Harmonics (H1-H8)
+// DFT for Harmonics (H1-H25)
 void calculateHarmonics(float* samples, float* harmonicsV, float* harmonicsI) {
   for (int h = 1; h <= HARMONICS_COUNT; h++) {
     float omega = 2 * PI * h * FUNDAMENTAL_FREQ;
@@ -1465,7 +1468,7 @@ void applyHanningWindow(float* samples) {
 ### 7.5. Edge Computing Architecture
 
 **ESP32 Responsibilities (Edge):**
-- ADC sampling at 800-1000 Hz with timer interrupt
+- ADC sampling at 3000 Hz with timer interrupt
 - All signal processing (RMS, DFT, THD, power calculations)
 - WiFi communication (MQTT publish every 3s)
 - Local buffering for network disruptions
@@ -1813,7 +1816,7 @@ npm run test:e2e
 - Components (~2000 lines total):
   - StreamingChart - Real-time oscilloscope (202 lines)
   - WaveformChart - Voltage/current sinusoid (136 lines)
-  - HarmonicsChart - H1-H8 bar chart (231 lines)
+  - HarmonicsChart - H1-H25 bar chart (231 lines)
   - PowerQualitySection - PN-EN 50160 indicators (270 lines)
   - ParameterCard - Metric display (70 lines)
   - StatusIndicator - Connection status (25 lines)
@@ -2028,7 +2031,7 @@ ssh pi@<rpi-ip> "sudo systemctl restart scada-system"
 
 5. **Vitest over Jest:** Frontend uses Vitest (optimized for Vite) for faster test execution
 
-6. **IEC 61000 Standards:** Power quality monitoring follows international standards for voltage limits, THD thresholds, and harmonic analysis (partial - harmonics H1-H8 only)
+6. **IEC 61000 Standards:** Power quality monitoring follows international standards for voltage limits, THD thresholds, and harmonic analysis (partial - harmonics H1-H25 only)
 
 7. **Tailscale VPN for Deployment:** CD pipeline uses Tailscale for secure connectivity without port forwarding or exposing SSH to internet
 
@@ -2058,7 +2061,7 @@ Some backend test files have compilation errors due to:
 **Impact:** These errors prevent tests from running successfully.
 
 **System Limitations:**
-- Harmonics measurement limited to H1-H8 (Nyquist constraint at 800-1000 Hz sampling)
+- Harmonics measurement limited to H1-H25 (Nyquist constraint at 3000 Hz sampling)
 - THD calculation incomplete (harmonics 2-8 only, not 2-40 as required by IEC 61000-4-7)
 - Flicker measurement impossible (requires IEC 61000-4-15 and 20 kHz sampling)
 - Single-phase measurement only (not three-phase)
