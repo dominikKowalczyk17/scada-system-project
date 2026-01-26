@@ -128,7 +128,7 @@ describe('PowerQualitySection Component', () => {
     it('explains the measurement limitation', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
-      expect(screen.getByText(/800Hz/)).toBeInTheDocument();
+      expect(screen.getByText(/3000Hz/)).toBeInTheDocument();
       expect(screen.getByText(/dolne ograniczenie/i)).toBeInTheDocument();
     });
   });
