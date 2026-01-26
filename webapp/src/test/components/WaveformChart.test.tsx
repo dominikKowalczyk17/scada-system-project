@@ -141,11 +141,14 @@ describe('WaveformChart - Comprehensive Suite', () => {
       expect(voltageAxis).toHaveAttribute('data-domain', expectedDomain);
     });
 
-    it('configures right Y-Axis for current with fixed domain [-5, 5]', () => {
+    it('configures right Y-Axis for current with auto-scaled domain', () => {
       render(React.createElement(WaveformChart, defaultProps));
       const currentAxis = screen.getByTestId('y-axis-i-axis');
       expect(currentAxis).toHaveAttribute('data-orientation', 'right');
-      expect(currentAxis).toHaveAttribute('data-domain', JSON.stringify([-5, 5]));
+
+      // Auto-scaling: maxCurrent = 15A, margin = 20% (3A), domain = [-18, 18]
+      const expectedDomain = JSON.stringify([-18, 18]);
+      expect(currentAxis).toHaveAttribute('data-domain', expectedDomain);
     });
   });
 

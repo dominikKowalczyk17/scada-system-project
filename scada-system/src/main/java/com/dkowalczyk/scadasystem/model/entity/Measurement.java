@@ -23,7 +23,7 @@ import org.hibernate.type.SqlTypes;
  * - Additional diagnostic parameters: power, power factor, current harmonics
  * <p>
  * Limitations:
- * - Harmonics limited to H1-H8 (50-400 Hz) due to Nyquist constraint at 800-1000 Hz sampling
+ * - Harmonics limited to H1-H25 (50-400 Hz) due to Nyquist constraint at 800-1000 Hz sampling
  * - THD calculation is partial (excludes harmonics 9-40), representing lower bound of actual distortion
  * - No flicker measurement (P_st/P_lt) - requires IEC 61000-4-15 compliant equipment
  * - Event detection (voltage dips, interruptions) implemented separately
@@ -78,19 +78,47 @@ public class Measurement {
     private Double powerApparent;
 
     /**
-     * Reactive power in var (not a PN-EN 50160 indicator).
-     * Formula: Q = U_rms * I_rms * sin(phi)
+     * Reactive power of fundamental Q₁ in var (Budeanu theory, not a PN-EN 50160 indicator).
+     * <p>
+     * Formula: Q₁ = U₁ * I₁ * sin(φ₁)
+     * where φ₁ is the phase shift of fundamental (H1) only, extracted from FFT.
+     * <p>
+     * Note: For distorted waveforms, this is NOT the total reactive power.
+     * The total "reactive" component includes both Q₁ and distortion power D.
+     * <p>
      * Used for power factor compensation and load diagnostics.
      */
     private Double powerReactive;
 
     /**
-     * Power factor (not a PN-EN 50160 indicator).
-     * Formula: cos(phi) = P / S
-     * Calculated from phase shift between voltage and current fundamental components.
+     * Distortion power D in var (Budeanu theory, not a PN-EN 50160 indicator).
+     * <p>
+     * Formula: D = sqrt(S² - P² - Q₁²)
+     * <p>
+     * This represents the power component caused by harmonics (non-sinusoidal distortion).
+     * For purely sinusoidal waveforms, D = 0.
+     * <p>
+     * Reference: IEEE Std 1459-2010, Budeanu power theory
+     */
+    @Column(name = "power_distortion")
+    private Double powerDistortion;
+
+    /**
+     * Power factor λ = P/S (not a PN-EN 50160 indicator).
+     * <p>
+     * Formula: λ = P / S
+     * <p>
+     * IMPORTANT: This is NOT cos(φ)!
+     * - cos(φ) is only valid for purely sinusoidal waveforms
+     * - λ = P/S is valid for all waveforms (including distorted)
+     * <p>
+     * For sinusoidal waveforms: λ = cos(φ)
+     * For distorted waveforms: λ < cos(φ₁) due to harmonics
+     * <p>
      * Used for load diagnostics and energy billing.
      */
-    private Double cosPhi;
+    @Column(name = "power_factor")
+    private Double powerFactor;
 
     /**
      * Frequency measured via zero-crossing detection (PN-EN 50160 Group 2 source data).
@@ -142,13 +170,17 @@ public class Measurement {
      * - harmonicsV[5] = H6 (300 Hz, 6th harmonic)
      * - harmonicsV[6] = H7 (350 Hz, 7th harmonic)
      * - harmonicsV[7] = H8 (400 Hz, 8th harmonic)
+     * .
+     * .
+     * .
+     * - harmonicsV[24] = H25 (1250 Hz, 25th harmonic)
      * <p>
      * NYQUIST LIMITATION:
      * At 800-1000 Hz sampling rate, Nyquist frequency is 400-500 Hz.
-     * Harmonics above 8th order cannot be reliably measured (aliasing).
+     * Harmonics above 25th order cannot be reliably measured (aliasing).
      * <p>
      * IEC 61000-4-7 specifies measurement up to 40th harmonic (2000 Hz) for full compliance.
-     * Our system measures only up to 8th harmonic due to hardware sampling constraints.
+     * Our system measures only up to 25th harmonic due to hardware sampling constraints.
      * <p>
      * Calculated by ESP32 from FFT/DFT with Hann window and zero-crossing synchronization.
      */
@@ -159,7 +191,7 @@ public class Measurement {
     /**
      * Current harmonics array containing 8 values (diagnostic parameter, not PN-EN 50160 indicator).
      * <p>
-     * Array structure: Same as harmonicsV (H1-H8).
+     * Array structure: Same as harmonicsV (H1-H25).
      * <p>
      * Related to IEC 61000-3-2 (emission limits for equipment).
      * Used for diagnostics of non-linear loads (switch-mode power supplies, inverters, LED drivers).
@@ -171,6 +203,30 @@ public class Measurement {
     @Column(name = "harmonics_i")
     @JdbcTypeCode(SqlTypes.ARRAY)
     private Double[] harmonicsI;
+
+    /**
+     * Raw voltage waveform samples from ESP32 (2 cycles, ~120 samples at 50Hz).
+     * <p>
+     * Contains actual sampled voltage values BEFORE FFT processing.
+     * Used for accurate waveform visualization showing real distortions, clipping, asymmetry.
+     * <p>
+     * Optional field - if not provided, frontend will reconstruct waveform from harmonics.
+     */
+    @Column(name = "waveform_v")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    private Double[] waveformV;
+
+    /**
+     * Raw current waveform samples from ESP32 (2 cycles, ~120 samples at 50Hz).
+     * <p>
+     * Contains actual sampled current values BEFORE FFT processing.
+     * Used for accurate waveform visualization showing real distortions, clipping, asymmetry.
+     * <p>
+     * Optional field - if not provided, frontend will reconstruct waveform from harmonics.
+     */
+    @Column(name = "waveform_i")
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    private Double[] waveformI;
 
     /**
      * PN-EN 50160 Group 1 indicator: Voltage deviation from declared value.

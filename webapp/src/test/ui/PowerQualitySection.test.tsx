@@ -111,10 +111,10 @@ describe('PowerQualitySection Component', () => {
       expect(screen.getByText('5.2%')).toBeInTheDocument();
     });
 
-    it('displays harmonics range (H2-H8)', () => {
+    it('displays harmonics range (H2-H25)', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
-      const elements = screen.getAllByText(/H2-H8/);
+      const elements = screen.getAllByText(/H2-H25/);
       expect(elements.length).toBeGreaterThan(0);
     });
 
@@ -128,7 +128,7 @@ describe('PowerQualitySection Component', () => {
     it('explains the measurement limitation', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
-      expect(screen.getByText(/800Hz/)).toBeInTheDocument();
+      expect(screen.getByText(/3000Hz/)).toBeInTheDocument();
       expect(screen.getByText(/dolne ograniczenie/i)).toBeInTheDocument();
     });
   });
@@ -278,7 +278,7 @@ describe('PowerQualitySection Component', () => {
     it('explains partial THD measurement impact', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
-      expect(screen.getByText(/THD obliczane tylko z harmonicznych H2-H8/i)).toBeInTheDocument();
+      expect(screen.getByText(/THD obliczane tylko z harmonicznych H2-H25/i)).toBeInTheDocument();
       expect(screen.getByText(/dolne ograniczenie/i)).toBeInTheDocument();
     });
   });

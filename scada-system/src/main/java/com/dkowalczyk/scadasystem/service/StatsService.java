@@ -121,7 +121,7 @@ public class StatsService {
         double maxFrequency = MathUtils.max(frequency);
 
         // === Power Factor Stats ===
-        List<Double> powerFactor = measurements.stream().map(Measurement::getCosPhi).toList();
+        List<Double> powerFactor = measurements.stream().map(Measurement::getPowerFactor).toList();
         double avgPowerFactor = MathUtils.average(powerFactor);
         double minPowerFactor = MathUtils.min(powerFactor);
 
@@ -165,7 +165,7 @@ public class StatsService {
 
         int powerFactorPenaltyCount = countEventsWithDuration(
                 sortedMeasurements,
-                m -> m.getCosPhi() < Constants.MIN_POWER_FACTOR,
+                m -> m.getPowerFactor() < Constants.MIN_POWER_FACTOR,
                 0.01  // 10ms minimum duration
         );
 

@@ -25,20 +25,18 @@ public class MathUtils {
     }
 
     /**
-     * Calculate standard deviation.
-     * Formula: √( Σ(xi - μ)² / n )
+     * Calculate sample standard deviation (with Bessel's correction).
+     * Formula: √( Σ(xi - μ)² / (n - 1) )
      */
     public static double standardDeviation(List<Double> values, double mean) {
-        if (values == null || values.isEmpty()) {
+        if (values == null || values.size() < 2) {
             return 0.0;
         }
 
         double sumSquaredDiffs = values.stream()
-                .mapToDouble(d -> {
-                    return Math.pow(d - mean, 2);
-                })
+                .mapToDouble(d -> Math.pow(d - mean, 2))
                 .sum();
-        return Math.sqrt(sumSquaredDiffs / values.size());
+        return Math.sqrt(sumSquaredDiffs / (values.size() - 1));
     }
 
     /**
@@ -108,7 +106,7 @@ public class MathUtils {
      * WHY: ESP32 sends harmonic amplitudes (8 numbers) to save bandwidth.
      * This function reconstructs the full waveform (200 samples) for visualization.
      *
-     * @param harmonics       Array of harmonic amplitudes [H1, H2, ..., H8]
+     * @param harmonics       Array of harmonic amplitudes [H1, H2, ..., H25]
      *                        H1 = fundamental frequency, H2 = 2nd harmonic, etc.
      * @param frequency       Fundamental frequency in Hz (50Hz for EU, 60Hz for
      *                        USA)

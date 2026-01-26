@@ -33,9 +33,14 @@ public class MeasurementValidator {
         double voltageRms = request.getVoltageRms();
         double currentRms = request.getCurrentRms();
         double frequency = request.getFrequency();
-        double cosPhi = request.getCosPhi();
+        double powerFactor = request.getPowerFactor() != null ? request.getPowerFactor() : 1.0;
         double thdVoltage = request.getThdVoltage();
-        double calculatedApparentPower = MathUtils.calculateApparentPower(request.getPowerActive(), request.getPowerReactive());
+
+        // Budeanu power theory: S² = P² + Q₁² + D²
+        double p = request.getPowerActive();
+        double q1 = request.getPowerReactive();
+        double d = request.getPowerDistortion() != null ? request.getPowerDistortion() : 0.0;
+        double calculatedApparentPower = Math.sqrt(p*p + q1*q1 + d*d);
         double apparentPowerFromUI = voltageRms * currentRms;
 
         if (voltageRms > 360.0) {
@@ -56,8 +61,8 @@ public class MeasurementValidator {
             warnings.add("Ostrzeżenie: Częstotliwość " + frequency + "Hz poza normą PN-EN 50160.");
         }
         
-        if (cosPhi < Constants.MIN_POWER_FACTOR) {
-            warnings.add("Ostrzeżenie: Współczynnik mocy " + cosPhi + " poniżej 0.85 może wskazywać na problemy z efektywnością energetyczną.");
+        if (powerFactor < Constants.MIN_POWER_FACTOR) {
+            warnings.add("Ostrzeżenie: Współczynnik mocy " + powerFactor + " poniżej 0.85 może wskazywać na problemy z efektywnością energetyczną.");
         }
         
         if (thdVoltage > Constants.VOLTAGE_THD_LIMIT) {

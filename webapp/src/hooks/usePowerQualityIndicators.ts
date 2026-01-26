@@ -9,7 +9,7 @@ import type { PowerQualityIndicatorsDTO } from '../types/api';
  * Provides standardized power quality indicators according to PN-EN 50160:
  * - Group 1: Supply voltage magnitude (voltage deviation)
  * - Group 2: Supply frequency (frequency deviation)
- * - Group 4: Voltage waveform distortions (THD and harmonics, partial H1-H8)
+ * - Group 4: Voltage waveform distortions (THD and harmonics, partial H1-H25)
  *
  * Each indicator includes compliance flags showing if values are within
  * PN-EN 50160 limits.

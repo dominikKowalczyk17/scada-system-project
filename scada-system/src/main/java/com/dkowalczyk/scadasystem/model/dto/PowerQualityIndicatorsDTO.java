@@ -14,7 +14,7 @@ import java.time.Instant;
  * Contains only measurable indicators for this system:
  * - Group 1: Supply voltage magnitude (voltage deviation)
  * - Group 2: Supply frequency (frequency deviation)
- * - Group 4: Voltage waveform distortions (THD and harmonics, partial - H1-H8 only)
+ * - Group 4: Voltage waveform distortions (THD and harmonics, partial - H1-H25 only)
  * <p>
  * NOT included (cannot be measured with current hardware):
  * - Group 3: Voltage fluctuations and flicker (requires IEC 61000-4-15 equipment)
@@ -87,7 +87,7 @@ public class PowerQualityIndicatorsDTO {
     private Boolean thdWithinLimits;
 
     /**
-     * Voltage harmonics array [H1, H2, H3, H4, H5, H6, H7, H8].
+     * Voltage harmonics array [H1, H2, H3, H4, H5, H6, H7,... H25].
      * <p>
      * Limited to 8 harmonics due to Nyquist constraint at 800-1000 Hz sampling.
      * IEC 61000-4-7 specifies measurement up to H40 for full compliance.

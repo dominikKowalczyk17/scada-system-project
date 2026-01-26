@@ -15,14 +15,15 @@ import type { MeasurementDTO } from "@/types/api";
 const Dashboard = () => {
   const [time, setTime] = useState(new Date());
   const { data: dashboardData, isLoading, isError } = useDashboardData();
-  const { data: powerQualityData, isLoading: isPqLoading } = usePowerQualityIndicators();
+  const { data: powerQualityData, isLoading: isPqLoading } =
+    usePowerQualityIndicators();
 
   // WebSocket connection for real-time updates
   const { isConnected, data: websocket_data } = useWebSocket({
-    url: import.meta.env.VITE_WS_URL || 'http://localhost:8080/ws/measurements',
-    topic: '/topic/dashboard',
+    url: import.meta.env.VITE_WS_URL || "http://localhost:8080/ws/measurements",
+    topic: "/topic/dashboard",
     onError: (error) => {
-      console.error('[Dashboard] WebSocket error:', error);
+      console.error("[Dashboard] WebSocket error:", error);
     },
   });
 
@@ -34,23 +35,33 @@ const Dashboard = () => {
   }, []);
 
   // Helper function to determine status based on value (PN-EN 50160 compliance)
-  const getVoltageStatus = (voltage: number): "normal" | "warning" | "critical" => {
-    // PN-EN 50160: 230V ±10% (207-253V) for 95% of week
-    if (voltage < POWER_QUALITY_LIMITS.VOLTAGE_MIN || voltage > POWER_QUALITY_LIMITS.VOLTAGE_MAX) {
+  const getVoltageStatus = (
+    voltage: number,
+  ): "normal" | "warning" | "critical" => {
+    if (
+      voltage < POWER_QUALITY_LIMITS.VOLTAGE_MIN ||
+      voltage > POWER_QUALITY_LIMITS.VOLTAGE_MAX
+    ) {
       return "critical";
     }
     return "normal";
   };
 
-  const getCurrentStatus = (current: number): "normal" | "warning" | "critical" => {
-    if (current > POWER_QUALITY_LIMITS.CURRENT_CRITICAL) return "critical"; // 16A typical household limit
+  const getCurrentStatus = (
+    current: number,
+  ): "normal" | "warning" | "critical" => {
+    if (current > POWER_QUALITY_LIMITS.CURRENT_CRITICAL) return "critical";
     if (current > POWER_QUALITY_LIMITS.CURRENT_WARNING) return "warning";
     return "normal";
   };
 
-  const getFrequencyStatus = (freq: number): "normal" | "warning" | "critical" => {
-    // PN-EN 50160: 50Hz ±1% (49.5-50.5 Hz) for 99.5% of year
-    if (freq < POWER_QUALITY_LIMITS.FREQUENCY_MIN || freq > POWER_QUALITY_LIMITS.FREQUENCY_MAX) {
+  const getFrequencyStatus = (
+    freq: number,
+  ): "normal" | "warning" | "critical" => {
+    if (
+      freq < POWER_QUALITY_LIMITS.FREQUENCY_MIN ||
+      freq > POWER_QUALITY_LIMITS.FREQUENCY_MAX
+    ) {
       return "critical";
     }
     return "normal";
@@ -60,18 +71,21 @@ const Dashboard = () => {
     const labels = {
       normal: "Normalny",
       warning: "Ostrzeżenie",
-      critical: "Krytyczny"
+      critical: "Krytyczny",
     };
     return labels[status];
   };
 
-  const getTrend = (current: number, history: MeasurementDTO[], key: keyof MeasurementDTO): "rising" | "falling" | "stable" => {
+  const getTrend = (
+    current: number,
+    history: MeasurementDTO[],
+    key: keyof MeasurementDTO,
+  ): "rising" | "falling" | "stable" => {
     if (!history || history.length < 2) return "stable";
-    
     const previous = history[history.length - 2][key] as number;
     const diff = current - previous;
-    const threshold = current * 0.02; // 2% threshold
-    
+    const threshold = current * 0.02;
+
     if (Math.abs(diff) < threshold) return "stable";
     return diff > 0 ? "rising" : "falling";
   };
@@ -158,7 +172,7 @@ const Dashboard = () => {
         )}
 
         {/* Real-time Parameters */}
-        {dashboardData && (
+        {dashboardData && dashboardData.latest_measurement && (
           <section className="mb-6 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-foreground flex items-center gap-2">
               <span className="w-1 h-5 sm:h-6 bg-primary rounded-full" />
@@ -167,44 +181,44 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <ParameterCard
                 title="Napięcie"
-                value={dashboardData.latest_measurement.voltage_rms.toFixed(1)}
+                value={(dashboardData.latest_measurement.voltage_rms ?? 0).toFixed(1)}
                 unit="V"
                 status={getVoltageStatus(
-                  dashboardData.latest_measurement.voltage_rms
+                  dashboardData.latest_measurement.voltage_rms ?? 0,
                 )}
                 statusLabel={getStatusLabel(
-                  getVoltageStatus(dashboardData.latest_measurement.voltage_rms)
+                  getVoltageStatus(dashboardData.latest_measurement.voltage_rms ?? 0),
                 )}
                 min="207"
                 max="253"
                 trend={getTrend(
-                  dashboardData.latest_measurement.voltage_rms,
+                  dashboardData.latest_measurement.voltage_rms ?? 0,
                   dashboardData.recent_history,
-                  "voltage_rms"
+                  "voltage_rms",
                 )}
               />
               <ParameterCard
                 title="Prąd"
-                value={dashboardData.latest_measurement.current_rms.toFixed(2)}
+                value={(dashboardData.latest_measurement.current_rms ?? 0).toFixed(2)}
                 unit="A"
                 status={getCurrentStatus(
-                  dashboardData.latest_measurement.current_rms
+                  dashboardData.latest_measurement.current_rms ?? 0,
                 )}
                 statusLabel={getStatusLabel(
-                  getCurrentStatus(dashboardData.latest_measurement.current_rms)
+                  getCurrentStatus(dashboardData.latest_measurement.current_rms ?? 0),
                 )}
                 min="0"
                 max="16"
                 trend={getTrend(
-                  dashboardData.latest_measurement.current_rms,
+                  dashboardData.latest_measurement.current_rms ?? 0,
                   dashboardData.recent_history,
-                  "current_rms"
+                  "current_rms",
                 )}
               />
               <ParameterCard
                 title="Moc czynna"
                 value={(
-                  dashboardData.latest_measurement.power_active / 1000
+                  (dashboardData.latest_measurement.power_active ?? 0) / 1000
                 ).toFixed(2)}
                 unit="kW"
                 status="normal"
@@ -212,27 +226,29 @@ const Dashboard = () => {
                 min="0"
                 max="3.68"
                 trend={getTrend(
-                  dashboardData.latest_measurement.power_active / 1000,
+                  (dashboardData.latest_measurement.power_active ?? 0) / 1000,
                   dashboardData.recent_history,
-                  "power_active"
+                  "power_active",
                 )}
               />
               <ParameterCard
                 title="Częstotliwość"
-                value={dashboardData.latest_measurement.frequency.toFixed(2)}
+                value={(dashboardData.latest_measurement.frequency ?? 0).toFixed(2)}
                 unit="Hz"
                 status={getFrequencyStatus(
-                  dashboardData.latest_measurement.frequency
+                  dashboardData.latest_measurement.frequency ?? 0,
                 )}
                 statusLabel={getStatusLabel(
-                  getFrequencyStatus(dashboardData.latest_measurement.frequency)
+                  getFrequencyStatus(
+                    dashboardData.latest_measurement.frequency ?? 0,
+                  ),
                 )}
                 min="49.50"
                 max="50.50"
                 trend={getTrend(
-                  dashboardData.latest_measurement.frequency,
+                  dashboardData.latest_measurement.frequency ?? 0,
                   dashboardData.recent_history,
-                  "frequency"
+                  "frequency",
                 )}
               />
             </div>
@@ -241,32 +257,35 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mt-4 sm:mt-6">
               <ParameterCard
                 title="Współczynnik mocy"
-                value={dashboardData.latest_measurement.cos_phi.toFixed(3)}
-                unit="cos φ"
+                value={
+                  dashboardData.latest_measurement.power_factor?.toFixed(3) ??
+                  "N/A"
+                }
+                unit="λ"
                 status={
-                  dashboardData.latest_measurement.cos_phi >=
+                  (dashboardData.latest_measurement.power_factor ?? 0) >=
                   POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
                     ? "normal"
                     : "warning"
                 }
                 statusLabel={getStatusLabel(
-                  dashboardData.latest_measurement.cos_phi >=
+                  (dashboardData.latest_measurement.power_factor ?? 0) >=
                     POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
                     ? "normal"
-                    : "warning"
+                    : "warning",
                 )}
                 min="0.85"
                 max="1.0"
                 trend={getTrend(
-                  dashboardData.latest_measurement.cos_phi,
+                  dashboardData.latest_measurement.power_factor ?? 0,
                   dashboardData.recent_history,
-                  "cos_phi"
+                  "power_factor",
                 )}
               />
               <ParameterCard
                 title="Moc bierna"
                 value={(
-                  dashboardData.latest_measurement.power_reactive / 1000
+                  (dashboardData.latest_measurement.power_reactive ?? 0) / 1000
                 ).toFixed(2)}
                 unit="kVAR"
                 status="normal"
@@ -274,57 +293,57 @@ const Dashboard = () => {
                 min="0"
                 max="2.0"
                 trend={getTrend(
-                  dashboardData.latest_measurement.power_reactive / 1000,
+                  (dashboardData.latest_measurement.power_reactive ?? 0) / 1000,
                   dashboardData.recent_history,
-                  "power_reactive"
+                  "power_reactive",
                 )}
               />
               <ParameterCard
                 title="THD napięcia"
-                value={dashboardData.latest_measurement.thd_voltage.toFixed(1)}
+                value={(dashboardData.latest_measurement.thd_voltage ?? 0).toFixed(1)}
                 unit="%"
                 status={
-                  dashboardData.latest_measurement.thd_voltage >
+                  (dashboardData.latest_measurement.thd_voltage ?? 0) >
                   POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT
                     ? "critical"
                     : "normal"
                 }
                 statusLabel={getStatusLabel(
-                  dashboardData.latest_measurement.thd_voltage >
+                  (dashboardData.latest_measurement.thd_voltage ?? 0) >
                     POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT
                     ? "critical"
-                    : "normal"
+                    : "normal",
                 )}
                 min="0"
                 max="8"
                 trend={getTrend(
-                  dashboardData.latest_measurement.thd_voltage,
+                  dashboardData.latest_measurement.thd_voltage ?? 0,
                   dashboardData.recent_history,
-                  "thd_voltage"
+                  "thd_voltage",
                 )}
               />
               <ParameterCard
                 title="THD prądu"
-                value={dashboardData.latest_measurement.thd_current.toFixed(1)}
+                value={(dashboardData.latest_measurement.thd_current ?? 0).toFixed(1)}
                 unit="%"
                 status={
-                  dashboardData.latest_measurement.thd_current >
+                  (dashboardData.latest_measurement.thd_current ?? 0) >
                   POWER_QUALITY_LIMITS.CURRENT_THD_LIMIT
                     ? "warning"
                     : "normal"
                 }
                 statusLabel={getStatusLabel(
-                  dashboardData.latest_measurement.thd_current >
+                  (dashboardData.latest_measurement.thd_current ?? 0) >
                     POWER_QUALITY_LIMITS.CURRENT_THD_LIMIT
                     ? "warning"
-                    : "normal"
+                    : "normal",
                 )}
                 min="0"
                 max="5"
                 trend={getTrend(
-                  dashboardData.latest_measurement.thd_current,
+                  dashboardData.latest_measurement.thd_current ?? 0,
                   dashboardData.recent_history,
-                  "thd_current"
+                  "thd_current",
                 )}
               />
             </div>
@@ -384,7 +403,7 @@ const Dashboard = () => {
         )}
 
         {/* Waveform Charts */}
-        {dashboardData && (
+        {dashboardData && dashboardData.latest_measurement && dashboardData.waveforms && (
           <section className="mb-6 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-foreground flex items-center gap-2">
               <span className="w-1 h-5 sm:h-6 bg-primary rounded-full" />
@@ -393,13 +412,13 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 gap-4 sm:gap-6">
               <WaveformChart
                 waveforms={dashboardData.waveforms}
-                frequency={dashboardData.latest_measurement.frequency}
+                frequency={dashboardData.latest_measurement.frequency ?? 50}
               />
               <HarmonicsChart
-                harmonicsVoltage={dashboardData.latest_measurement.harmonics_v}
-                harmonicsCurrent={dashboardData.latest_measurement.harmonics_i}
-                thdVoltage={dashboardData.latest_measurement.thd_voltage}
-                thdCurrent={dashboardData.latest_measurement.thd_current}
+                harmonicsVoltage={dashboardData.latest_measurement.harmonics_v ?? []}
+                harmonicsCurrent={dashboardData.latest_measurement.harmonics_i ?? []}
+                thdVoltage={dashboardData.latest_measurement.thd_voltage ?? 0}
+                thdCurrent={dashboardData.latest_measurement.thd_current ?? 0}
               />
             </div>
           </section>

@@ -32,16 +32,29 @@ public class MeasurementService {
     private final MeasurementValidator validator;
 
     /**
-     * Helper method to reconstruct voltage and current waveforms from harmonics.
+     * Helper method to get voltage and current waveforms.
+     * <p>
+     * Uses raw waveform data if available (sent by ESP32), otherwise falls back
+     * to reconstructing from harmonics for backward compatibility.
      * <p>
      * WHY EXTRACTED: This logic is reused in both getDashboardData() and broadcastAfterCommit()
      * to avoid code duplication.
      */
     private WaveformDTO reconstructWaveforms(Measurement measurement) {
+        // Use raw waveform data if available (preferred - shows real distortions)
+        if (measurement.getWaveformV() != null && measurement.getWaveformI() != null) {
+            return WaveformDTO.builder()
+                    .voltage(convertToDoubleArray(measurement.getWaveformV()))
+                    .current(convertToDoubleArray(measurement.getWaveformI()))
+                    .build();
+        }
+
+        // Fallback: Reconstruct from harmonics (for backward compatibility)
         double frequency = measurement.getFrequency() != null ? measurement.getFrequency() : 50.0;
-        double cosPhi = measurement.getCosPhi() != null ? measurement.getCosPhi() : 1.0;
-        cosPhi = Math.min(1.0, Math.max(-1.0, cosPhi));
-        double phaseShift = Math.acos(cosPhi);
+        double powerFactor = measurement.getPowerFactor() != null ? measurement.getPowerFactor() : 1.0;
+        powerFactor = Math.min(1.0, Math.max(0.0, powerFactor));
+        // Approximate phase shift from a power factor (only valid for sinusoidal-ish waveforms)
+        double phaseShift = Math.acos(powerFactor);
         double[] voltageWaveform = waveformService.reconstructWaveform(
                 measurement.getHarmonicsV(), frequency, 200, 0.0);
         double[] currentWaveform = waveformService.reconstructWaveform(
@@ -51,6 +64,18 @@ public class MeasurementService {
                 .voltage(voltageWaveform)
                 .current(currentWaveform)
                 .build();
+    }
+
+    /**
+     * Helper to convert Double[] (boxed) to double[] (primitive) for DTO.
+     */
+    private double[] convertToDoubleArray(Double[] boxed) {
+        if (boxed == null) return new double[0];
+        double[] primitive = new double[boxed.length];
+        for (int i = 0; i < boxed.length; i++) {
+            primitive[i] = boxed[i] != null ? boxed[i] : 0.0;
+        }
+        return primitive;
     }
 
     /**
@@ -104,12 +129,12 @@ public class MeasurementService {
      * WHY CALCULATE INDICATORS HERE:
      * - Indicators are calculated from raw measurements before saving
      * - Ensures all records have consistent indicator values
-     * - Backend is single source of truth for PN-EN 50160 calculations
+     * - Backend is the single source of truth for PN-EN 50160 calculations
      */
     @Transactional
     public MeasurementDTO saveMeasurement(MeasurementRequest request) {
         // Convert DTO to Entity
-        // If ESP32 doesn't provide timestamp, use current server time
+        // If ESP32 doesn't provide a timestamp, use current server time
         Instant timestamp = (request.getTimestamp() != null)
                 ? Instant.ofEpochSecond(request.getTimestamp())
                 : Instant.now();
@@ -119,13 +144,16 @@ public class MeasurementService {
                 .currentRms(request.getCurrentRms())
                 .powerActive(request.getPowerActive())
                 .powerApparent(request.getPowerApparent())
-                .powerReactive(request.getPowerReactive())
-                .cosPhi(request.getCosPhi())
+                .powerReactive(request.getPowerReactive())       // Q₁ - reactive power of fundamental
+                .powerDistortion(request.getPowerDistortion())   // D - distortion power from harmonics
+                .powerFactor(request.getPowerFactor())           // λ = P/S (NOT cos(φ)!)
                 .frequency(request.getFrequency())
                 .thdVoltage(request.getThdVoltage())
                 .thdCurrent(request.getThdCurrent())
                 .harmonicsV(request.getHarmonicsV())
                 .harmonicsI(request.getHarmonicsI())
+                .waveformV(request.getWaveformV())               // Raw waveform data from ESP32
+                .waveformI(request.getWaveformI())               // Raw waveform data from ESP32
                 .build();
 
         ValidationResult validationResult = validator.validate(request);
@@ -254,7 +282,8 @@ public class MeasurementService {
                 .powerActive(entity.getPowerActive())
                 .powerApparent(entity.getPowerApparent())
                 .powerReactive(entity.getPowerReactive())
-                .cosPhi(entity.getCosPhi())
+                .powerDistortion(entity.getPowerDistortion())
+                .powerFactor(entity.getPowerFactor())
                 .frequency(entity.getFrequency())
                 .thdVoltage(entity.getThdVoltage())
                 .thdCurrent(entity.getThdCurrent())

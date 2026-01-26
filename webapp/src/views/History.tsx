@@ -20,9 +20,15 @@ export default function History() {
     to: Math.floor(Date.now() / 1000),
   });
   const [limit, setLimit] = useState(100);
-  const [selectedChart, setSelectedChart] = useState<'voltage' | 'current' | 'power' | 'frequency'>('voltage');
+  const [selectedChart, setSelectedChart] = useState<
+    "voltage" | "current" | "power" | "frequency"
+  >("voltage");
 
-  const { data: measurements, isLoading, error } = useHistoryData({
+  const {
+    data: measurements,
+    isLoading,
+    error,
+  } = useHistoryData({
     from: timeRange.from,
     to: timeRange.to,
     limit,
@@ -39,16 +45,16 @@ export default function History() {
     if (!measurements) return;
 
     const headers = [
-      'Czas',
-      'Napięcie (V)',
-      'Prąd (A)',
-      'Moc czynna (W)',
-      'Moc pozorna (VA)',
-      'Moc bierna (VAR)',
-      'Współczynnik mocy',
-      'Częstotliwość (Hz)',
-      'THD napięcia (%)',
-      'THD prądu (%)',
+      "Czas",
+      "Napięcie (V)",
+      "Prąd (A)",
+      "Moc czynna (W)",
+      "Moc pozorna (VA)",
+      "Moc bierna (VAR)",
+      "Współczynnik mocy",
+      "Częstotliwość (Hz)",
+      "THD napięcia (%)",
+      "THD prądu (%)",
     ];
 
     const escapeCSV = (value: string) => {
@@ -60,25 +66,28 @@ export default function History() {
 
     const rows = measurements.map((m) => [
       m.time ? formatDateTime(m.time) : "",
-      m.voltage_rms?.toFixed(2) || "",
-      m.current_rms?.toFixed(3) || "",
-      m.power_active?.toFixed(2) || "",
-      m.power_apparent?.toFixed(2) || "",
-      m.power_reactive?.toFixed(2) || "",
-      m.cos_phi?.toFixed(3) || "",
-      m.frequency?.toFixed(2) || "",
-      m.thd_voltage?.toFixed(2) || "",
-      m.thd_current?.toFixed(2) || "",
+      m.voltage_rms?.toFixed(2) ?? "",
+      m.current_rms?.toFixed(3) ?? "",
+      m.power_active?.toFixed(2) ?? "",
+      m.power_apparent?.toFixed(2) ?? "",
+      m.power_reactive?.toFixed(2) ?? "",
+      m.power_factor?.toFixed(3) ?? "",
+      m.frequency?.toFixed(2) ?? "",
+      m.thd_voltage?.toFixed(2) ?? "",
+      m.thd_current?.toFixed(2) ?? "",
     ]);
 
     const csv = [headers, ...rows]
       .map((row) => row.map(escapeCSV).join(","))
       .join("\n");
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, -5);
     a.download = `scada-history-${timestamp}.csv`;
     a.click();
     URL.revokeObjectURL(url);
@@ -91,7 +100,9 @@ export default function History() {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 sm:gap-3">
             <HistoryIcon className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Historia pomiarów</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
+              Historia pomiarów
+            </h1>
           </div>
           <button
             type="button"
@@ -175,7 +186,9 @@ export default function History() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
                 <CardTitle className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="text-base sm:text-lg">Trendy historyczne</span>
+                  <span className="text-base sm:text-lg">
+                    Trendy historyczne
+                  </span>
                 </CardTitle>
                 <div className="flex gap-2 flex-wrap">
                   <button
@@ -229,137 +242,157 @@ export default function History() {
               <div className="h-[300px] sm:h-[450px] lg:h-[600px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={measurements.slice().reverse()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis
-                    dataKey="time"
-                    tickFormatter={(time) => formatChartTime(time)}
-                    stroke="#6b7280"
-                    tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                    height={50}
-                    label={{
-                      value: "Czas",
-                      position: "insideBottom",
-                      offset: -5,
-                      style: { fill: "#e5e7eb", fontSize: 12 },
-                    }}
-                  />
-                  {selectedChart === "voltage" && (
-                    <YAxis
-                      stroke="#3b82f6"
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis
+                      dataKey="time"
+                      tickFormatter={(time) => formatChartTime(time)}
+                      stroke="#6b7280"
                       tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                      domain={[210, 250]}
+                      height={50}
                       label={{
-                        value: "Napięcie (V)",
-                        angle: -90,
-                        position: "insideLeft",
-                        offset: 10,
-                        style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
+                        value: "Czas",
+                        position: "insideBottom",
+                        offset: -5,
+                        style: { fill: "#e5e7eb", fontSize: 12 },
                       }}
-                      tickFormatter={(value) => value.toFixed(0)}
-                      width={60}
                     />
-                  )}
-                  {selectedChart === "current" && (
-                    <YAxis
-                      stroke="#f59e0b"
-                      tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                      domain={[0, "auto"]}
-                      label={{
-                        value: "Prąd (A)",
-                        angle: -90,
-                        position: "insideLeft",
-                        offset: 10,
-                        style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
+                    {selectedChart === "voltage" && (
+                      <YAxis
+                        stroke="#3b82f6"
+                        tick={{ fill: "#e5e7eb", fontSize: 11 }}
+                        domain={[210, 250]}
+                        label={{
+                          value: "Napięcie (V)",
+                          angle: -90,
+                          position: "insideLeft",
+                          offset: 10,
+                          style: {
+                            fill: "#e5e7eb",
+                            fontSize: 12,
+                            textAnchor: "middle",
+                          },
+                        }}
+                        tickFormatter={(value) => value.toFixed(0)}
+                        width={60}
+                      />
+                    )}
+                    {selectedChart === "current" && (
+                      <YAxis
+                        stroke="#f59e0b"
+                        tick={{ fill: "#e5e7eb", fontSize: 11 }}
+                        domain={[0, "auto"]}
+                        label={{
+                          value: "Prąd (A)",
+                          angle: -90,
+                          position: "insideLeft",
+                          offset: 10,
+                          style: {
+                            fill: "#e5e7eb",
+                            fontSize: 12,
+                            textAnchor: "middle",
+                          },
+                        }}
+                        tickFormatter={(value) => value.toFixed(2)}
+                        width={60}
+                      />
+                    )}
+                    {selectedChart === "power" && (
+                      <YAxis
+                        stroke="#10b981"
+                        tick={{ fill: "#e5e7eb", fontSize: 11 }}
+                        domain={[0, "auto"]}
+                        label={{
+                          value: "Moc czynna (W)",
+                          angle: -90,
+                          position: "insideLeft",
+                          offset: 10,
+                          style: {
+                            fill: "#e5e7eb",
+                            fontSize: 12,
+                            textAnchor: "middle",
+                          },
+                        }}
+                        tickFormatter={(value) =>
+                          value >= 1000
+                            ? `${(value / 1000).toFixed(1)}k`
+                            : value.toFixed(0)
+                        }
+                        width={60}
+                      />
+                    )}
+                    {selectedChart === "frequency" && (
+                      <YAxis
+                        stroke="#8b5cf6"
+                        tick={{ fill: "#e5e7eb", fontSize: 11 }}
+                        domain={[49.5, 50.5]}
+                        label={{
+                          value: "Częstotliwość (Hz)",
+                          angle: -90,
+                          position: "insideLeft",
+                          offset: 10,
+                          style: {
+                            fill: "#e5e7eb",
+                            fontSize: 12,
+                            textAnchor: "middle",
+                          },
+                        }}
+                        tickFormatter={(value) => value.toFixed(2)}
+                        width={60}
+                      />
+                    )}
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#1f2937",
+                        border: "1px solid #374151",
+                        borderRadius: "6px",
+                        fontSize: 12,
                       }}
-                      tickFormatter={(value) => value.toFixed(2)}
-                      width={60}
+                      labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
+                      itemStyle={{ color: "#e5e7eb" }}
+                      labelFormatter={(time) => formatDateTime(time)}
                     />
-                  )}
-                  {selectedChart === "power" && (
-                    <YAxis
-                      stroke="#10b981"
-                      tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                      domain={[0, "auto"]}
-                      label={{
-                        value: "Moc czynna (W)",
-                        angle: -90,
-                        position: "insideLeft",
-                        offset: 10,
-                        style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
-                      }}
-                      tickFormatter={(value) => value >= 1000 ? `${(value/1000).toFixed(1)}k` : value.toFixed(0)}
-                      width={60}
-                    />
-                  )}
-                  {selectedChart === "frequency" && (
-                    <YAxis
-                      stroke="#8b5cf6"
-                      tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                      domain={[49.5, 50.5]}
-                      label={{
-                        value: "Częstotliwość (Hz)",
-                        angle: -90,
-                        position: "insideLeft",
-                        offset: 10,
-                        style: { fill: "#e5e7eb", fontSize: 12, textAnchor: "middle" },
-                      }}
-                      tickFormatter={(value) => value.toFixed(2)}
-                      width={60}
-                    />
-                  )}
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1f2937",
-                      border: "1px solid #374151",
-                      borderRadius: "6px",
-                      fontSize: 12,
-                    }}
-                    labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
-                    itemStyle={{ color: "#e5e7eb" }}
-                    labelFormatter={(time) => formatDateTime(time)}
-                  />
-                  {selectedChart === "voltage" && (
-                    <Line
-                      type="monotone"
-                      dataKey="voltage_rms"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      dot={false}
-                      name="Napięcie (V)"
-                    />
-                  )}
-                  {selectedChart === "current" && (
-                    <Line
-                      type="monotone"
-                      dataKey="current_rms"
-                      stroke="#f59e0b"
-                      strokeWidth={2}
-                      dot={false}
-                      name="Prąd (A)"
-                    />
-                  )}
-                  {selectedChart === "power" && (
-                    <Line
-                      type="monotone"
-                      dataKey="power_active"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      dot={false}
-                      name="Moc czynna (W)"
-                    />
-                  )}
-                  {selectedChart === "frequency" && (
-                    <Line
-                      type="monotone"
-                      dataKey="frequency"
-                      stroke="#8b5cf6"
-                      strokeWidth={2}
-                      dot={false}
-                      name="Częstotliwość (Hz)"
-                    />
-                  )}
-                </LineChart>
-              </ResponsiveContainer>
+                    {selectedChart === "voltage" && (
+                      <Line
+                        type="monotone"
+                        dataKey="voltage_rms"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Napięcie (V)"
+                      />
+                    )}
+                    {selectedChart === "current" && (
+                      <Line
+                        type="monotone"
+                        dataKey="current_rms"
+                        stroke="#f59e0b"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Prąd (A)"
+                      />
+                    )}
+                    {selectedChart === "power" && (
+                      <Line
+                        type="monotone"
+                        dataKey="power_active"
+                        stroke="#10b981"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Moc czynna (W)"
+                      />
+                    )}
+                    {selectedChart === "frequency" && (
+                      <Line
+                        type="monotone"
+                        dataKey="frequency"
+                        stroke="#8b5cf6"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Częstotliwość (Hz)"
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
@@ -397,7 +430,7 @@ export default function History() {
                         Moc (W)
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
-                        cos φ
+                        λ
                       </th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">
                         Częst. (Hz)
@@ -420,25 +453,25 @@ export default function History() {
                           {m.time ? formatDateTime(m.time) : "N/A"}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-mono">
-                          {m.voltage_rms?.toFixed(2)}
+                          {m.voltage_rms?.toFixed(2) ?? "N/A"}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-mono">
-                          {m.current_rms?.toFixed(3)}
+                          {m.current_rms?.toFixed(3) ?? "N/A"}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-mono">
-                          {m.power_active?.toFixed(2)}
+                          {m.power_active?.toFixed(2) ?? "N/A"}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-mono">
-                          {m.cos_phi?.toFixed(3)}
+                          {m.power_factor?.toFixed(3) ?? "N/A"}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-mono">
-                          {m.frequency?.toFixed(2)}
+                          {m.frequency?.toFixed(2) ?? "N/A"}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-mono">
-                          {m.thd_voltage?.toFixed(2)}
+                          {m.thd_voltage?.toFixed(2) ?? "N/A"}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-mono">
-                          {m.thd_current?.toFixed(2)}
+                          {m.thd_current?.toFixed(2) ?? "N/A"}
                         </td>
                       </tr>
                     ))}

@@ -122,18 +122,19 @@ public class MathUtilsTests {
     @Test
     void testStandardDeviation_knownResult() {
         // Given: Known dataset from statistics textbook
-        // Values: [2, 4, 4, 4, 5, 5, 7, 9]
+        // Values: [2, 4, 4, 4, 5, 5, 7, 9], n = 8
         // Mean: 5.0
-        // Variance: 4.0
-        // StdDev: 2.0
+        // Sum of squared diffs: 32.0
+        // Sample Variance: 32/7 ≈ 4.571
+        // Sample StdDev: √(32/7) ≈ 2.138
         List<Double> values = List.of(2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0);
         double mean = 5.0;
 
-        // When: Calculate standard deviation
+        // When: Calculate sample standard deviation
         double result = MathUtils.standardDeviation(values, mean);
 
-        // Then: Should return 2.0
-        assertEquals(2.0, result, DELTA);
+        // Then: Should return √(32/7) ≈ 2.138
+        assertEquals(Math.sqrt(32.0 / 7.0), result, DELTA);
     }
 
     @Test
@@ -163,16 +164,31 @@ public class MathUtilsTests {
     }
 
     @Test
-    void testStandardDeviation_voltageStability() {
-        // Given: Realistic voltage measurements (unstable grid)
-        List<Double> values = List.of(220.0, 240.0, 220.0, 240.0);
+    void testStandardDeviation_singleValue() {
+        // Given: Single value (sample std dev requires n >= 2)
+        List<Double> values = List.of(230.0);
         double mean = 230.0;
 
         // When: Calculate standard deviation
         double result = MathUtils.standardDeviation(values, mean);
 
-        // Then: Should return 10.0V (high instability)
-        assertEquals(10.0, result, DELTA);
+        // Then: Should return 0.0 (cannot compute sample std dev with n=1)
+        assertEquals(0.0, result, DELTA);
+    }
+
+    @Test
+    void testStandardDeviation_voltageStability() {
+        // Given: Realistic voltage measurements (unstable grid), n = 4
+        // Sum of squared diffs: 4 × 100 = 400
+        // Sample StdDev: √(400/3) ≈ 11.547
+        List<Double> values = List.of(220.0, 240.0, 220.0, 240.0);
+        double mean = 230.0;
+
+        // When: Calculate sample standard deviation
+        double result = MathUtils.standardDeviation(values, mean);
+
+        // Then: Should return √(400/3) ≈ 11.547V (high instability)
+        assertEquals(Math.sqrt(400.0 / 3.0), result, DELTA);
     }
 
     // ==================== ENERGY CALCULATION TESTS ====================

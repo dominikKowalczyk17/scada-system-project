@@ -1,26 +1,55 @@
 /**
  * TypeScript interfaces for SCADA Backend API
  *
- * These types match the JSON response format from Spring Boot backend
- * Note: Backend uses snake_case naming convention
+ * These types match the JSON response format from Spring Boot backend.
+ * Backend uses spring.jackson.property-naming-strategy=SNAKE_CASE,
+ * so all JSON field names are in snake_case format.
  */
 
 export interface MeasurementDTO {
   id?: number;
-  time?: string;              // ISO 8601 timestamp
-  voltage_rms: number;        // Volts (220-240V nominal)
-  current_rms: number;        // Amperes
-  power_active: number;       // Watts
-  power_reactive: number;     // VAR (Volt-Ampere Reactive)
-  power_apparent: number;     // VA (Volt-Ampere)
-  cos_phi: number;            // Power factor (0-1)
-  frequency: number;          // Hertz (49.5-50.5Hz nominal)
-  thd_voltage: number;        // Total Harmonic Distortion % (partial: H2-H8 only, lower bound)
-  thd_current: number;        // Total Harmonic Distortion %
-  harmonics_v: number[];      // 8 voltage harmonics [H1, H2, ..., H8] - Nyquist limited at 800Hz
-  harmonics_i: number[];      // 8 current harmonics [H1, H2, ..., H8]
-  voltage_deviation_percent?: number;  // PN-EN 50160 Group 1: (U - 230V) / 230V * 100%
-  frequency_deviation_hz?: number;     // PN-EN 50160 Group 2: f - 50Hz
+  time?: string;
+
+  // Raw measurements (all nullable based on backend)
+  voltage_rms?: number;
+  current_rms?: number;
+  power_active?: number;
+  power_reactive?: number;
+  power_apparent?: number;
+  power_distortion?: number;
+  power_factor?: number;
+  frequency?: number;
+  thd_voltage?: number;
+  thd_current?: number;
+  harmonics_v?: number[];
+  harmonics_i?: number[];
+
+  // PN-EN 50160 indicators
+  voltage_deviation_percent?: number;
+  frequency_deviation_hz?: number;
+}
+
+export interface PowerQualityIndicatorsDTO {
+  timestamp: string;
+
+  // Group 1: Voltage
+  voltage_rms: number;
+  voltage_deviation_percent: number | null;
+  voltage_within_limits: boolean | null;
+
+  // Group 2: Frequency
+  frequency: number;
+  frequency_deviation_hz: number | null;
+  frequency_within_limits: boolean | null;
+
+  // Group 4: THD
+  thd_voltage: number;
+  thd_within_limits: boolean | null;
+  harmonics_voltage: number[];
+
+  // Overall status
+  overall_compliant: boolean | null;
+  status_message: string;
 }
 
 export interface WaveformDTO {
@@ -31,22 +60,53 @@ export interface WaveformDTO {
 export interface RealtimeDashboardDTO {
   latest_measurement: MeasurementDTO;
   waveforms: WaveformDTO;
+}
+
+/**
+ * DTO for REST API /api/dashboard endpoint.
+ * Contains latest measurement, waveforms, and recent history.
+ */
+export interface DashboardDTO {
+  latest_measurement: MeasurementDTO;
+  waveforms: WaveformDTO;
   recent_history: MeasurementDTO[];
 }
 
 export interface StatsDTO {
   date: string;
+
+  // Voltage
   avg_voltage: number;
   min_voltage: number;
   max_voltage: number;
-  avg_current: number;
-  max_current: number;
+  std_dev_voltage: number;
+
+  // Power
+  avg_power_active: number;
+  peak_power: number;
+  min_power: number;
   total_energy_kwh: number;
+
+  // Power Factor
+  avg_power_factor: number;
+  min_power_factor: number;
+
+  // Frequency
+  avg_frequency: number;
+  min_frequency: number;
+  max_frequency: number;
+
+  // Events
   voltage_sag_count: number;
   voltage_swell_count: number;
+  interruption_count: number;
   thd_violations_count: number;
-  data_completeness: number;
+  frequency_dev_count: number;
+  power_factor_penalty_count: number;
+
+  // Meta
   measurement_count: number;
+  data_completeness: number;
 }
 
 export interface ErrorResponse {
@@ -61,35 +121,4 @@ export interface HealthResponse {
   status: 'UP' | 'DOWN';
   timestamp: string;
   service: string;
-}
-
-/**
- * PN-EN 50160 Power Quality Indicators DTO
- *
- * Separate endpoint for standardized power quality monitoring.
- * Contains indicators from Groups 1, 2, and 4 (partial) of PN-EN 50160.
- *
- * Endpoint: GET /api/dashboard/power-quality-indicators
- */
-export interface PowerQualityIndicatorsDTO {
-  timestamp: string;  // ISO 8601
-
-  // PN-EN 50160 Group 1: Supply Voltage Magnitude
-  voltage_rms: number;
-  voltage_deviation_percent: number | null;  // (U - 230V) / 230V * 100%
-  voltage_within_limits: boolean | null;     // Within ±10% limit (null if deviation not calculated)
-
-  // PN-EN 50160 Group 2: Supply Frequency
-  frequency: number;
-  frequency_deviation_hz: number | null;     // f - 50Hz
-  frequency_within_limits: boolean | null;   // Within ±0.5Hz limit (null if deviation not calculated)
-
-  // PN-EN 50160 Group 4: Voltage Waveform Distortions (Partial)
-  thd_voltage: number;                // THD % (partial: H2-H8 only)
-  thd_within_limits: boolean | null;         // <8% limit
-  harmonics_voltage: number[];        // [H1, H2, ..., H8]
-
-  // Overall compliance status
-  overall_compliant: boolean | null;  // All indicators within limits (null if any indicator missing)
-  status_message: string;             // Human-readable status
 }

@@ -135,14 +135,14 @@ public final class Constants {
      * Limited by Nyquist constraint at 800-1000 Hz sampling rate.
      * Includes fundamental (H1) + harmonics 2-8.
      */
-    public static final int HARMONICS_COUNT = 8;
+    public static final int HARMONICS_COUNT = 25;
 
     // === Measurement System Specifications ===
     /**
      * Sampling rate of ESP32 ADC (Hz).
      * Conservative value with WiFi enabled.
      */
-    public static final int SAMPLING_RATE_HZ = 800;
+    public static final int SAMPLING_RATE_HZ = 3000;
     /**
      * Nyquist frequency: maximum measurable frequency (Hz).
      * Nyquist = sampling_rate / 2.
@@ -150,7 +150,7 @@ public final class Constants {
     public static final int NYQUIST_FREQUENCY_HZ = SAMPLING_RATE_HZ / 2;
     /**
      * Maximum measurable harmonic order at current sampling rate.
-     * 400 Hz / 50 Hz = 8th harmonic.
+     * 1500 Hz / 50 Hz = 30th harmonic.
      */
     public static final int MAX_HARMONIC_ORDER = NYQUIST_FREQUENCY_HZ / (int) NOMINAL_FREQUENCY;
 

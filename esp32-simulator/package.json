@@ -1,0 +1,16 @@
+{
+  "name": "esp32-simulator",
+  "version": "1.0.0",
+  "description": "Mock ESP32 data generator for SCADA system testing - generates realistic harmonics and waveforms",
+  "main": "simulator.js",
+  "scripts": {
+    "start": "node simulator.js",
+    "test": "node simulator.js --test"
+  },
+  "keywords": ["esp32", "mqtt", "scada", "simulator", "harmonics"],
+  "author": "SCADA System Project",
+  "license": "MIT",
+  "dependencies": {
+    "mqtt": "^5.3.5"
+  }
+}

@@ -149,8 +149,8 @@ export function StreamingChart({
         </p>
       </CardHeader>
       <CardContent className="pt-2 pb-2 px-2 sm:px-4">
-        <div className="h-[250px] sm:h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%" debounce={100}>
+        <div className="h-[250px] sm:h-[300px] w-full" style={{ minHeight: '250px' }}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
             <LineChart data={chart_data}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis
