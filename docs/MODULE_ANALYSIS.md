@@ -1,7 +1,7 @@
 # Analiza Modułów Systemu SCADA
 
 **Dokument do systematycznej analizy kodu**
-**Status:** W trakcie analizy
+**Status:** Analiza zakończona, dokumenty zaktualizowane 2026-01-26
 
 ---
 
@@ -42,25 +42,28 @@
 | main.cpp | `esp32-firmware/src/main.cpp` | ~264 | Główny plik firmware |
 
 ### Kluczowe obszary do analizy:
-- [ ] Konfiguracja próbkowania ADC (3000 Hz, 512 próbek)
-- [ ] Implementacja FFT (ArduinoFFT, okno Hamminga)
-- [ ] Obliczenia RMS i mocy (teoria Budeanu)
-- [ ] Logika Noise Gate (progi szumów)
-- [ ] Wykrywanie częstotliwości
-- [ ] Struktura JSON i publikacja MQTT
-- [ ] Obsługa błędów i reconnect WiFi/MQTT
+- [x] Konfiguracja próbkowania ADC (3000 Hz, 512 próbek, 12-bit)
+- [x] Implementacja FFT (ArduinoFFT, okno Hamminga, H1-H25)
+- [x] Obliczenia RMS i mocy (teoria Budeanu: P, Q₁, D, S, λ)
+- [x] Logika Noise Gate (ADC dead zone + RMS gate + THD gate)
+- [x] Wykrywanie częstotliwości (zero-crossing primary + FFT fallback)
+- [x] Struktura JSON i publikacja MQTT (3s interval, ~2-3KB)
+- [x] Dual-core: ISR na Core 0, processing na Core 1
 
 ### Notatki z analizy:
 ```
 ✅ Szczegółowa analiza: docs/analysis/01-ESP32-FIRMWARE.md
+📅 Ostatnia weryfikacja: 2026-01-26
 
-Kluczowe ustalenia:
-- Próbkowanie 3003 Hz (nie dokładnie 3000 Hz - błąd timera 0.1%)
-- THD częściowy: H2-H25 (norma wymaga H2-H40)
+Kluczowe ustalenia (aktualne):
+- Próbkowanie 3000 Hz (timer 333 μs), 512 próbek per bufor
+- THD: H2-H25 (norma wymaga H2-H40, ale H25 to znaczące pokrycie)
 - Teoria Budeanu poprawnie zaimplementowana (Q₁ vs D)
-- Noise gate: ADC dead zone (4 LSB) + RMS gate (10 mA) + THD gate (2.1 mA)
-- Interwał MQTT: 3s (dokumentacja mówi 6s - niespójność!)
-- README.md używa "cos_phi", kod używa "power_factor"
+- Noise gate: ADC dead zone (4 LSB) + RMS gate (50 mA) + THD gate (~10.6 mA)
+- Interwał MQTT: 3s (zgodne z dokumentacją)
+- Zero-crossing frequency detection z FFT fallback (nowa funkcjonalność)
+- Wysyłane są surowe próbki waveform (1 cykl, ~60 próbek)
+- JSON payload: ~2-3 KB z waveforms
 ```
 
 ---
@@ -151,16 +154,17 @@ Kluczowe ustalenia:
 ### Notatki z analizy:
 ```
 ✅ Szczegółowa analiza: docs/analysis/04-JAVA-SERVICES.md
+📅 Ostatnia weryfikacja: 2026-01-26
 
-Kluczowe ustalenia:
+Kluczowe ustalenia (aktualne):
 - Wzorcowa architektura event-driven (@TransactionalEventListener AFTER_COMMIT)
 - Poprawna teoria Budeanu: S² = P² + Q₁² + D² w walidatorze
 - IEC 61000-4-30: countEventsWithDuration() z progami czasowymi
 - Thread-safe DataAggregationService (ReadWriteLock)
-- ✅ NAPRAWIONE (2026-01-23): Constants.SAMPLING_RATE_HZ = 3000 (było 800)
-- ✅ NAPRAWIONE (2026-01-23): Constants.HARMONICS_COUNT = 25 (było 8)
-- Brak circuit breaker w MqttMessageHandler
-- WaveformService zbyt cienki (tylko delegacja do MathUtils)
+- ✅ ZWERYFIKOWANE: Constants.SAMPLING_RATE_HZ = 3000
+- ✅ ZWERYFIKOWANE: Constants.HARMONICS_COUNT = 25
+- ⚠️ UWAGA: Komentarze w Constants.java wciąż mówią o "harmonics 2-8" (należy zaktualizować)
+- Brak circuit breaker w MqttMessageHandler (do rozważenia)
 ```
 
 ---
@@ -491,13 +495,15 @@ Kluczowe ustalenia:
 ### Notatki z analizy:
 ```
 ✅ Szczegółowa analiza: docs/analysis/05-FRONTEND-TYPES-COMPONENTS.md
+📅 Ostatnia weryfikacja: 2026-01-26
 
-Kluczowe ustalenia:
+Kluczowe ustalenia (aktualne):
 - MeasurementDTO, WaveformDTO, DashboardDTO: 100% zgodność z backend
-- ✅ NAPRAWIONE (2026-01-23): StatsDTO teraz 100% zgodny (dodano wszystkie pola)
-- ✅ NAPRAWIONE (2026-01-23): Usunięto fałszywe pola avg_current, max_current
+- ✅ ZWERYFIKOWANE: StatsDTO teraz 100% zgodny (wszystkie 21 pól obecne)
+- ✅ ZWERYFIKOWANE: Usunięto fałszywe pola avg_current, max_current
 - Poprawne użycie snake_case (zgodne z Jackson SNAKE_CASE)
 - Nullable fields: poprawne użycie `| null` dla explicit null z API
+- PowerQualitySection: informacja o H2-H25 przy 3000Hz (zaktualizowane)
 ```
 
 ---
