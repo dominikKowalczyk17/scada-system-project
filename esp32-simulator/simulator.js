@@ -1,14 +1,22 @@
 /**
  * ESP32 SCADA Simulator
  *
- * Generates realistic electrical measurement data with harmonics and waveform distortions
- * to test the SCADA system's waveform visualization capabilities.
+ * Simulates real physical electrical loads with fixed characteristics.
+ * Load type is determined at startup and remains constant — just like
+ * a real resistor, motor, or rectifier doesn't change its nature.
+ *
+ * Usage:
+ *   npm start -- resistive    - Pure resistive load (heater, kettle)
+ *   npm start -- inductive    - Inductive load (motor, transformer)
+ *   npm start -- capacitive   - Capacitive load (PFC bank)
+ *   npm start -- nonlinear    - Non-linear load (rectifier, SMPS)
+ *   npm start -- rectifier    - Bridge rectifier with RC filter
  *
  * Features:
- * - Generates voltage and current waveforms with configurable harmonics
- * - Simulates real-world distortions (clipping, noise, asymmetry)
+ * - Fixed load characteristics throughout the session
+ * - Realistic harmonic profiles matching real-world loads
+ * - Natural measurement variation (noise, grid frequency drift)
  * - Publishes data via MQTT matching ESP32 format exactly
- * - Multiple test scenarios (clean power, distorted, clipped, etc.)
  */
 
 const mqtt = require('mqtt');
@@ -18,56 +26,99 @@ const MQTT_BROKER = 'mqtt://localhost:1883';
 const MQTT_TOPIC = 'scada/measurements/node1';
 const PUBLISH_INTERVAL = 3000; // 3 seconds, matching ESP32
 
-// Scenarios for testing different waveform conditions
-const SCENARIOS = {
-  CLEAN: {
-    name: 'Clean Power',
+// Load types — each represents a real physical load with fixed electrical characteristics
+const LOAD_TYPES = {
+  resistive: {
+    name: 'Resistive Load (heater / kettle)',
+    description: 'Pure resistive — voltage and current in phase, minimal harmonics',
     nominalVoltage: 230,
-    voltageHarmonics: [1.0, 0.01, 0.005, 0.003, 0.002, 0.001, 0.001, 0.001], // Mostly fundamental
-    currentHarmonics: [1.0, 0.01, 0.005, 0.003, 0.002, 0.001, 0.001, 0.001],
-    noise: 0.5,
-    cosPhi: 0.95
+    // Resistive loads draw near-perfect sinusoidal current
+    voltageHarmonics: [1.0, 0.01, 0.005, 0.003, 0.002, 0.001, 0.001, 0.001],
+    currentHarmonics: [1.0, 0.008, 0.004, 0.002, 0.001, 0.001, 0.001, 0.001],
+    noise: 0.3,
+    cosPhi: 0.99,
+    currentRange: [0.8, 1.2] // Amps — typical 200-280W heater element
   },
-  DISTORTED: {
-    name: 'Distorted Power (Non-linear Load)',
+  inductive: {
+    name: 'Inductive Load (motor / transformer)',
+    description: 'Current lags voltage, moderate harmonics from magnetic saturation',
     nominalVoltage: 230,
-    voltageHarmonics: [1.0, 0.02, 0.08, 0.04, 0.06, 0.03, 0.02, 0.015], // Significant harmonics
-    currentHarmonics: [1.0, 0.05, 0.15, 0.08, 0.12, 0.06, 0.04, 0.03], // Heavy harmonic distortion
-    noise: 1.0,
-    cosPhi: 0.75
-  },
-  CLIPPED: {
-    name: 'Voltage Clipping (Overload)',
-    nominalVoltage: 248,
-    voltageHarmonics: [1.0, 0.03, 0.12, 0.06, 0.08, 0.04, 0.03, 0.02],
-    currentHarmonics: [1.0, 0.04, 0.10, 0.05, 0.08, 0.04, 0.03, 0.02],
-    noise: 2.0,
-    cosPhi: 0.85,
-    clipVoltage: 340 // Simulate ADC saturation
-  },
-  ASYMMETRIC: {
-    name: 'Asymmetric Waveform',
-    nominalVoltage: 225,
-    voltageHarmonics: [1.0, 0.04, 0.06, 0.08, 0.05, 0.04, 0.02, 0.015],
-    currentHarmonics: [1.0, 0.05, 0.08, 0.06, 0.07, 0.04, 0.03, 0.02],
-    noise: 1.5,
-    cosPhi: 0.68,
-    dcOffset: 5 // Simulate DC component
-  },
-  LOW_CURRENT: {
-    name: 'Very Low Current (Phone Charger)',
-    nominalVoltage: 230,
+    // Induction motors produce odd harmonics due to magnetic saturation
     voltageHarmonics: [1.0, 0.015, 0.008, 0.005, 0.003, 0.002, 0.001, 0.001],
-    currentHarmonics: [1.0, 0.08, 0.12, 0.06, 0.04, 0.02, 0.01, 0.008], // High harmonics but low absolute values
+    currentHarmonics: [1.0, 0.03, 0.05, 0.02, 0.04, 0.015, 0.01, 0.008],
     noise: 0.8,
-    cosPhi: 0.65,
-    lowCurrentMode: true // Flag to generate ~0.02-0.05A current
+    cosPhi: 0.70,
+    currentRange: [0.5, 0.9] // Amps — small motor
+  },
+  capacitive: {
+    name: 'Capacitive Load (PFC bank)',
+    description: 'Current leads voltage, very clean waveform',
+    nominalVoltage: 230,
+    // Capacitor banks draw very clean current
+    voltageHarmonics: [1.0, 0.01, 0.005, 0.003, 0.002, 0.001, 0.001, 0.001],
+    currentHarmonics: [1.0, 0.01, 0.006, 0.003, 0.002, 0.001, 0.001, 0.001],
+    noise: 0.4,
+    cosPhi: 0.92,
+    leadingPowerFactor: true, // Current leads voltage (negative phase shift)
+    currentRange: [0.3, 0.6] // Amps
+  },
+  nonlinear: {
+    name: 'Non-linear Load (SMPS / LED driver)',
+    description: 'Heavy current harmonics from switching power supply, poor power factor',
+    nominalVoltage: 230,
+    // SMPS draws current in narrow pulses — rich in odd harmonics
+    voltageHarmonics: [1.0, 0.02, 0.04, 0.02, 0.03, 0.015, 0.01, 0.008],
+    currentHarmonics: [1.0, 0.05, 0.15, 0.08, 0.12, 0.06, 0.04, 0.03],
+    noise: 1.0,
+    cosPhi: 0.62,
+    currentRange: [0.08, 0.15] // Amps — typical ~20-35W SMPS
+  },
+  rectifier: {
+    name: 'Bridge Rectifier with RC Filter',
+    description: 'Diode bridge with smoothing cap — sharp current peaks, high THD',
+    nominalVoltage: 230,
+    // Bridge rectifier creates strong odd harmonics, especially 3rd and 5th
+    voltageHarmonics: [1.0, 0.03, 0.06, 0.03, 0.04, 0.02, 0.015, 0.01],
+    currentHarmonics: [1.0, 0.08, 0.20, 0.12, 0.15, 0.08, 0.06, 0.04],
+    noise: 1.5,
+    cosPhi: 0.72,
+    currentRange: [0.3, 0.6] // Amps — medium rectifier load
   }
 };
 
-let currentScenario = SCENARIOS.CLEAN;
-let scenarioIndex = 0;
-const scenarioKeys = Object.keys(SCENARIOS);
+/**
+ * Parse command-line argument to select load type
+ */
+function parseLoadType() {
+  const args = process.argv.slice(2);
+  const loadArg = args[0]?.toLowerCase();
+
+  if (!loadArg) {
+    console.error('Error: Load type is required.\n');
+    printUsage();
+    process.exit(1);
+  }
+
+  if (!LOAD_TYPES[loadArg]) {
+    console.error(`Error: Unknown load type "${loadArg}".\n`);
+    printUsage();
+    process.exit(1);
+  }
+
+  return LOAD_TYPES[loadArg];
+}
+
+function printUsage() {
+  console.log('Usage: npm start -- <load_type>\n');
+  console.log('Available load types:');
+  for (const [key, load] of Object.entries(LOAD_TYPES)) {
+    console.log(`  ${key.padEnd(12)} - ${load.description}`);
+  }
+  console.log('\nExamples:');
+  console.log('  npm start -- resistive');
+  console.log('  npm start -- inductive');
+  console.log('  node simulator.js nonlinear');
+}
 
 /**
  * Generate realistic waveform with harmonics and distortions
@@ -146,50 +197,49 @@ function calculateTHD(harmonics, minFundamental) {
 /**
  * Generate complete measurement data matching ESP32 format
  */
-function generateMeasurement(scenario) {
+function generateMeasurement(load) {
   const frequency = 50.0 + (Math.random() - 0.5) * 0.4; // 49.8 - 50.2 Hz
   const samplingFreq = 3000; // 3000 Hz sampling rate (matching ESP32 SAMPLING_FREQ)
   const samplesPerCycle = Math.round(samplingFreq / frequency); // ~60 samples per cycle at 50Hz
   const samples = samplesPerCycle + 1; // 1 full cycle + 1 sample to complete the period visually
 
   // Calculate fundamental amplitudes from RMS
-  const vRMS = scenario.nominalVoltage + (Math.random() - 0.5) * 4;
+  const vRMS = load.nominalVoltage + (Math.random() - 0.5) * 4;
   const vFundamental = vRMS * Math.sqrt(2);
 
-  // For low current scenario, generate 0.02-0.05A (phone charger level)
-  // For normal scenarios, generate typical load currents
-  let iRMS;
-  if (scenario.lowCurrentMode) {
-    iRMS = 0.02 + Math.random() * 0.03; // 0.02-0.05A (5-12W @ 230V)
-  } else {
-    iRMS = (vRMS * (0.01 + Math.random() * 0.05)) / scenario.cosPhi; // Random load 0.01-0.05A
-  }
+  // Current from load's fixed range with small natural variation
+  const [iMin, iMax] = load.currentRange;
+  const iRMS = iMin + Math.random() * (iMax - iMin);
   const iFundamental = iRMS * Math.sqrt(2);
 
   // Phase shift based on cos(phi)
-  const phaseShift = Math.acos(scenario.cosPhi);
+  // Capacitive loads: current leads voltage (negative phase)
+  // Inductive loads: current lags voltage (positive phase)
+  const phaseShift = load.leadingPowerFactor
+    ? -Math.acos(load.cosPhi)
+    : Math.acos(load.cosPhi);
 
   // Generate waveforms
   const waveformV = generateWaveform(
     vFundamental,
-    scenario.voltageHarmonics,
+    load.voltageHarmonics,
     samples,
     frequency,
     0,
     {
-      noise: scenario.noise,
-      clipVoltage: scenario.clipVoltage,
-      dcOffset: scenario.dcOffset
+      noise: load.noise,
+      clipVoltage: load.clipVoltage,
+      dcOffset: load.dcOffset
     }
   );
 
   const waveformI = generateWaveform(
     iFundamental,
-    scenario.currentHarmonics,
+    load.currentHarmonics,
     samples,
     frequency,
     phaseShift,
-    { noise: scenario.noise * 0.001 }
+    { noise: load.noise * 0.001 }
   );
 
   // Calculate actual RMS from generated waveforms
@@ -197,7 +247,7 @@ function generateMeasurement(scenario) {
   const actualIRMS = calculateRMS(waveformI);
 
   // Generate harmonic amplitudes (H1-H25 to match ESP32)
-  const harmonicsV = scenario.voltageHarmonics.map((h, i) => {
+  const harmonicsV = load.voltageHarmonics.map((h) => {
     const amp = vFundamental * h;
     return Math.round(amp * 100) / 100;
   });
@@ -207,7 +257,7 @@ function generateMeasurement(scenario) {
     harmonicsV.push(Math.round(Math.random() * 0.3 * 100) / 100);
   }
 
-  const harmonicsI = scenario.currentHarmonics.map((h, i) => {
+  const harmonicsI = load.currentHarmonics.map((h) => {
     const amp = iFundamental * h;
     return Math.round(amp * 1000) / 1000;
   });
@@ -217,13 +267,12 @@ function generateMeasurement(scenario) {
   }
 
   // Calculate power values (Budeanu Theory)
-  const pActive = actualVRMS * actualIRMS * scenario.cosPhi;
+  const pActive = actualVRMS * actualIRMS * load.cosPhi;
   const sApparent = actualVRMS * actualIRMS;
 
   // Reactive power of fundamental Q₁ = U₁ * I₁ * sin(φ₁)
   const u1_rms = vFundamental / Math.sqrt(2);
   const i1_rms = iFundamental / Math.sqrt(2);
-  const phaseShift = Math.acos(scenario.cosPhi);
   const qReactive_H1 = u1_rms * i1_rms * Math.sin(phaseShift);
 
   // Distortion power D = sqrt(S² - P² - Q₁²)
@@ -237,10 +286,9 @@ function generateMeasurement(scenario) {
   const powerFactor = sApparent > 0.05 ? pActive / sApparent : 1.0;
 
   // Calculate THD with thresholds matching ESP32 firmware
-  // Pass actual harmonic amplitudes, not normalized coefficients
   // THD_V_MIN_FUNDAMENTAL = 10.0V, THD_I_MIN_FUNDAMENTAL = 0.15A
-  const vHarmonicAmplitudes = scenario.voltageHarmonics.map(h => vFundamental * h);
-  const iHarmonicAmplitudes = scenario.currentHarmonics.map(h => iFundamental * h);
+  const vHarmonicAmplitudes = load.voltageHarmonics.map(h => vFundamental * h);
+  const iHarmonicAmplitudes = load.currentHarmonics.map(h => iFundamental * h);
 
   const thdV = calculateTHD(vHarmonicAmplitudes, 10.0);
   const thdI = calculateTHD(iHarmonicAmplitudes, 0.15);
@@ -265,74 +313,60 @@ function generateMeasurement(scenario) {
 }
 
 /**
- * Cycle through scenarios
- */
-function nextScenario() {
-  scenarioIndex = (scenarioIndex + 1) % scenarioKeys.length;
-  currentScenario = SCENARIOS[scenarioKeys[scenarioIndex]];
-  console.log(`\n📊 Switched to scenario: ${currentScenario.name}`);
-}
-
-/**
  * Main simulator loop
  */
 function startSimulator() {
-  console.log('🚀 ESP32 SCADA Simulator Starting...');
-  console.log(`📡 MQTT Broker: ${MQTT_BROKER}`);
-  console.log(`📢 Topic: ${MQTT_TOPIC}`);
-  console.log(`⏱️  Publish Interval: ${PUBLISH_INTERVAL}ms\n`);
+  const load = parseLoadType();
+
+  console.log('ESP32 SCADA Simulator');
+  console.log('─'.repeat(60));
+  console.log(`  Load type:  ${load.name}`);
+  console.log(`  cos(phi):   ${load.cosPhi}${load.leadingPowerFactor ? ' (leading)' : ''}`);
+  console.log(`  Current:    ${load.currentRange[0]} - ${load.currentRange[1]} A`);
+  console.log(`  MQTT:       ${MQTT_BROKER}`);
+  console.log(`  Topic:      ${MQTT_TOPIC}`);
+  console.log(`  Interval:   ${PUBLISH_INTERVAL}ms`);
+  console.log('─'.repeat(60));
 
   const client = mqtt.connect(MQTT_BROKER);
 
   client.on('connect', () => {
-    console.log('✅ Connected to MQTT broker');
-    console.log(`📊 Starting with scenario: ${currentScenario.name}\n`);
-    console.log('💡 Press Ctrl+C to stop\n');
-    console.log('Available scenarios:');
-    Object.values(SCENARIOS).forEach((s, i) => {
-      console.log(`  ${i + 1}. ${s.name}`);
-    });
-    console.log('\nScenario will auto-rotate every 30 seconds\n');
-    console.log('─'.repeat(80));
+    console.log('Connected to MQTT broker');
+    console.log(`Simulating: ${load.name}\n`);
 
     let messageCount = 0;
 
     // Publish measurements
     const publishInterval = setInterval(() => {
-      const measurement = generateMeasurement(currentScenario);
+      const measurement = generateMeasurement(load);
       const payload = JSON.stringify(measurement);
 
       client.publish(MQTT_TOPIC, payload, { qos: 0 }, (err) => {
         if (err) {
-          console.error('❌ Publish error:', err);
+          console.error('Publish error:', err);
         } else {
           messageCount++;
-          console.log(`📤 [${messageCount}] Published: V=${measurement.v_rms}V, I=${measurement.i_rms}A, ` +
-                     `THD_V=${measurement.thd_v.toFixed(2)}%, waveform samples: ${measurement.waveform_v.length}`);
+          console.log(`[${messageCount}] V=${measurement.v_rms}V, I=${measurement.i_rms}A, ` +
+                     `P=${measurement.p_act}W, PF=${measurement.power_factor}, ` +
+                     `THD_V=${measurement.thd_v.toFixed(2)}%, THD_I=${measurement.thd_i.toFixed(2)}%`);
         }
       });
     }, PUBLISH_INTERVAL);
 
-    // Auto-rotate scenarios every 30 seconds
-    const scenarioInterval = setInterval(() => {
-      nextScenario();
-    }, 30000);
-
     // Cleanup on exit
     process.on('SIGINT', () => {
-      console.log('\n\n🛑 Stopping simulator...');
+      console.log('\n\nStopping simulator...');
       clearInterval(publishInterval);
-      clearInterval(scenarioInterval);
       client.end(() => {
-        console.log('✅ Disconnected from MQTT broker');
-        console.log(`📊 Total messages published: ${messageCount}`);
+        console.log('Disconnected from MQTT broker');
+        console.log(`Total messages published: ${messageCount}`);
         process.exit(0);
       });
     });
   });
 
   client.on('error', (err) => {
-    console.error('❌ MQTT Error:', err);
+    console.error('MQTT Error:', err);
     process.exit(1);
   });
 }
@@ -342,4 +376,4 @@ if (require.main === module) {
   startSimulator();
 }
 
-module.exports = { generateMeasurement, SCENARIOS };
+module.exports = { generateMeasurement, LOAD_TYPES };
