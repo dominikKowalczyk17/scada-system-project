@@ -105,7 +105,7 @@ describe('WaveformChart - Comprehensive Suite', () => {
       const data = JSON.parse(chart.getAttribute('data-raw') || '[]');
 
       const lastPoint = data[199];
-      const expectedTime = (199 / 200) * (1000 / 50); // ~19.9 ms
+      const expectedTime = (199 / (200 - 1)) * (1000 / 50); // 20.0 ms (full period)
       expect(lastPoint.time).toBeCloseTo(expectedTime, 1);
     });
 
