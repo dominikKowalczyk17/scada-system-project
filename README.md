@@ -6,10 +6,12 @@ Professional SCADA system for electrical energy monitoring with real-time data v
 
 ```
 ├── scada-system/          # Spring Boot backend (Java 17)
-├── webapp/              # React frontend (TypeScript)
-├── deployment/           # Docker and deployment configs
-├── docs/               # Project documentation
-└── README.md           # This file
+├── webapp/                # React frontend (TypeScript)
+├── esp32-firmware/        # ESP32 firmware (PlatformIO/Arduino)
+├── esp32-simulator/       # ESP32 data simulator (Node.js)
+├── deployment/            # Docker and deployment configs
+├── docs/                  # Project documentation
+└── README.md              # This file
 ```
 
 ## 📚 Documentation
@@ -48,7 +50,7 @@ npm run dev
 - TypeScript
 - Vite
 - TailwindCSS
-- Chart.js for data visualization
+- Recharts for data visualization
 
 **Infrastructure:**
 - Docker & Docker Compose
@@ -112,4 +114,4 @@ This project is developed as part of an engineering thesis.
 ---
 
 **Status:** Active Development  
-**Last Updated:** 2026-01-15
+**Last Updated:** 2026-02-07

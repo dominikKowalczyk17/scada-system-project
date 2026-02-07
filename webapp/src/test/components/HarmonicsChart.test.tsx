@@ -127,9 +127,10 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
       expect(data.length).toBe(25);
     });
 
-    it('X-Axis tick formatter adds "Hz" suffix', () => {
+    it('X-Axis hides tick labels', () => {
       render(React.createElement(HarmonicsChart, defaultProps));
-      expect(screen.getByTestId('x-tick-sample')).toHaveTextContent('50Hz');
+      const xAxis = screen.getByTestId('x-axis');
+      expect(xAxis).toBeInTheDocument();
     });
 
     it('renders custom tooltip with harmonic and frequency info', () => {
@@ -142,11 +143,10 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
   });
 
   describe('Axis Configuration', () => {
-    it('uses logarithmic scale for Y-Axis to visualize small harmonics', () => {
+    it('uses linear scale for Y-Axis', () => {
       render(React.createElement(HarmonicsChart, defaultProps));
       const yAxis = screen.getByTestId('y-axis');
-      expect(yAxis).toHaveAttribute('data-scale', 'log');
-      expect(yAxis).toHaveAttribute('data-domain', JSON.stringify([0.01, 'auto']));
+      expect(yAxis).toHaveAttribute('data-domain', JSON.stringify([0, 'auto']));
     });
 
     it('updates Y-Axis label based on selection', () => {

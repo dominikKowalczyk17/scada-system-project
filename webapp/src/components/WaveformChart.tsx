@@ -51,7 +51,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
   // Transform current data for display
   const chartData = waveforms.voltage.map((v, index) => ({
     sample: index,
-    time: (index / waveforms.voltage.length) * (1000 / frequency),
+    time: (index / (waveforms.voltage.length - 1)) * (1000 / frequency),
     voltage: v,
     current: waveforms.current[index] * currentMultiplier,
   }));

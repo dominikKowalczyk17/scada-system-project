@@ -8,7 +8,7 @@ Mock data generator for testing SCADA system waveform visualization with realist
 - ✅ Simulates real-world distortions (clipping, noise, asymmetry, DC offset)
 - ✅ Publishes data via MQTT matching ESP32 format exactly
 - ✅ Multiple test scenarios that auto-rotate every 30 seconds
-- ✅ Sends raw waveform samples (2 cycles, ~120 samples at 50Hz)
+- ✅ Sends raw waveform samples (1 full cycle, ~61 samples at 50Hz)
 
 ## Test Scenarios
 

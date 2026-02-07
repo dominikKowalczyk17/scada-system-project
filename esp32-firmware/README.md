@@ -39,7 +39,7 @@ Key parameters in `main.cpp`:
 - `SAMPLES = 512` - Number of samples per measurement cycle
 - `SAMPLING_FREQ = 3000` - Sampling frequency in Hz
 - `MAX_CALC_HARMONIC = 25` - Maximum harmonic order calculated
-- `NOISE_GATE_RMS = 0.01` - Current noise gate threshold
+- `NOISE_GATE_RMS = 0.05` - Current noise gate threshold (minimum detectable current)
 
 Calibration coefficients:
 - `vCoeff = 0.550` - Voltage calibration coefficient

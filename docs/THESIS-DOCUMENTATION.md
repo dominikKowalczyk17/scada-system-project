@@ -1075,8 +1075,8 @@ ESP32 → MQTT → Backend → WebSocket → React Frontend
     "harmonicsV": [230.0, 7.5, 4.2, ...]
   },
   "waveforms": {
-    "voltage": [325.27, 324.89, ...],  // 200 points
-    "current": [7.35, 7.33, ...]     // 200 points
+    "voltage": [325.27, 324.89, ...],  // ~61 points (1 full cycle at 50Hz)
+    "current": [7.35, 7.33, ...]     // ~61 points (1 full cycle at 50Hz)
   },
   "timestamp": "2025-01-13T12:00:00Z"
 }
@@ -1178,8 +1178,8 @@ webapp/
 
 **WaveformChart.tsx (136 lines)** - Waveform visualization
 - Line chart for voltage and current waveforms
-- 200 points per waveform (4 cycles at 50 Hz)
-- Dual-line display (voltage in blue, current in red)
+- ~61 points per waveform (1 full cycle at 50 Hz)
+- Dual-line display (voltage in blue, current in orange)
 - Y-axis scaling
 - Zoom capabilities (optional)
 

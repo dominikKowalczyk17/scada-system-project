@@ -4,7 +4,7 @@ React + TypeScript + Vite dashboard for monitoring electrical power quality in h
 
 ## Tech Stack
 
-- **React 18.3** with TypeScript
+- **React 19.1** with TypeScript
 - **Vite** - Fast build tool with HMR
 - **shadcn/ui** - Accessible component library (Radix UI primitives)
 - **TanStack Query (React Query)** - Server state management
@@ -127,8 +127,8 @@ ws.onmessage = (event) => {
     "harmonicsI": [5.2, 0.08, 0.04, ...]
   },
   "waveforms": {
-    "voltage": [325.27, 324.89, ...],  // 200 points
-    "current": [7.35, 7.33, ...]       // 200 points
+    "voltage": [325.27, 324.89, ...],  // ~61 points (1 full cycle at 50Hz)
+    "current": [7.35, 7.33, ...]       // ~61 points (1 full cycle at 50Hz)
   },
   "timestamp": "2025-11-15T19:45:30"
 }
