@@ -40,21 +40,14 @@ export function HarmonicsChart({
   const chartData = useMemo(() => {
     return harmonicsVoltage.map((vHarmonic, index) => {
       const currentValue = harmonicsCurrent[index];
-      let scaledCurrent =
+      const scaledCurrent =
         currentValue !== undefined && useMilliamps
           ? currentValue * 1000
           : currentValue;
 
-      // CRITICAL FIX: Replace 0 with minimum displayable value for log scale
-      // Recharts log scale cannot display 0 values - they become invisible
-      // ESP32 sends 0 when harmonic < 0.0005A after rounding to 3 decimals
-      if (scaledCurrent === 0) {
-        scaledCurrent = useMilliamps ? 0.001 : 0.000001; // 0.001mA or 1µA
-      }
-
       return {
         harmonic: `H${index + 1}`,
-        frequency: (index + 1) * 50, // 50Hz, 100Hz, 150Hz, ..., 1250Hz (Nyquist limit ~1500Hz)
+        frequency: (index + 1) * 50,
         voltage: vHarmonic,
         current: scaledCurrent, // Convert to mA if needed and value exists
       };
@@ -131,34 +124,18 @@ export function HarmonicsChart({
                   style: { fill: "#e5e7eb", fontSize: 12 },
                 }}
                 stroke="#6b7280"
-                tick={{ fill: "#e5e7eb", fontSize: 10 }}
-                height={50}
-                ticks={[
-                  50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600,
-                  650, 700, 750, 800, 850, 900, 950, 1000, 1050, 1100, 1150,
-                  1200, 1250,
-                ]}
-                tickFormatter={(freq) => `${freq}Hz`}
-                angle={-45}
-                textAnchor="end"
+                tick={false}
+                height={30}
               />
               <YAxis
-                scale="log"
-                domain={[
-                  selectedHarmonic === "voltage"
-                    ? 0.01
-                    : useMilliamps
-                    ? 0.001
-                    : 0.001,
-                  "auto",
-                ]}
+                domain={[0, "auto"]}
                 label={{
                   value:
                     selectedHarmonic === "voltage"
                       ? "Amplituda (V)"
                       : useMilliamps
-                      ? "Amplituda (mA)"
-                      : "Amplituda (A)",
+                        ? "Amplituda (mA)"
+                        : "Amplituda (A)",
                   angle: -90,
                   position: "insideLeft",
                   offset: 10,
@@ -188,8 +165,8 @@ export function HarmonicsChart({
                     selectedHarmonic === "voltage"
                       ? "V"
                       : useMilliamps
-                      ? "mA"
-                      : "A";
+                        ? "mA"
+                        : "A";
 
                   return (
                     <div className="bg-gray-800 border border-gray-700 rounded-md px-3 py-2 shadow-lg">
