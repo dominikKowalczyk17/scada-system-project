@@ -314,8 +314,8 @@ void processingTask(void * pvParameters) {
         JsonArray waveV_arr = doc["waveform_v"].to<JsonArray>();
         JsonArray waveI_arr = doc["waveform_i"].to<JsonArray>();
         int samplesPerCycle = round(SAMPLING_FREQ / freq);  // Use detected frequency, not hardcoded 50Hz
-        // Send only 1 cycle (64 samples) instead of 2 cycles to reduce JSON size
-        int samplesToSend = samplesPerCycle;  // Was: samplesPerCycle * 2
+        // Send 1 full cycle + 1 extra sample to complete the period visually
+        int samplesToSend = samplesPerCycle + 1;
         if (samplesToSend > SAMPLES) samplesToSend = SAMPLES;
 
         for (int i = 0; i < samplesToSend; i++) {

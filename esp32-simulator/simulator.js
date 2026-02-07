@@ -150,7 +150,7 @@ function generateMeasurement(scenario) {
   const frequency = 50.0 + (Math.random() - 0.5) * 0.4; // 49.8 - 50.2 Hz
   const samplingFreq = 3000; // 3000 Hz sampling rate (matching ESP32 SAMPLING_FREQ)
   const samplesPerCycle = Math.round(samplingFreq / frequency); // ~60 samples per cycle at 50Hz
-  const samples = samplesPerCycle * 2; // 2 cycles worth of samples (~120 samples)
+  const samples = samplesPerCycle + 1; // 1 full cycle + 1 sample to complete the period visually
 
   // Calculate fundamental amplitudes from RMS
   const vRMS = scenario.nominalVoltage + (Math.random() - 0.5) * 4;
