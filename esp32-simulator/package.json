@@ -5,7 +5,11 @@
   "main": "simulator.js",
   "scripts": {
     "start": "node simulator.js",
-    "test": "node simulator.js --test"
+    "start:resistive": "node simulator.js resistive",
+    "start:inductive": "node simulator.js inductive",
+    "start:capacitive": "node simulator.js capacitive",
+    "start:nonlinear": "node simulator.js nonlinear",
+    "start:rectifier": "node simulator.js rectifier"
   },
   "keywords": ["esp32", "mqtt", "scada", "simulator", "harmonics"],
   "author": "SCADA System Project",
