@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/Card";
 import {
   LineChart,
@@ -6,6 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
 import type { WaveformDTO } from "@/types/api";
@@ -16,7 +18,54 @@ interface WaveformChartProps {
   frequency: number;
 }
 
+/**
+ * Find indices where voltage crosses zero going positive (rising edge).
+ * Returns sample indices where v[i-1] <= 0 and v[i] > 0.
+ */
+function findPositiveZeroCrossings(data: number[]): number[] {
+  const crossings: number[] = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i - 1] <= 0 && data[i] > 0) {
+      crossings.push(i);
+    }
+  }
+  return crossings;
+}
+
+/**
+ * Trim waveform data to exact periods starting from a voltage zero-crossing.
+ * Returns { voltage, current, samplingRate } or null if insufficient data.
+ */
+function trimToExactPeriods(
+  voltage: number[],
+  current: number[],
+  frequency: number,
+  numPeriods: number
+): { voltage: number[]; current: number[]; samplingRate: number } | null {
+  const crossings = findPositiveZeroCrossings(voltage);
+  if (crossings.length < 2) return null;
+
+  const samplesPerPeriod = crossings[1] - crossings[0];
+  if (samplesPerPeriod < 2) return null;
+
+  const startIdx = crossings[0];
+  const totalSamples = numPeriods * samplesPerPeriod + 1; // +1 to visually close the last period
+  const endIdx = startIdx + totalSamples;
+
+  if (endIdx > voltage.length) return null;
+
+  const samplingRate = samplesPerPeriod * frequency;
+
+  return {
+    voltage: voltage.slice(startIdx, endIdx),
+    current: current.slice(startIdx, endIdx),
+    samplingRate,
+  };
+}
+
 export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
+  const [numPeriods, setNumPeriods] = useState<1 | 2>(2);
+
   if (waveforms.voltage.length !== waveforms.current.length) {
     return (
       <Card>
@@ -30,12 +79,23 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
     )
   }
 
+  // Try to trim to exact periods; fallback to 1 period, then raw data
+  const trimmedRequested = trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, numPeriods);
+  const trimmedFallback = trimmedRequested ?? trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, 1);
+  const trimmed = trimmedFallback;
+
+  const displayVoltage = trimmed ? trimmed.voltage : waveforms.voltage;
+  const displayCurrent = trimmed ? trimmed.current : waveforms.current;
+  const samplingRate = trimmed
+    ? trimmed.samplingRate
+    : (waveforms.voltage.length - 1) * frequency; // legacy fallback
+
   // Auto-scale voltage axis
-  const maxVoltage = Math.max(...waveforms.voltage.map(Math.abs));
+  const maxVoltage = Math.max(...displayVoltage.map(Math.abs));
   const voltageDomain = [-maxVoltage * 1.1, maxVoltage * 1.1];
 
   // Auto-scale current axis based on actual data range
-  const maxCurrent = Math.max(...waveforms.current.map(Math.abs));
+  const maxCurrent = Math.max(...displayCurrent.map(Math.abs));
   // Use at least 0.01A margin for very small currents (phone chargers ~0.02-0.05A)
   const currentMargin = Math.max(maxCurrent * 0.2, 0.01);
   const currentDomain = [
@@ -48,12 +108,12 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
   const currentMultiplier = useMilliamps ? 1000 : 1;
   const currentUnit = useMilliamps ? "mA" : "A";
 
-  // Transform current data for display
-  const chartData = waveforms.voltage.map((v, index) => ({
+  // Transform data for display
+  const chartData = displayVoltage.map((v, index) => ({
     sample: index,
-    time: (index / (waveforms.voltage.length - 1)) * (1000 / frequency),
+    time: (index / samplingRate) * 1000,
     voltage: v,
-    current: waveforms.current[index] * currentMultiplier,
+    current: displayCurrent[index] * currentMultiplier,
   }));
 
   // Adjust current domain for display units
@@ -70,6 +130,30 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="text-base sm:text-lg">Analiza Fazowa (Oscyloskop)</span>
           </CardTitle>
+          <div className="flex gap-1" data-testid="period-toggle">
+            <button
+              onClick={() => setNumPeriods(1)}
+              className={`px-2 py-0.5 text-xs rounded border ${
+                numPeriods === 1
+                  ? "bg-blue-600 border-blue-500 text-white"
+                  : "border-gray-600 text-gray-400 hover:text-gray-200"
+              }`}
+              data-testid="btn-1t"
+            >
+              1T
+            </button>
+            <button
+              onClick={() => setNumPeriods(2)}
+              className={`px-2 py-0.5 text-xs rounded border ${
+                numPeriods === 2
+                  ? "bg-blue-600 border-blue-500 text-white"
+                  : "border-gray-600 text-gray-400 hover:text-gray-200"
+              }`}
+              data-testid="btn-2t"
+            >
+              2T
+            </button>
+          </div>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
           Napięcie (niebieski, V) i Prąd (pomarańczowy, {currentUnit}) na niezależnych osiach ({frequency.toFixed(1)} Hz)
@@ -80,8 +164,8 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis 
-                dataKey="time" 
+              <XAxis
+                dataKey="time"
                 stroke="#6b7280"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
                 tickFormatter={(v) => `${v.toFixed(1)}ms`}
@@ -93,7 +177,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 }}
                 height={50}
               />
-              
+
               {/* LEWA OŚ DLA NAPIĘCIA */}
               <YAxis
                 yAxisId="v-axis"
@@ -112,7 +196,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                   style: { fill: "#3b82f6", fontSize: 12 },
                 }}
               />
-              
+
               {/* PRAWA OŚ DLA PRĄDU - AUTO-SCALED */}
               <YAxis
                 yAxisId="i-axis"
@@ -135,6 +219,10 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 }}
               />
 
+              {/* Zero reference lines */}
+              <ReferenceLine yAxisId="v-axis" y={0} stroke="#4b5563" strokeDasharray="6 3" strokeWidth={1.5} />
+              <ReferenceLine yAxisId="i-axis" y={0} stroke="#4b5563" strokeDasharray="6 3" strokeWidth={1.5} />
+
               <Tooltip
                 contentStyle={{
                   backgroundColor: "#1f2937",
@@ -145,19 +233,20 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 labelStyle={{ color: "#e5e7eb", fontWeight: 600 }}
                 itemStyle={{ color: "#e5e7eb" }}
                 labelFormatter={(time) => `${time.toFixed(1)} ms`}
-                formatter={(value: number | undefined, name: string | undefined) => {
-                  if (value === undefined || name === undefined) {
-                    return ["---", name ?? "Nieznany"];
+                formatter={(value, name) => {
+                  const v = Number(value);
+                  if (isNaN(v) || name === undefined) {
+                    return ["---", String(name ?? "Nieznany")];
                   }
 
                   if (name === "Prąd (A)" || name === `Prąd (${currentUnit})`) {
                     return [
-                      useMilliamps ? `${value.toFixed(0)} mA` : `${value.toFixed(3)} A`,
+                      useMilliamps ? `${v.toFixed(0)} mA` : `${v.toFixed(3)} A`,
                       `Prąd (${currentUnit})`
                     ];
                   }
 
-                  return [`${value.toFixed(1)} V`, "Napięcie (V)"];
+                  return [`${v.toFixed(1)} V`, "Napięcie (V)"];
                 }}
               />
 
@@ -171,7 +260,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 name="Napięcie (V)"
                 isAnimationActive={false}
               />
-              
+
               <Line
                 yAxisId="i-axis"
                 type="monotone"
