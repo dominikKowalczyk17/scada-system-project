@@ -40,6 +40,12 @@ export function useWebSocket({
   const [latestData, setLatestData] = useState<RealtimeDashboardDTO | null>(null);
   const queryClient = useQueryClient();
 
+  // Stable refs for callbacks - prevents useEffect re-running on every render
+  const onMessageRef = useRef(onMessage);
+  onMessageRef.current = onMessage;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+
   useEffect(() => {
     // Create STOMP client with SockJS transport
     const client = new Client({
@@ -63,7 +69,7 @@ export function useWebSocket({
             queryClient.setQueryData(['dashboard'], data);
 
             // Call custom handler if provided
-            onMessage?.(data);
+            onMessageRef.current?.(data);
           } catch (err) {
             console.error('[STOMP] Failed to parse message:', err);
           }
@@ -73,7 +79,7 @@ export function useWebSocket({
       onStompError: (frame) => {
         console.error('[STOMP] Error:', frame.headers['message'], frame.body);
         setIsConnected(false);
-        onError?.(new Error(frame.headers['message'] || 'STOMP error'));
+        onErrorRef.current?.(new Error(frame.headers['message'] || 'STOMP error'));
       },
 
       onWebSocketClose: () => {
@@ -96,7 +102,7 @@ export function useWebSocket({
         clientRef.current = null;
       }
     };
-  }, [url, topic, onMessage, onError, queryClient]);
+  }, [url, topic, queryClient]);
 
   return {
     isConnected,

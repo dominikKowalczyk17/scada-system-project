@@ -310,12 +310,12 @@ void processingTask(void * pvParameters) {
             hI_arr.add(round(harmonicsI_out[h] * 1000) / 1000.0);
         }
 
-        // Add raw waveform data (2 cycles ~120 samples for good visualization)
+        // Add raw waveform data (3 cycles ~181 samples for frontend zero-crossing trimming)
         JsonArray waveV_arr = doc["waveform_v"].to<JsonArray>();
         JsonArray waveI_arr = doc["waveform_i"].to<JsonArray>();
         int samplesPerCycle = round(SAMPLING_FREQ / freq);  // Use detected frequency, not hardcoded 50Hz
         // Send 1 full cycle + 1 extra sample to complete the period visually
-        int samplesToSend = samplesPerCycle + 1;
+        int samplesToSend = 3 * samplesPerCycle + 1;
         if (samplesToSend > SAMPLES) samplesToSend = SAMPLES;
 
         for (int i = 0; i < samplesToSend; i++) {
@@ -323,7 +323,7 @@ void processingTask(void * pvParameters) {
             waveI_arr.add(round(waveformI_out[i] * 1000) / 1000.0);  // 3 decimals for current
         }
 
-        char buffer[3072];  // Reduced from 8192 to avoid stack overflow (64 samples × 2 arrays ≈ 2KB JSON)
+        static char buffer[8192];  // Static (BSS) to avoid stack overflow; 3 cycles ≈ 3.5KB JSON
         size_t len = serializeJson(doc, buffer, sizeof(buffer));
         if (len >= sizeof(buffer)) {
             Serial.printf("[ERROR] JSON buffer overflow! Size: %d, Capacity: %d\n", len, sizeof(buffer));
