@@ -3,8 +3,9 @@ import { WaveformChart } from "@/components/WaveformChart";
 import { HarmonicsChart } from "@/components/HarmonicsChart";
 import { PowerQualitySection } from "@/components/PowerQualitySection";
 import { StreamingChart } from "@/components/StreamingChart";
-import { Activity, Loader2, AlertCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Activity, Loader2, AlertCircle, Camera } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { captureAllSections } from "@/hooks/useScreenshotAll";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePowerQualityIndicators } from "@/hooks/usePowerQualityIndicators";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -26,6 +27,22 @@ const Dashboard = () => {
       console.error("[Dashboard] WebSocket error:", error);
     },
   });
+
+  // Screenshot refs for each dashboard section
+  const powerQualityRef = useRef<HTMLDivElement>(null);
+  const parametersRef = useRef<HTMLDivElement>(null);
+  const streamingRef = useRef<HTMLDivElement>(null);
+  const waveformRef = useRef<HTMLDivElement>(null);
+  const harmonicsRef = useRef<HTMLDivElement>(null);
+
+  const handleScreenshotAll = () =>
+    captureAllSections([
+      { name: "power-quality", ref: powerQualityRef },
+      { name: "parameters", ref: parametersRef },
+      { name: "streaming-charts", ref: streamingRef },
+      { name: "waveform", ref: waveformRef },
+      { name: "harmonics", ref: harmonicsRef },
+    ]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -110,12 +127,21 @@ const Dashboard = () => {
                 </span>
               </div>
             </div>
-            <div className="text-left sm:text-right w-full sm:w-auto">
-              <div className="text-sm font-mono text-foreground">
-                {formatTime(time)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {formatDate(time)}
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                onClick={handleScreenshotAll}
+                title="Screenshot wszystkich sekcji"
+                className="p-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+              <div className="text-left sm:text-right">
+                <div className="text-sm font-mono text-foreground">
+                  {formatTime(time)}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {formatDate(time)}
+                </div>
               </div>
             </div>
           </div>
@@ -166,13 +192,16 @@ const Dashboard = () => {
             )}
 
             {powerQualityData && !isPqLoading && (
-              <PowerQualitySection data={powerQualityData} />
+              <div ref={powerQualityRef}>
+                <PowerQualitySection data={powerQualityData} />
+              </div>
             )}
           </>
         )}
 
         {/* Real-time Parameters */}
         {dashboardData && dashboardData.latest_measurement && (
+          <div ref={parametersRef}>
           <section className="mb-6 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-foreground flex items-center gap-2">
               <span className="w-1 h-5 sm:h-6 bg-primary rounded-full" />
@@ -348,10 +377,12 @@ const Dashboard = () => {
               />
             </div>
           </section>
+          </div>
         )}
 
         {/* Real-time Streaming Charts (Oscilloscope-like) */}
         {isConnected && (
+          <div ref={streamingRef}>
           <section className="mb-6 sm:mb-8">
             <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-foreground flex items-center gap-2">
               <span className="w-1 h-5 sm:h-6 bg-success rounded-full" />
@@ -400,6 +431,7 @@ const Dashboard = () => {
               />
             </div>
           </section>
+          </div>
         )}
 
         {/* Waveform Charts */}
@@ -410,16 +442,20 @@ const Dashboard = () => {
               Przebiegi czasowe i harmoniczne
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:gap-6">
-              <WaveformChart
-                waveforms={dashboardData.waveforms}
-                frequency={dashboardData.latest_measurement.frequency ?? 50}
-              />
-              <HarmonicsChart
-                harmonicsVoltage={dashboardData.latest_measurement.harmonics_v ?? []}
-                harmonicsCurrent={dashboardData.latest_measurement.harmonics_i ?? []}
-                thdVoltage={dashboardData.latest_measurement.thd_voltage ?? 0}
-                thdCurrent={dashboardData.latest_measurement.thd_current ?? 0}
-              />
+              <div ref={waveformRef}>
+                <WaveformChart
+                  waveforms={dashboardData.waveforms}
+                  frequency={dashboardData.latest_measurement.frequency ?? 50}
+                />
+              </div>
+              <div ref={harmonicsRef}>
+                <HarmonicsChart
+                  harmonicsVoltage={dashboardData.latest_measurement.harmonics_v ?? []}
+                  harmonicsCurrent={dashboardData.latest_measurement.harmonics_i ?? []}
+                  thdVoltage={dashboardData.latest_measurement.thd_voltage ?? 0}
+                  thdCurrent={dashboardData.latest_measurement.thd_current ?? 0}
+                />
+              </div>
             </div>
           </section>
         )}

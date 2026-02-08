@@ -46,3 +46,6 @@ deployment/rpi/
 deployment/*/application.properties
 deployment/*/scada-system.service
 deployment/*/rpi-setup.sh
+
+# Screenshots
+screenshots/
