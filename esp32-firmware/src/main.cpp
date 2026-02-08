@@ -13,8 +13,8 @@
 #define PIN_I 35
 
 const float vCoeff = 0.550;
-const float iCoeff = 0.0096;
-const float NOISE_GATE_RMS = 0.05;  // Zwiększone z 0.01A - agresywniejsze filtrowanie przy małym obciążeniu
+const float iCoeff = 0.0283;
+const float NOISE_GATE_RMS = 0.15;  // Dostosowane do iCoeff=0.0283 (szum ADC ~0.10A wymaga wyższego progu)
 const float ADC_DEAD_ZONE = 4.0;
 const float THD_I_THRESHOLD = NOISE_GATE_RMS * 1.414 * 0.15;  // ~0.0106A - synchronized with NOISE_GATE (15% margin)
 
