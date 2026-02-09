@@ -193,40 +193,40 @@ describe('WaveformChart - Comprehensive Suite', () => {
   });
 
   describe('Period Toggle (1T/2T)', () => {
-    it('defaults to 2 periods (2T active)', () => {
+    it('defaults to 1 period (1T active)', () => {
       render(React.createElement(WaveformChart, multiPeriodProps));
-      const btn2t = screen.getByTestId('btn-2t');
-      expect(btn2t.className).toContain('bg-blue-600');
+      const btn1t = screen.getByTestId('btn-1t');
+      expect(btn1t.className).toContain('bg-blue-600');
     });
 
-    it('switches to 1 period when 1T is clicked', () => {
+    it('switches to 2 periods when 2T is clicked', () => {
       render(React.createElement(WaveformChart, multiPeriodProps));
 
       const chartBefore = screen.getByTestId('line-chart');
       const dataBefore = JSON.parse(chartBefore.getAttribute('data-raw') || '[]');
       const pointsBefore = dataBefore.length;
 
-      fireEvent.click(screen.getByTestId('btn-1t'));
+      fireEvent.click(screen.getByTestId('btn-2t'));
 
       const chartAfter = screen.getByTestId('line-chart');
       const dataAfter = JSON.parse(chartAfter.getAttribute('data-raw') || '[]');
       const pointsAfter = dataAfter.length;
 
-      // 1 period should have fewer points than 2 periods
-      expect(pointsAfter).toBeLessThan(pointsBefore);
+      // 2 periods should have more points than 1 period
+      expect(pointsAfter).toBeGreaterThan(pointsBefore);
     });
 
     it('highlights the active period button', () => {
       render(React.createElement(WaveformChart, multiPeriodProps));
 
-      // Default: 2T is active
-      expect(screen.getByTestId('btn-2t').className).toContain('bg-blue-600');
-      expect(screen.getByTestId('btn-1t').className).not.toContain('bg-blue-600');
-
-      // Click 1T
-      fireEvent.click(screen.getByTestId('btn-1t'));
+      // Default: 1T is active
       expect(screen.getByTestId('btn-1t').className).toContain('bg-blue-600');
       expect(screen.getByTestId('btn-2t').className).not.toContain('bg-blue-600');
+
+      // Click 2T
+      fireEvent.click(screen.getByTestId('btn-2t'));
+      expect(screen.getByTestId('btn-2t').className).toContain('bg-blue-600');
+      expect(screen.getByTestId('btn-1t').className).not.toContain('bg-blue-600');
     });
   });
 
@@ -275,11 +275,12 @@ describe('WaveformChart - Comprehensive Suite', () => {
 
       const voltageAxis = screen.getByTestId('y-axis-v-axis');
 
-      const maxVal = Math.max(...defaultProps.waveforms.voltage.map(Math.abs));
-      const expectedDomain = JSON.stringify([-maxVal * 1.1, maxVal * 1.1]);
-
+      // Domain is now rounded to nice symmetric tick values (e.g. [-300,300] for max ~230V)
+      const domain = JSON.parse(voltageAxis.getAttribute('data-domain')!) as [number, number];
       expect(voltageAxis).toHaveAttribute('data-orientation', 'left');
-      expect(voltageAxis).toHaveAttribute('data-domain', expectedDomain);
+      expect(domain[0]).toBeLessThan(0);
+      expect(domain[1]).toBeGreaterThan(0);
+      expect(domain[0]).toBe(-domain[1]); // symmetric around zero
     });
 
     it('configures right Y-Axis for current with auto-scaled domain', () => {
@@ -287,9 +288,11 @@ describe('WaveformChart - Comprehensive Suite', () => {
       const currentAxis = screen.getByTestId('y-axis-i-axis');
       expect(currentAxis).toHaveAttribute('data-orientation', 'right');
 
-      // Auto-scaling: maxCurrent = 15A, margin = 20% (3A), domain = [-18, 18]
-      const expectedDomain = JSON.stringify([-18, 18]);
-      expect(currentAxis).toHaveAttribute('data-domain', expectedDomain);
+      // Domain is now rounded to nice symmetric tick values (e.g. [-20,20] for max ~15A)
+      const domain = JSON.parse(currentAxis.getAttribute('data-domain')!) as [number, number];
+      expect(domain[0]).toBeLessThan(0);
+      expect(domain[1]).toBeGreaterThan(0);
+      expect(domain[0]).toBe(-domain[1]); // symmetric around zero
     });
   });
 

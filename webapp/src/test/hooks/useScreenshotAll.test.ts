@@ -116,6 +116,39 @@ describe("captureAllSections", () => {
     expect(clickSpy).not.toHaveBeenCalled();
   });
 
+  it("calls beforeCapture before toPng when provided", async () => {
+    const ref = createRef<HTMLDivElement>();
+    Object.defineProperty(ref, "current", {
+      value: document.createElement("div"),
+      writable: true,
+    });
+
+    const callOrder: string[] = [];
+    const beforeCapture = vi.fn(() => callOrder.push("beforeCapture"));
+    mockToPng.mockImplementation(async () => {
+      callOrder.push("toPng");
+      return "data:image/png;base64,fakePNG";
+    });
+
+    await captureAllSections([{ name: "harmonics-voltage-log", ref, beforeCapture }]);
+
+    expect(beforeCapture).toHaveBeenCalledTimes(1);
+    expect(mockToPng).toHaveBeenCalledTimes(1);
+    expect(callOrder).toEqual(["beforeCapture", "toPng"]);
+  });
+
+  it("does not call beforeCapture when not provided", async () => {
+    const ref = createRef<HTMLDivElement>();
+    Object.defineProperty(ref, "current", {
+      value: document.createElement("div"),
+      writable: true,
+    });
+
+    await captureAllSections([{ name: "waveform", ref }]);
+
+    expect(mockToPng).toHaveBeenCalledTimes(1);
+  });
+
   it("continues capturing remaining sections when one fails", async () => {
     const ref1 = createRef<HTMLDivElement>();
     const ref2 = createRef<HTMLDivElement>();

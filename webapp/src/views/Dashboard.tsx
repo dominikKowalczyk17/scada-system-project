@@ -1,6 +1,7 @@
 import { ParameterCard } from "@/components/ParameterCard";
 import { WaveformChart } from "@/components/WaveformChart";
 import { HarmonicsChart } from "@/components/HarmonicsChart";
+import type { HarmonicsChartHandle } from "@/components/HarmonicsChart";
 import { PowerQualitySection } from "@/components/PowerQualitySection";
 import { StreamingChart } from "@/components/StreamingChart";
 import { Activity, Loader2, AlertCircle, Camera } from "lucide-react";
@@ -34,6 +35,7 @@ const Dashboard = () => {
   const streamingRef = useRef<HTMLDivElement>(null);
   const waveformRef = useRef<HTMLDivElement>(null);
   const harmonicsRef = useRef<HTMLDivElement>(null);
+  const harmonicsChartRef = useRef<HarmonicsChartHandle>(null);
 
   const handleScreenshotAll = () =>
     captureAllSections([
@@ -41,7 +43,26 @@ const Dashboard = () => {
       { name: "parameters", ref: parametersRef },
       { name: "streaming-charts", ref: streamingRef },
       { name: "waveform", ref: waveformRef },
-      { name: "harmonics", ref: harmonicsRef },
+      {
+        name: "harmonics-voltage-linear",
+        ref: harmonicsRef,
+        beforeCapture: () => harmonicsChartRef.current?.setView("voltage", "linear"),
+      },
+      {
+        name: "harmonics-voltage-log",
+        ref: harmonicsRef,
+        beforeCapture: () => harmonicsChartRef.current?.setView("voltage", "log"),
+      },
+      {
+        name: "harmonics-current-linear",
+        ref: harmonicsRef,
+        beforeCapture: () => harmonicsChartRef.current?.setView("current", "linear"),
+      },
+      {
+        name: "harmonics-current-log",
+        ref: harmonicsRef,
+        beforeCapture: () => harmonicsChartRef.current?.setView("current", "log"),
+      },
     ]);
 
   useEffect(() => {
@@ -450,6 +471,7 @@ const Dashboard = () => {
               </div>
               <div ref={harmonicsRef}>
                 <HarmonicsChart
+                  ref={harmonicsChartRef}
                   harmonicsVoltage={dashboardData.latest_measurement.harmonics_v ?? []}
                   harmonicsCurrent={dashboardData.latest_measurement.harmonics_i ?? []}
                   thdVoltage={dashboardData.latest_measurement.thd_voltage ?? 0}
