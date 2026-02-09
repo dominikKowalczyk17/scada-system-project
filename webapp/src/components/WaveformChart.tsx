@@ -19,6 +19,30 @@ interface WaveformChartProps {
 }
 
 /**
+ * Generate symmetric tick values around zero.
+ * Picks a "nice" step (1, 2, 2.5, 5 × 10^n) and returns ticks from -max to +max.
+ */
+function generateSymmetricTicks(maxAbsValue: number, desiredCount: number = 5): number[] {
+  if (maxAbsValue === 0) return [0];
+  const rawStep = maxAbsValue / Math.floor(desiredCount / 2);
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const residual = rawStep / magnitude;
+  let niceStep: number;
+  if (residual <= 1) niceStep = magnitude;
+  else if (residual <= 2) niceStep = 2 * magnitude;
+  else if (residual <= 2.5) niceStep = 2.5 * magnitude;
+  else if (residual <= 5) niceStep = 5 * magnitude;
+  else niceStep = 10 * magnitude;
+
+  const ticks: number[] = [];
+  const nHalf = Math.ceil(maxAbsValue / niceStep);
+  for (let i = -nHalf; i <= nHalf; i++) {
+    ticks.push(i * niceStep);
+  }
+  return ticks;
+}
+
+/**
  * Find indices where voltage crosses zero going positive (rising edge).
  * Returns sample indices where v[i-1] <= 0 and v[i] > 0.
  */
@@ -64,7 +88,7 @@ function trimToExactPeriods(
 }
 
 export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
-  const [numPeriods, setNumPeriods] = useState<1 | 2>(2);
+  const [numPeriods, setNumPeriods] = useState<1 | 2>(1);
 
   if (waveforms.voltage.length !== waveforms.current.length) {
     return (
@@ -76,12 +100,19 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
           Długości tablic napięcia i prądu muszą być takie same.
         </CardContent>
       </Card>
-    )
+    );
   }
 
   // Try to trim to exact periods; fallback to 1 period, then raw data
-  const trimmedRequested = trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, numPeriods);
-  const trimmedFallback = trimmedRequested ?? trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, 1);
+  const trimmedRequested = trimToExactPeriods(
+    waveforms.voltage,
+    waveforms.current,
+    frequency,
+    numPeriods,
+  );
+  const trimmedFallback =
+    trimmedRequested ??
+    trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, 1);
   const trimmed = trimmedFallback;
 
   const displayVoltage = trimmed ? trimmed.voltage : waveforms.voltage;
@@ -90,18 +121,19 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
     ? trimmed.samplingRate
     : (waveforms.voltage.length - 1) * frequency; // legacy fallback
 
-  // Auto-scale voltage axis
+  // Auto-scale voltage axis with symmetric ticks
   const maxVoltage = Math.max(...displayVoltage.map(Math.abs));
-  const voltageDomain = [-maxVoltage * 1.1, maxVoltage * 1.1];
+  const voltageTicks = generateSymmetricTicks(maxVoltage, 7);
+  const voltageTickMax = voltageTicks[voltageTicks.length - 1];
+  const voltageDomain = [-voltageTickMax, voltageTickMax];
 
-  // Auto-scale current axis based on actual data range
+  // Auto-scale current axis with symmetric ticks
   const maxCurrent = Math.max(...displayCurrent.map(Math.abs));
   // Use at least 0.01A margin for very small currents (phone chargers ~0.02-0.05A)
-  const currentMargin = Math.max(maxCurrent * 0.2, 0.01);
-  const currentDomain = [
-    -(maxCurrent + currentMargin),
-    maxCurrent + currentMargin
-  ];
+  const currentWithMargin = Math.max(maxCurrent * 1.2, 0.01);
+  const currentTicks = generateSymmetricTicks(currentWithMargin, 7);
+  const currentTickMax = currentTicks[currentTicks.length - 1];
+  const currentDomain = [-currentTickMax, currentTickMax];
 
   // Determine if current should be displayed in mA (for better readability at low currents)
   const useMilliamps = maxCurrent < 0.5; // Below 0.5A, show in mA
@@ -116,11 +148,12 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
     current: displayCurrent[index] * currentMultiplier,
   }));
 
-  // Adjust current domain for display units
+  // Adjust current domain and ticks for display units
   const displayCurrentDomain = [
     currentDomain[0] * currentMultiplier,
-    currentDomain[1] * currentMultiplier
+    currentDomain[1] * currentMultiplier,
   ];
+  const displayCurrentTicks = currentTicks.map((t) => t * currentMultiplier);
 
   return (
     <Card>
@@ -128,7 +161,9 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="text-base sm:text-lg">Analiza Fazowa (Oscyloskop)</span>
+            <span className="text-base sm:text-lg">
+              Analiza Fazowa (Oscyloskop)
+            </span>
           </CardTitle>
           <div className="flex gap-1" data-testid="period-toggle">
             <button
@@ -156,7 +191,8 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
           </div>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
-          Napięcie (niebieski, V) i Prąd (pomarańczowy, {currentUnit}) na niezależnych osiach ({frequency.toFixed(1)} Hz)
+          Napięcie (niebieski, V) i Prąd (pomarańczowy, {currentUnit}) na
+          niezależnych osiach ({frequency.toFixed(1)} Hz)
         </p>
       </CardHeader>
       <CardContent className="pt-2 pb-2 px-2 sm:px-4">
@@ -185,7 +221,11 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 stroke="#3b82f6"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
                 domain={voltageDomain}
-                {...{ "data-testid": "y-axis-v-axis", "data-domain": JSON.stringify(voltageDomain) }}
+                ticks={voltageTicks}
+                {...{
+                  "data-testid": "y-axis-v-axis",
+                  "data-domain": JSON.stringify(voltageDomain),
+                }}
                 width={60}
                 tickFormatter={(value) => value.toFixed(0)}
                 label={{
@@ -204,11 +244,13 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 stroke="#f59e0b"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
                 domain={displayCurrentDomain}
+                ticks={displayCurrentTicks}
                 width={60}
-                tickFormatter={(value) =>
-                  useMilliamps
-                    ? value.toFixed(0) // mA - no decimals
-                    : value.toFixed(2) // A - 2 decimals
+                tickFormatter={
+                  (value) =>
+                    useMilliamps
+                      ? value.toFixed(0) // mA - no decimals
+                      : value.toFixed(2) // A - 2 decimals
                 }
                 label={{
                   value: `Prąd (${currentUnit})`,
@@ -220,8 +262,20 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
               />
 
               {/* Zero reference lines */}
-              <ReferenceLine yAxisId="v-axis" y={0} stroke="#4b5563" strokeDasharray="6 3" strokeWidth={1.5} />
-              <ReferenceLine yAxisId="i-axis" y={0} stroke="#4b5563" strokeDasharray="6 3" strokeWidth={1.5} />
+              <ReferenceLine
+                yAxisId="v-axis"
+                y={0}
+                stroke="#4b5563"
+                strokeDasharray="6 3"
+                strokeWidth={1.5}
+              />
+              <ReferenceLine
+                yAxisId="i-axis"
+                y={0}
+                stroke="#4b5563"
+                strokeDasharray="6 3"
+                strokeWidth={1.5}
+              />
 
               <Tooltip
                 contentStyle={{
@@ -242,7 +296,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                   if (name === "Prąd (A)" || name === `Prąd (${currentUnit})`) {
                     return [
                       useMilliamps ? `${v.toFixed(0)} mA` : `${v.toFixed(3)} A`,
-                      `Prąd (${currentUnit})`
+                      `Prąd (${currentUnit})`,
                     ];
                   }
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, forwardRef, useImperativeHandle } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/Card";
 import {
   BarChart,
@@ -18,15 +18,28 @@ interface HarmonicsChartProps {
   thdCurrent: number;
 }
 
-export function HarmonicsChart({
-  harmonicsVoltage,
-  harmonicsCurrent,
-  thdVoltage,
-  thdCurrent,
-}: HarmonicsChartProps) {
+export interface HarmonicsChartHandle {
+  setView: (harmonic: "voltage" | "current", scale: "linear" | "log") => void;
+}
+
+export const HarmonicsChart = forwardRef<
+  HarmonicsChartHandle,
+  HarmonicsChartProps
+>(function HarmonicsChart(
+  { harmonicsVoltage, harmonicsCurrent, thdVoltage, thdCurrent },
+  ref,
+) {
   const [selectedHarmonic, setSelectedHarmonic] = useState<
     "voltage" | "current"
   >("voltage");
+  const [scaleType, setScaleType] = useState<"linear" | "log">("linear");
+
+  useImperativeHandle(ref, () => ({
+    setView(harmonic, scale) {
+      setSelectedHarmonic(harmonic);
+      setScaleType(scale);
+    },
+  }));
 
   // Determine if current should be shown in mA (auto-scale based on max value)
   const maxCurrent = Math.max(...harmonicsCurrent);
@@ -53,6 +66,8 @@ export function HarmonicsChart({
       };
     });
   }, [harmonicsVoltage, harmonicsCurrent, useMilliamps]);
+
+  const isLog = scaleType === "log";
 
   return (
     <Card>
@@ -84,6 +99,29 @@ export function HarmonicsChart({
               }`}
             >
               Prąd
+            </button>
+            <div className="w-px bg-border mx-1" />
+            <button
+              type="button"
+              onClick={() => setScaleType("linear")}
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
+                scaleType === "linear"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              }`}
+            >
+              Lin
+            </button>
+            <button
+              type="button"
+              onClick={() => setScaleType("log")}
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm transition-colors ${
+                scaleType === "log"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+              }`}
+            >
+              Log
             </button>
           </div>
         </div>
@@ -128,7 +166,9 @@ export function HarmonicsChart({
                 height={30}
               />
               <YAxis
-                domain={[0, "auto"]}
+                scale={isLog ? "log" : "auto"}
+                domain={isLog ? [0.01, "auto"] : [0, "auto"]}
+                allowDataOverflow={isLog}
                 label={{
                   value:
                     selectedHarmonic === "voltage"
@@ -205,4 +245,4 @@ export function HarmonicsChart({
       </CardContent>
     </Card>
   );
-}
+});

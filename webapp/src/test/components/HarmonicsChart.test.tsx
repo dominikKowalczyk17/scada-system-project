@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import React, { createRef } from 'react';
 import { HarmonicsChart } from '@/components/HarmonicsChart';
+import type { HarmonicsChartHandle } from '@/components/HarmonicsChart';
 
 interface MockResponsiveContainerProps {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ interface MockXAxisProps {
 interface MockYAxisProps {
   scale?: string;
   domain?: [number | string, number | string];
+  allowDataOverflow?: boolean;
   label?: { value?: string };
 }
 
@@ -48,8 +50,8 @@ vi.mock('recharts', () => ({
       <span data-testid="x-tick-sample">{tickFormatter?.(50)}</span>
     </div>
   ),
-  YAxis: ({ scale, domain, label }: MockYAxisProps) => (
-    <div data-testid="y-axis" data-scale={scale} data-domain={JSON.stringify(domain)} data-label={label?.value} />
+  YAxis: ({ scale, domain, allowDataOverflow, label }: MockYAxisProps) => (
+    <div data-testid="y-axis" data-scale={scale} data-domain={JSON.stringify(domain)} data-allow-data-overflow={allowDataOverflow} data-label={label?.value} />
   ),
   CartesianGrid: () => <div data-testid="cartesian-grid" />,
   Tooltip: ({ labelFormatter, content: Content }: MockTooltipProps) => (
@@ -143,9 +145,10 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
   });
 
   describe('Axis Configuration', () => {
-    it('uses linear scale for Y-Axis', () => {
+    it('uses linear scale for Y-Axis by default', () => {
       render(React.createElement(HarmonicsChart, defaultProps));
       const yAxis = screen.getByTestId('y-axis');
+      expect(yAxis).toHaveAttribute('data-scale', 'auto');
       expect(yAxis).toHaveAttribute('data-domain', JSON.stringify([0, 'auto']));
     });
 
@@ -162,7 +165,7 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
   describe('State & Interaction', () => {
     it('toggles between voltage and current bars', () => {
       render(React.createElement(HarmonicsChart, defaultProps));
-      
+
       // Default state: Voltage
       expect(screen.getByTestId('bar-voltage')).toBeInTheDocument();
       expect(screen.queryByTestId('bar-current')).not.toBeInTheDocument();
@@ -178,6 +181,80 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
       const bar = screen.getByTestId('bar-voltage');
       expect(bar).toHaveAttribute('data-fill', '#3b82f6');
       expect(bar).toHaveAttribute('data-radius', JSON.stringify([4, 4, 0, 0]));
+    });
+  });
+
+  describe('Scale Toggle (Lin/Log)', () => {
+    it('renders Lin and Log buttons', () => {
+      render(React.createElement(HarmonicsChart, defaultProps));
+      expect(screen.getByRole('button', { name: 'Lin' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Log' })).toBeInTheDocument();
+    });
+
+    it('switches Y-Axis to log scale when Log button is clicked', () => {
+      render(React.createElement(HarmonicsChart, defaultProps));
+
+      // Default: linear
+      const yAxis = screen.getByTestId('y-axis');
+      expect(yAxis).toHaveAttribute('data-scale', 'auto');
+      expect(yAxis).toHaveAttribute('data-domain', JSON.stringify([0, 'auto']));
+
+      // Click Log
+      fireEvent.click(screen.getByRole('button', { name: 'Log' }));
+      const yAxisLog = screen.getByTestId('y-axis');
+      expect(yAxisLog).toHaveAttribute('data-scale', 'log');
+      expect(yAxisLog).toHaveAttribute('data-domain', JSON.stringify([0.01, 'auto']));
+      expect(yAxisLog).toHaveAttribute('data-allow-data-overflow', 'true');
+    });
+
+    it('switches back to linear when Lin button is clicked after Log', () => {
+      render(React.createElement(HarmonicsChart, defaultProps));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Log' }));
+      expect(screen.getByTestId('y-axis')).toHaveAttribute('data-scale', 'log');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Lin' }));
+      expect(screen.getByTestId('y-axis')).toHaveAttribute('data-scale', 'auto');
+      expect(screen.getByTestId('y-axis')).toHaveAttribute('data-domain', JSON.stringify([0, 'auto']));
+    });
+  });
+
+  describe('forwardRef handle (setView)', () => {
+    it('exposes setView that changes both harmonic and scale', () => {
+      const ref = createRef<HarmonicsChartHandle>();
+      render(React.createElement(HarmonicsChart, { ...defaultProps, ref }));
+
+      // Default: voltage + linear
+      expect(screen.getByTestId('bar-voltage')).toBeInTheDocument();
+      expect(screen.getByTestId('y-axis')).toHaveAttribute('data-scale', 'auto');
+
+      // setView to current + log
+      act(() => {
+        ref.current?.setView('current', 'log');
+      });
+
+      expect(screen.getByTestId('bar-current')).toBeInTheDocument();
+      expect(screen.queryByTestId('bar-voltage')).not.toBeInTheDocument();
+      expect(screen.getByTestId('y-axis')).toHaveAttribute('data-scale', 'log');
+      expect(screen.getByTestId('y-axis')).toHaveAttribute('data-domain', JSON.stringify([0.01, 'auto']));
+    });
+
+    it('setView to voltage + linear restores defaults', () => {
+      const ref = createRef<HarmonicsChartHandle>();
+      render(React.createElement(HarmonicsChart, { ...defaultProps, ref }));
+
+      // Switch to current + log
+      act(() => {
+        ref.current?.setView('current', 'log');
+      });
+      expect(screen.getByTestId('bar-current')).toBeInTheDocument();
+
+      // Switch back to voltage + linear
+      act(() => {
+        ref.current?.setView('voltage', 'linear');
+      });
+      expect(screen.getByTestId('bar-voltage')).toBeInTheDocument();
+      expect(screen.getByTestId('y-axis')).toHaveAttribute('data-scale', 'auto');
     });
   });
 
