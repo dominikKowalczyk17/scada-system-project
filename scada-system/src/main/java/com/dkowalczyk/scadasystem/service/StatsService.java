@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
+import com.dkowalczyk.scadasystem.config.MonitoringProperties;
 import com.dkowalczyk.scadasystem.model.dto.StatsDTO;
 import com.dkowalczyk.scadasystem.model.entity.DailyStats;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
@@ -32,6 +33,7 @@ public class StatsService {
 
     private final DailyStatsRepository repository;
     private final MeasurementRepository measurementRepository;
+    private final MonitoringProperties monitoringProperties;
 
     /**
      * Get today's statistics (used in homeowner dashboard).
@@ -135,37 +137,37 @@ public class StatsService {
         // Events must have minimum duration to be counted as valid
         int voltageSagCount = countEventsWithDuration(
                 sortedMeasurements,
-                m -> m.getVoltageRms() < Constants.VOLTAGE_SAG_THRESHOLD,
+                m -> m.getVoltageRms() < monitoringProperties.getVoltage().getSagThreshold(),
                 Constants.SAG_MIN_DURATION_MS / 1000.0
         );
 
         int voltageSwellCount = countEventsWithDuration(
                 sortedMeasurements,
-                m -> m.getVoltageRms() > Constants.VOLTAGE_SWELL_THRESHOLD,
+                m -> m.getVoltageRms() > monitoringProperties.getVoltage().getSwellThreshold(),
                 Constants.SAG_MIN_DURATION_MS / 1000.0  // Same duration threshold as sag
         );
 
         int interruptionCount = countEventsWithDuration(
                 sortedMeasurements,
-                m -> m.getVoltageRms() < Constants.VOLTAGE_INTERRUPTION_THRESHOLD,
+                m -> m.getVoltageRms() < monitoringProperties.getVoltage().getInterruptionThreshold(),
                 Constants.VOLTAGE_INTERRUPTION_MIN_DURATION_SECONDS
         );
 
         int thdViolationsCount = countEventsWithDuration(
                 sortedMeasurements,
-                m -> m.getThdVoltage() > Constants.VOLTAGE_THD_LIMIT,
+                m -> m.getThdVoltage() > monitoringProperties.getPowerQuality().getThdVoltageLimit(),
                 0.01  // 10ms minimum duration for THD violations
         );
 
         int frequencyDevCount = countEventsWithDuration(
                 sortedMeasurements,
-                m -> m.getFrequency() < Constants.FREQUENCY_MIN || m.getFrequency() > Constants.FREQUENCY_MAX,
+                m -> m.getFrequency() < monitoringProperties.getFrequency().getMin() || m.getFrequency() > monitoringProperties.getFrequency().getMax(),
                 0.01  // 10ms minimum duration
         );
 
         int powerFactorPenaltyCount = countEventsWithDuration(
                 sortedMeasurements,
-                m -> m.getPowerFactor() < Constants.MIN_POWER_FACTOR,
+                m -> m.getPowerFactor() < monitoringProperties.getPowerQuality().getMinPowerFactor(),
                 0.01  // 10ms minimum duration
         );
 

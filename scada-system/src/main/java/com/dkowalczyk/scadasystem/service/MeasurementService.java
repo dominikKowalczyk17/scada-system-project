@@ -1,10 +1,10 @@
 package com.dkowalczyk.scadasystem.service;
 
+import com.dkowalczyk.scadasystem.config.MonitoringProperties;
 import com.dkowalczyk.scadasystem.model.dto.*;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
 import com.dkowalczyk.scadasystem.model.event.MeasurementSavedEvent;
 import com.dkowalczyk.scadasystem.repository.MeasurementRepository;
-import com.dkowalczyk.scadasystem.util.Constants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,6 +30,7 @@ public class MeasurementService {
     private final WaveformService waveformService;
     private final ApplicationEventPublisher eventPublisher;
     private final MeasurementValidator validator;
+    private final MonitoringProperties monitoringProperties;
 
     /**
      * Helper method to get voltage and current waveforms.
@@ -97,8 +98,8 @@ public class MeasurementService {
         // PN-EN 50160 Group 1: Voltage deviation
         // Formula: (U_measured - U_nominal) / U_nominal * 100%
         if (measurement.getVoltageRms() != null) {
-            double deviation = ((measurement.getVoltageRms() - Constants.NOMINAL_VOLTAGE)
-                    / Constants.NOMINAL_VOLTAGE) * 100.0;
+            double nominalVoltage = monitoringProperties.getVoltage().getNominal();
+            double deviation = ((measurement.getVoltageRms() - nominalVoltage) / nominalVoltage) * 100.0;
             measurement.setVoltageDeviationPercent(deviation);
             log.debug("Calculated voltage deviation: {}% (U_rms={}V)",
                     String.format("%.2f", deviation), measurement.getVoltageRms());
@@ -107,7 +108,7 @@ public class MeasurementService {
         // PN-EN 50160 Group 2: Frequency deviation
         // Formula: f_measured - f_nominal
         if (measurement.getFrequency() != null) {
-            double deviation = measurement.getFrequency() - Constants.NOMINAL_FREQUENCY;
+            double deviation = measurement.getFrequency() - monitoringProperties.getFrequency().getNominal();
             measurement.setFrequencyDeviationHz(deviation);
             log.debug("Calculated frequency deviation: {} Hz (f={}Hz)",
                     String.format("%.3f", deviation), measurement.getFrequency());
@@ -310,8 +311,8 @@ public class MeasurementService {
         if (voltageDeviationPercent == null) {
             return null;
         }
-        return voltageDeviationPercent >= Constants.VOLTAGE_DEVIATION_LOWER_LIMIT_PERCENT
-                && voltageDeviationPercent <= Constants.VOLTAGE_DEVIATION_UPPER_LIMIT_PERCENT;
+        return voltageDeviationPercent >= monitoringProperties.getVoltage().getDeviationLowerLimit()
+                && voltageDeviationPercent <= monitoringProperties.getVoltage().getDeviationUpperLimit();
     }
 
     /**
@@ -321,7 +322,7 @@ public class MeasurementService {
         if (frequencyDeviationHz == null) {
             return null;
         }
-        return Math.abs(frequencyDeviationHz) <= Constants.FREQUENCY_DEVIATION_UPPER_LIMIT_HZ;
+        return Math.abs(frequencyDeviationHz) <= monitoringProperties.getFrequency().getDeviationLimitHz();
     }
 
     /**
@@ -332,7 +333,7 @@ public class MeasurementService {
         if (thdVoltage == null) {
             return null;
         }
-        return thdVoltage < Constants.VOLTAGE_THD_LIMIT;
+        return thdVoltage < monitoringProperties.getPowerQuality().getThdVoltageLimit();
     }
 
     private PowerQualityIndicatorsDTO buildPowerQualityIndicatorsDTO(Measurement measurement) {

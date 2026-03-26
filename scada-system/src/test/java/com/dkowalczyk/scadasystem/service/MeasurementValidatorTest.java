@@ -6,12 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.dkowalczyk.scadasystem.config.MonitoringProperties;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementRequest;
 import com.dkowalczyk.scadasystem.model.dto.ValidationResult;
 
 @DisplayName("MeasurementValidator Test")
 public class MeasurementValidatorTest {
-    private final MeasurementValidator validator = new MeasurementValidator();
+    private final MeasurementValidator validator = new MeasurementValidator(new MonitoringProperties());
 
     @Test
     void shouldReturnErrorWhenVoltageIsTooHigh() {

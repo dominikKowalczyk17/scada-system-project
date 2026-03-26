@@ -1,161 +1,77 @@
 package com.dkowalczyk.scadasystem.util;
 
 /**
- * Centralized utility class defining electrical measurement constants
- * based on PN-EN 50160 and IEC standards.
- * <p>
- * Includes:
- * - PN-EN 50160 power quality indicators
- * - Voltage standards (PN-EN 50160, IEC 61000-2-2)
- * - Harmonic limits (IEC 61000-4-7, IEC 61000-3-2)
- * - Frequency standards (PN-EN 50160, IEC 61000-4-30)
- * - Power factor thresholds
- * <p>
- * Note: Some limits reference full harmonic spectrum (2-40) per IEC standards,
- * but our system measures only harmonics 2-8 due to hardware sampling constraints.
+ * Hardware and timing constants for the SCADA measurement system.
+ *
+ * <p>Contains only fixed, hardware-derived, or IEC-standard timing values that are
+ * not deployment-configurable. Operational thresholds (voltage, frequency, THD, etc.)
+ * are externalized in {@link com.dkowalczyk.scadasystem.config.MonitoringProperties}.
+ *
+ * <p>Standards referenced:
+ * - IEC 61000-4-7: Harmonic measurement requirements
+ * - IEC 61000-4-30: Power quality measurement methods
+ * - PN-EN 50160: Voltage characteristics (event duration definitions)
  */
 public final class Constants {
 
+    // === PN-EN 50160 Group 5: Event Duration Timings ===
     /**
-     * Nominal voltage for single-phase EU grid (PN-EN 50160).
-     * Used as reference for voltage deviation calculation.
-     */
-    public static final double NOMINAL_VOLTAGE = 230.0;
-
-    // === PN-EN 50160 Group 1: Supply Voltage Magnitude ===
-    /**
-     * Voltage tolerance (±10%) per PN-EN 50160.
-     * Acceptable range: 207-253 V for 95% of week.
-     */
-    public static final double VOLTAGE_TOLERANCE = 0.10;
-    /**
-     * Voltage deviation upper limit (+10%) per PN-EN 50160.
-     */
-    public static final double VOLTAGE_DEVIATION_UPPER_LIMIT_PERCENT = 10.0;
-    /**
-     * Voltage deviation lower limit (-10%) per PN-EN 50160.
-     */
-    public static final double VOLTAGE_DEVIATION_LOWER_LIMIT_PERCENT = -10.0;
-    /**
-     * Nominal frequency for EU grid (PN-EN 50160).
-     * Used as reference for frequency deviation calculation.
-     */
-    public static final double NOMINAL_FREQUENCY = 50.0;
-
-    // === PN-EN 50160 Group 2: Supply Frequency ===
-    /**
-     * Frequency deviation upper limit (+0.5 Hz, +1%) per PN-EN 50160.
-     * Acceptable range: 49.5-50.5 Hz for 99.5% of year.
-     */
-    public static final double FREQUENCY_DEVIATION_UPPER_LIMIT_HZ = 0.5;
-    /**
-     * Frequency deviation lower limit (-0.5 Hz, -1%) per PN-EN 50160.
-     */
-    public static final double FREQUENCY_DEVIATION_LOWER_LIMIT_HZ = -0.5;
-    /**
-     * Minimum frequency per PN-EN 50160 (50 Hz - 1%).
-     */
-    public static final double FREQUENCY_MIN = 49.5;
-    /**
-     * Maximum frequency per PN-EN 50160 (50 Hz + 1%).
-     */
-    public static final double FREQUENCY_MAX = 50.5;
-    /**
-     * Frequency tolerance for IEC 61000-4-30 Class A measurements.
-     * Note: Our system achieves approximately ±0.01-0.02 Hz (Class S level).
-     */
-    public static final double FREQUENCY_TOLERANCE_CLASS_A = 0.01;
-    /**
-     * THD voltage limit per PN-EN 50160 and IEC 61000-4-7.
-     * Applies to full harmonic spectrum (harmonics 2-40).
-     * <p>
-     * IMPORTANT: Our system measures only harmonics 2-8 due to Nyquist limitation
-     * at 800-1000 Hz sampling rate. Calculated THD represents a LOWER BOUND of
-     * actual distortion (real THD may be higher due to unmeasured harmonics 9-40).
-     */
-    public static final double VOLTAGE_THD_LIMIT = 8.0;
-
-    // === PN-EN 50160 Group 4: Voltage Waveform Distortions ===
-    /**
-     * THD current limit per IEC 61000-3-2 (emission limits for equipment).
-     * <p>
-     * Note: This is a diagnostic parameter, not a PN-EN 50160 indicator.
-     * PN-EN 50160 focuses on voltage quality, not current.
-     * Our system measures only harmonics 2-8 (partial THD).
-     */
-    public static final double CURRENT_THD_LIMIT = 5.0;
-    /**
-     * Voltage dip (sag) threshold: 90% of nominal voltage per PN-EN 50160.
-     * Dip defined as: voltage drops to 10-90% of nominal for 10ms to 1 min.
-     */
-    public static final double VOLTAGE_SAG_THRESHOLD = NOMINAL_VOLTAGE * 0.90;
-
-    // === PN-EN 50160 Group 5: Supply Interruptions (Event Detection) ===
-    /**
-     * Temporary overvoltage (swell) threshold: 110% of nominal per PN-EN 50160.
-     * Swell defined as: voltage rises above 110% of nominal.
-     */
-    public static final double VOLTAGE_SWELL_THRESHOLD = NOMINAL_VOLTAGE * 1.10;
-    /**
-     * Interruption threshold: 10% of nominal voltage per PN-EN 50160.
-     * Interruption defined as: voltage drops below 10% of nominal.
-     */
-    public static final double VOLTAGE_INTERRUPTION_THRESHOLD = NOMINAL_VOLTAGE * 0.10;
-    /**
-     * Minimum duration for voltage dip/swell classification (10 ms).
-     * Events shorter than this may not be reliably detected.
+     * Minimum duration for voltage sag/swell classification (10 ms).
+     * Events shorter than this may not be reliably detected at current sampling rate.
      */
     public static final long SAG_MIN_DURATION_MS = 10;
+
     /**
-     * Maximum duration for voltage dip classification (1 minute = 60000 ms).
-     * Beyond this duration, event is classified differently.
+     * Maximum duration for voltage sag classification (1 minute = 60000 ms).
+     * Beyond this duration, event is classified differently per PN-EN 50160.
      */
     public static final long SAG_MAX_DURATION_MS = 60000;
+
     /**
      * Minimum duration for voltage interruption classification (10 ms = 0.01 s).
      * Per IEC 61000-4-30.
      */
     public static final double VOLTAGE_INTERRUPTION_MIN_DURATION_SECONDS = 0.01;
+
     /**
      * Short interruption duration threshold: 3 minutes = 180 seconds.
      * Short interruption: voltage &lt; 10% for 10 ms to 3 min.
      * Long interruption: voltage &lt; 10% for &gt; 3 min.
      */
     public static final long SHORT_INTERRUPTION_MAX_DURATION_SECONDS = 180;
-    /**
-     * Minimum acceptable power factor for industrial/commercial installations.
-     * Not defined by PN-EN 50160 (focuses on voltage quality, not load characteristics).
-     * Typical contractual requirement with energy suppliers.
-     */
-    public static final double MIN_POWER_FACTOR = 0.85;
 
-    // === Power Factor (Not a PN-EN 50160 indicator) ===
+    // === Measurement System Hardware Specifications ===
     /**
-     * Number of harmonics measured by the system.
-     * Limited by Nyquist constraint at 800-1000 Hz sampling rate.
-     * Includes fundamental (H1) + harmonics 2-8.
+     * Number of harmonics measurable by the system (H1–H25).
+     * Limited by Nyquist constraint at the ESP32 sampling rate.
      */
     public static final int HARMONICS_COUNT = 25;
 
-    // === Measurement System Specifications ===
     /**
-     * Sampling rate of ESP32 ADC (Hz).
-     * Conservative value with WiFi enabled.
+     * Sampling rate of ESP32 ADC in Hz (conservative value with WiFi enabled).
      */
     public static final int SAMPLING_RATE_HZ = 3000;
+
     /**
-     * Nyquist frequency: maximum measurable frequency (Hz).
-     * Nyquist = sampling_rate / 2.
+     * Nyquist frequency: maximum measurable frequency in Hz (sampling_rate / 2).
      */
     public static final int NYQUIST_FREQUENCY_HZ = SAMPLING_RATE_HZ / 2;
+
     /**
      * Maximum measurable harmonic order at current sampling rate.
-     * 1500 Hz / 50 Hz = 30th harmonic.
+     * Computed as: Nyquist / nominal_frequency = 1500 / 50 = 30.
+     * Note: nominal frequency (50 Hz) is inlined here as a hardware design constant.
      */
-    public static final int MAX_HARMONIC_ORDER = NYQUIST_FREQUENCY_HZ / (int) NOMINAL_FREQUENCY;
+    public static final int MAX_HARMONIC_ORDER = NYQUIST_FREQUENCY_HZ / 50;
+
+    /**
+     * Frequency measurement tolerance for IEC 61000-4-30 Class A measurements in Hz.
+     * Our zero-crossing method achieves approximately ±0.01–0.02 Hz (Class S level).
+     */
+    public static final double FREQUENCY_TOLERANCE_CLASS_A = 0.01;
 
     private Constants() {
         throw new AssertionError("Utility class cannot be instantiated");
     }
-
 }
+

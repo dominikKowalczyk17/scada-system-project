@@ -1,5 +1,6 @@
 package com.dkowalczyk.scadasystem.service;
 
+import com.dkowalczyk.scadasystem.config.MonitoringProperties;
 import com.dkowalczyk.scadasystem.model.dto.StatsDTO;
 import com.dkowalczyk.scadasystem.model.entity.DailyStats;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 
@@ -41,6 +43,9 @@ class StatsServiceTest {
 
     @Mock
     private MeasurementRepository measurementRepository;
+
+    @Spy
+    private MonitoringProperties monitoringProperties = new MonitoringProperties();
 
     @InjectMocks
     private StatsService statsService;

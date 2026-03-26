@@ -1,6 +1,7 @@
 package com.dkowalczyk.scadasystem.service;
 
 import com.dkowalczyk.scadasystem.BaseServiceTest;
+import com.dkowalczyk.scadasystem.config.MonitoringProperties;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementDTO;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementRequest;
 import com.dkowalczyk.scadasystem.model.dto.PowerQualityIndicatorsDTO;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -33,6 +35,9 @@ class MeasurementServiceTest extends BaseServiceTest {
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
     @Mock
     private MeasurementValidator validator;
+
+    @Spy
+    private MonitoringProperties monitoringProperties = new MonitoringProperties();
 
     @InjectMocks
     private MeasurementService measurementService;

@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
+import com.dkowalczyk.scadasystem.config.MonitoringProperties;
 import com.dkowalczyk.scadasystem.model.dto.MeasurementRequest;
 import com.dkowalczyk.scadasystem.model.dto.ValidationResult;
-import com.dkowalczyk.scadasystem.util.Constants;
 import com.dkowalczyk.scadasystem.util.MathUtils;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Validates measurement data against safety thresholds and PN-EN 50160 standards.
@@ -19,7 +20,10 @@ import com.dkowalczyk.scadasystem.util.MathUtils;
  * @since 1.0
  */
 @Service
+@RequiredArgsConstructor
 public class MeasurementValidator {
+
+    private final MonitoringProperties monitoringProperties;
     /**
      * Validates measurement request against safety and quality standards.
      *
@@ -45,8 +49,8 @@ public class MeasurementValidator {
 
         if (voltageRms > 360.0) {
             errors.add("Błąd krytyczny: Napięcie " + voltageRms + "V przekracza próg bezpieczeństwa (360V).");
-        } else if (voltageRms < Constants.NOMINAL_VOLTAGE * (1 - Constants.VOLTAGE_TOLERANCE) ||
-                voltageRms > Constants.NOMINAL_VOLTAGE * (1 + Constants.VOLTAGE_TOLERANCE)) {
+        } else if (voltageRms < monitoringProperties.getVoltage().getNominal() * (1 - monitoringProperties.getVoltage().getTolerance()) ||
+                voltageRms > monitoringProperties.getVoltage().getNominal() * (1 + monitoringProperties.getVoltage().getTolerance())) {
             warnings.add("Ostrzeżenie: Napięcie " + voltageRms + "V poza normą PN-EN 50160.");
         }
 
@@ -56,17 +60,18 @@ public class MeasurementValidator {
         
         if (frequency < 45.0 || frequency > 55.0) {
             errors.add("Błąd krytyczny: Częstotliwość " + frequency + "Hz poza bezpiecznym zakresem (45-55Hz).");
-        } else if (frequency < Constants.FREQUENCY_MIN || 
-                   frequency > Constants.FREQUENCY_MAX) {
+        } else if (frequency < monitoringProperties.getFrequency().getMin() || 
+                   frequency > monitoringProperties.getFrequency().getMax()) {
             warnings.add("Ostrzeżenie: Częstotliwość " + frequency + "Hz poza normą PN-EN 50160.");
         }
         
-        if (powerFactor < Constants.MIN_POWER_FACTOR) {
+        if (powerFactor < monitoringProperties.getPowerQuality().getMinPowerFactor()) {
             warnings.add("Ostrzeżenie: Współczynnik mocy " + powerFactor + " poniżej 0.85 może wskazywać na problemy z efektywnością energetyczną.");
         }
         
-        if (thdVoltage > Constants.VOLTAGE_THD_LIMIT) {
-            warnings.add("Ostrzeżenie: THD napięcia " + thdVoltage + "% przekracza próg bezpieczeństwa (" + Constants.VOLTAGE_THD_LIMIT + "%).");
+        double thdLimit = monitoringProperties.getPowerQuality().getThdVoltageLimit();
+        if (thdVoltage > thdLimit) {
+            warnings.add("Ostrzeżenie: THD napięcia " + thdVoltage + "% przekracza próg bezpieczeństwa (" + thdLimit + "%).");
         }
 
         // Sanity check for apparent power
