@@ -121,8 +121,8 @@ public class MeasurementService {
         Double apparentPower = request.getPowerApparent();
         Double currentRms = request.getCurrentRms();
 
-        if ((apparentPower != null && apparentPower <= 0.05)
-                || (currentRms != null && currentRms <= 0.0)) {
+        if ((apparentPower != null && apparentPower <= Constants.MIN_APPARENT_POWER_FOR_POWER_FACTOR_VA)
+                || (currentRms != null && currentRms <= Constants.MIN_CURRENT_RMS_FOR_POWER_FACTOR_A)) {
             return null;
         }
 

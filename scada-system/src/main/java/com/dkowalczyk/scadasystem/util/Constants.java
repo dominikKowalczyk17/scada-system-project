@@ -129,6 +129,17 @@ public final class Constants {
      */
     public static final double MIN_POWER_FACTOR = 0.85;
 
+    /**
+     * Minimum apparent power required to treat power factor as defined.
+     * Below this threshold, lambda = P/S is not meaningful.
+     */
+    public static final double MIN_APPARENT_POWER_FOR_POWER_FACTOR_VA = 0.05;
+
+    /**
+     * Minimum RMS current required to treat power factor as defined.
+     */
+    public static final double MIN_CURRENT_RMS_FOR_POWER_FACTOR_A = 0.0;
+
     // === Power Factor (Not a PN-EN 50160 indicator) ===
     /**
      * Number of harmonics measured by the system.
