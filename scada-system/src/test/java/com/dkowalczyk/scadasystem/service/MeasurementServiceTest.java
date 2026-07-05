@@ -212,4 +212,46 @@ class MeasurementServiceTest extends BaseServiceTest {
         assertThat(measurementCaptor.getValue().getPowerFactor()).isNull();
         assertThat(result.getPowerFactor()).isNull();
     }
+
+    @Test
+    void saveMeasurement_clearsPowerFactorWhenCurrentRmsIsZero() {
+        MeasurementRequest request = new MeasurementRequest();
+        request.setVoltageRms(222.0);
+        request.setCurrentRms(0.0);
+        request.setPowerActive(0.0);
+        request.setPowerReactive(0.0);
+        request.setPowerDistortion(0.0);
+        request.setPowerApparent(1.0);
+        request.setPowerFactor(1.0);
+        request.setFrequency(50.0);
+        request.setThdVoltage(16.4);
+
+        Measurement savedMeasurement = Measurement.builder()
+            .id(1L)
+            .time(Instant.now())
+            .voltageRms(222.0)
+            .currentRms(0.0)
+            .powerActive(0.0)
+            .powerReactive(0.0)
+            .powerDistortion(0.0)
+            .powerApparent(1.0)
+            .powerFactor(null)
+            .frequency(50.0)
+            .thdVoltage(16.4)
+            .voltageDeviationPercent(-3.4782608695652173)
+            .frequencyDeviationHz(0.0)
+            .isValid(true)
+            .build();
+
+        when(validator.validate(any())).thenReturn(new ValidationResult(true, Collections.emptyList(), Collections.emptyList()));
+        when(repository.save(any(Measurement.class))).thenReturn(savedMeasurement);
+
+        MeasurementDTO result = measurementService.saveMeasurement(request);
+
+        ArgumentCaptor<Measurement> measurementCaptor = ArgumentCaptor.forClass(Measurement.class);
+        verify(repository).save(measurementCaptor.capture());
+
+        assertThat(measurementCaptor.getValue().getPowerFactor()).isNull();
+        assertThat(result.getPowerFactor()).isNull();
+    }
 }
