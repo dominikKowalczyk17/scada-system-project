@@ -22,6 +22,12 @@ describe('StatusIndicator Component', () => {
       expect(screen.getByText('Alert')).toBeInTheDocument();
     });
 
+    it('renders with unknown status', () => {
+      render(<StatusIndicator status="unknown" label="N/D" />);
+
+      expect(screen.getByText('N/D')).toBeInTheDocument();
+    });
+
     it('renders label text', () => {
       render(<StatusIndicator status="normal" label="Test Label" />);
 
@@ -63,6 +69,15 @@ describe('StatusIndicator Component', () => {
       );
 
       const indicator = container.querySelector('.bg-destructive');
+      expect(indicator).toBeInTheDocument();
+    });
+
+    it('applies bg-muted for unknown status', () => {
+      const { container } = render(
+        <StatusIndicator status="unknown" label="Test" />
+      );
+
+      const indicator = container.querySelector('.bg-muted');
       expect(indicator).toBeInTheDocument();
     });
   });
@@ -153,7 +168,7 @@ describe('StatusIndicator Component', () => {
   });
 
   describe('All Status Types', () => {
-    const statuses = ['normal', 'warning', 'critical'] as const;
+    const statuses = ['normal', 'warning', 'critical', 'unknown'] as const;
 
     it('renders all status types without errors', () => {
       statuses.forEach((status) => {

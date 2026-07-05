@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface StatusIndicatorProps {
-  status: "normal" | "warning" | "critical";
+  status: "normal" | "warning" | "critical" | "unknown";
   label: string;
   className?: string;
 }
@@ -11,6 +11,7 @@ export const StatusIndicator = ({ status, label, className }: StatusIndicatorPro
     normal: "bg-success",
     warning: "bg-warning",
     critical: "bg-destructive",
+    unknown: "bg-muted",
   };
 
   return (

@@ -57,6 +57,14 @@ describe('ParameterCard Component - Comprehensive Suite', () => {
       const progressBar = container.querySelector('.h-full.transition-all');
       expect(progressBar).toHaveStyle({ width: '0%' });
     });
+
+    it('uses 0% width for non-numeric values', () => {
+      const { container } = render(
+        React.createElement(ParameterCard, { ...defaultProps, value: "N/A", status: "unknown" })
+      );
+      const progressBar = container.querySelector('.h-full.transition-all');
+      expect(progressBar).toHaveStyle({ width: '0%' });
+    });
   });
 
   describe('Status & Trend Styling', () => {
@@ -69,6 +77,9 @@ describe('ParameterCard Component - Comprehensive Suite', () => {
 
       rerender(React.createElement(ParameterCard, { ...defaultProps, status: 'critical' }));
       expect(container.querySelector('.bg-destructive')).toBeInTheDocument();
+
+      rerender(React.createElement(ParameterCard, { ...defaultProps, status: 'unknown' }));
+      expect(container.querySelector('.bg-muted')).toBeInTheDocument();
     });
 
     it('applies correct text colors for trends', () => {

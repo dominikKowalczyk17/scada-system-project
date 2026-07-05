@@ -105,13 +105,23 @@ const Dashboard = () => {
     return "normal";
   };
 
-  const getStatusLabel = (status: "normal" | "warning" | "critical") => {
+  const getStatusLabel = (status: "normal" | "warning" | "critical" | "unknown") => {
+    if (status === "unknown") return "N/D";
     const labels = {
       normal: "Normalny",
       warning: "Ostrzeżenie",
       critical: "Krytyczny",
     };
     return labels[status];
+  };
+
+  const getPowerFactorStatus = (
+    powerFactor: number | null | undefined,
+  ): "normal" | "warning" | "unknown" => {
+    if (powerFactor === null || powerFactor === undefined) return "unknown";
+    return powerFactor >= POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
+      ? "normal"
+      : "warning";
   };
 
   const getTrend = (
@@ -312,17 +322,9 @@ const Dashboard = () => {
                   "N/A"
                 }
                 unit="λ"
-                status={
-                  (dashboardData.latest_measurement.power_factor ?? 0) >=
-                  POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
-                    ? "normal"
-                    : "warning"
-                }
+                status={getPowerFactorStatus(dashboardData.latest_measurement.power_factor)}
                 statusLabel={getStatusLabel(
-                  (dashboardData.latest_measurement.power_factor ?? 0) >=
-                    POWER_QUALITY_LIMITS.MIN_POWER_FACTOR
-                    ? "normal"
-                    : "warning",
+                  getPowerFactorStatus(dashboardData.latest_measurement.power_factor),
                 )}
                 min="0.85"
                 max="1.0"
