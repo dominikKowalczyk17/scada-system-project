@@ -320,16 +320,14 @@ const Dashboard = () => {
               />
               <ParameterCard
                 title="Moc bierna"
-                value={(
-                  (dashboardData.latest_measurement.power_reactive ?? 0) / 1000
-                ).toFixed(2)}
-                unit="kVAR"
+                value={(dashboardData.latest_measurement.power_reactive ?? 0).toFixed(1)}
+                unit="VAR"
                 status="normal"
                 statusLabel="Normalny"
                 min="0"
-                max="2.0"
+                max="2000"
                 trend={getTrend(
-                  (dashboardData.latest_measurement.power_reactive ?? 0) / 1000,
+                  dashboardData.latest_measurement.power_reactive ?? 0,
                   dashboardData.recent_history,
                   "power_reactive",
                 )}
