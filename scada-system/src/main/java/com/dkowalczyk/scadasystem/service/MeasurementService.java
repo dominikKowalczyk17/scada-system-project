@@ -117,6 +117,18 @@ public class MeasurementService {
         // Note: Event detection (Group 5: voltage dips, interruptions) implemented separately
     }
 
+    private Double normalizePowerFactor(MeasurementRequest request) {
+        Double apparentPower = request.getPowerApparent();
+        Double currentRms = request.getCurrentRms();
+
+        if ((apparentPower != null && apparentPower <= Constants.MIN_APPARENT_POWER_FOR_POWER_FACTOR_VA)
+                || (currentRms != null && currentRms <= Constants.MIN_CURRENT_RMS_FOR_POWER_FACTOR_A)) {
+            return null;
+        }
+
+        return request.getPowerFactor();
+    }
+
     /**
      * Saves a new measurement to the database and triggers WebSocket broadcast.
      * <p>
@@ -155,6 +167,7 @@ public class MeasurementService {
                 .waveformV(request.getWaveformV())               // Raw waveform data from ESP32
                 .waveformI(request.getWaveformI())               // Raw waveform data from ESP32
                 .build();
+        measurement.setPowerFactor(normalizePowerFactor(request));
 
         ValidationResult validationResult = validator.validate(request);
         measurement.setIsValid(validationResult.isValid());

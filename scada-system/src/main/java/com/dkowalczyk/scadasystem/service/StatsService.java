@@ -7,6 +7,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -121,7 +122,10 @@ public class StatsService {
         double maxFrequency = MathUtils.max(frequency);
 
         // === Power Factor Stats ===
-        List<Double> powerFactor = measurements.stream().map(Measurement::getPowerFactor).toList();
+        List<Double> powerFactor = measurements.stream()
+                .map(Measurement::getPowerFactor)
+                .filter(Objects::nonNull)
+                .toList();
         double avgPowerFactor = MathUtils.average(powerFactor);
         double minPowerFactor = MathUtils.min(powerFactor);
 
@@ -165,7 +169,7 @@ public class StatsService {
 
         int powerFactorPenaltyCount = countEventsWithDuration(
                 sortedMeasurements,
-                m -> m.getPowerFactor() < Constants.MIN_POWER_FACTOR,
+                m -> m.getPowerFactor() != null && m.getPowerFactor() < Constants.MIN_POWER_FACTOR,
                 0.01  // 10ms minimum duration
         );
 

@@ -7,7 +7,7 @@ interface ParameterCardProps {
   title: string;
   value: string;
   unit: string;
-  status: "normal" | "warning" | "critical";
+  status: "normal" | "warning" | "critical" | "unknown";
   statusLabel?: string;
   min: string;
   max: string;
@@ -33,7 +33,7 @@ export const ParameterCard = ({ title, value, unit, status, statusLabel, min, ma
   const numMax = parseFloat(max);
   const range = numMax - numMin;
   const percentage =
-    range === 0
+    !Number.isFinite(numValue) || !Number.isFinite(numMin) || !Number.isFinite(numMax) || range === 0
       ? 0
       : Math.min(100, Math.max(0, ((numValue - numMin) / range) * 100));
 
@@ -61,6 +61,7 @@ export const ParameterCard = ({ title, value, unit, status, statusLabel, min, ma
             "bg-success": status === "normal",
             "bg-warning": status === "warning",
             "bg-destructive": status === "critical",
+            "bg-muted": status === "unknown",
           })}
           style={{ width: `${percentage}%` }}
         />

@@ -269,13 +269,14 @@ void processingTask(void * pvParameters) {
 
         // Power factor λ = P/S (NOT cos(φ)!)
         // cos(φ) is only valid for sinusoidal waveforms
-        float powerFactor = (sApparent > 0.05) ? abs(pActive) / sApparent : 1.0;
+        bool powerFactorDefined = sApparent > 0.05;
+        float powerFactor = powerFactorDefined ? abs(pActive) / sApparent : 0.0;
         if (powerFactor > 1.0) powerFactor = 1.0;
 
         // Noise gate - zero out power readings for very low currents
         if (iRMS < NOISE_GATE_RMS) {
             iRMS = 0; pActive = 0; sApparent = 0;
-            qReactive_H1 = 0; powerDistortion = 0; powerFactor = 1.0;
+            qReactive_H1 = 0; powerDistortion = 0; powerFactor = 0.0; powerFactorDefined = false;
             // NOTE: hI_base and harmonics are NOT zeroed here - they're needed for THD calculation
             // THD threshold check will determine if THD should be calculated
             for(int i=1; i<=MAX_CALC_HARMONIC; i++) harmonicsI_out[i] = 0;
@@ -297,6 +298,9 @@ void processingTask(void * pvParameters) {
         doc["power_reactive"] = round(abs(qReactive_H1) * 10) / 10.0;  // Q1 - reactive power of fundamental only
         doc["power_distortion"] = round(powerDistortion * 10) / 10.0;  // D - distortion power from harmonics
         doc["power_factor"] = round(powerFactor * 100) / 100.0;        // λ = P/S (NOT cos(φ)!)
+        if (!powerFactorDefined) {
+            doc["power_factor"] = nullptr;  // Undefined when S = 0
+        }
         doc["freq"] = roundedFreq;
         doc["freq_valid"] = isFreqValid; // Dodatkowa flaga dla backendu
 

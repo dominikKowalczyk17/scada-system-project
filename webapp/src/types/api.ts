@@ -17,7 +17,7 @@ export interface MeasurementDTO {
   power_reactive?: number;
   power_apparent?: number;
   power_distortion?: number;
-  power_factor?: number;
+  power_factor?: number | null;
   frequency?: number;
   thd_voltage?: number;
   thd_current?: number;

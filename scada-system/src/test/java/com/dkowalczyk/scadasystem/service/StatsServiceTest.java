@@ -406,6 +406,45 @@ class StatsServiceTest {
     }
 
     @Test
+    @DisplayName("calculateDailyStats() should ignore undefined power factor values")
+    void calculateDailyStats_shouldIgnoreUndefinedPowerFactorValues() {
+        Measurement noLoadMeasurement = createMeasurement(testDate, 0, 222.0, 0.0, 50.0, 0.95, 16.4);
+        noLoadMeasurement.setPowerFactor(null);
+        List<Measurement> measurements = List.of(
+                noLoadMeasurement,
+                createMeasurement(testDate, 3, 230.0, 1500.0, 50.0, 0.95, 5.0),
+                createMeasurement(testDate, 6, 231.0, 1600.0, 50.0, 0.96, 5.0)
+        );
+        mockRepositoryCalls(measurements);
+
+        StatsDTO result = statsService.calculateDailyStats(testDate);
+
+        assertThat(result.getAvgPowerFactor()).isCloseTo(0.955, org.assertj.core.data.Offset.offset(0.001));
+        assertThat(result.getMinPowerFactor()).isCloseTo(0.95, org.assertj.core.data.Offset.offset(0.001));
+        assertThat(result.getPowerFactorPenaltyCount()).isZero();
+        verify(dailyStatsRepository).save(any(DailyStats.class));
+    }
+
+    @Test
+    @DisplayName("calculateDailyStats() should handle all undefined power factor values")
+    void calculateDailyStats_shouldHandleAllUndefinedPowerFactorValues() {
+        Measurement firstNoLoadMeasurement = createMeasurement(testDate, 0, 222.0, 0.0, 50.0, 0.95, 16.4);
+        Measurement secondNoLoadMeasurement = createMeasurement(testDate, 3, 223.0, 0.0, 50.0, 0.95, 12.0);
+        firstNoLoadMeasurement.setPowerFactor(null);
+        secondNoLoadMeasurement.setPowerFactor(null);
+        List<Measurement> measurements = List.of(firstNoLoadMeasurement, secondNoLoadMeasurement);
+        mockRepositoryCalls(measurements);
+
+        StatsDTO result = statsService.calculateDailyStats(testDate);
+
+        assertThat(result.getAvgPowerFactor()).isZero();
+        assertThat(result.getMinPowerFactor()).isZero();
+        assertThat(result.getPowerFactorPenaltyCount()).isZero();
+        assertThat(result.getMeasurementCount()).isEqualTo(2);
+        verify(dailyStatsRepository).save(any(DailyStats.class));
+    }
+
+    @Test
     @DisplayName("calculateDailyStats() should save entity to repository")
     void calculateDailyStats_shouldSaveEntity_toRepository() {
         // Given: Normal measurements
