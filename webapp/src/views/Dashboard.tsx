@@ -93,18 +93,6 @@ const Dashboard = () => {
     return "normal";
   };
 
-  const getFrequencyStatus = (
-    freq: number,
-  ): "normal" | "warning" | "critical" => {
-    if (
-      freq < POWER_QUALITY_LIMITS.FREQUENCY_MIN ||
-      freq > POWER_QUALITY_LIMITS.FREQUENCY_MAX
-    ) {
-      return "critical";
-    }
-    return "normal";
-  };
-
   const getStatusLabel = (status: "normal" | "warning" | "critical" | "unknown") => {
     if (status === "unknown") return "N/D";
     const labels = {
@@ -292,23 +280,19 @@ const Dashboard = () => {
                 )}
               />
               <ParameterCard
-                title="Częstotliwość"
-                value={(dashboardData.latest_measurement.frequency ?? 0).toFixed(2)}
-                unit="Hz"
-                status={getFrequencyStatus(
-                  dashboardData.latest_measurement.frequency ?? 0,
-                )}
-                statusLabel={getStatusLabel(
-                  getFrequencyStatus(
-                    dashboardData.latest_measurement.frequency ?? 0,
-                  ),
-                )}
-                min="49.50"
-                max="50.50"
+                title="Moc odkształcenia"
+                value={(
+                  dashboardData.latest_measurement.power_distortion ?? 0
+                ).toFixed(1)}
+                unit="var"
+                status="normal"
+                statusLabel="Diagnostyczny"
+                min="0"
+                max="1000"
                 trend={getTrend(
-                  dashboardData.latest_measurement.frequency ?? 0,
+                  dashboardData.latest_measurement.power_distortion ?? 0,
                   dashboardData.recent_history,
-                  "frequency",
+                  "power_distortion",
                 )}
               />
             </div>
