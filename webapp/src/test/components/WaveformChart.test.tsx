@@ -275,7 +275,7 @@ describe('WaveformChart - Comprehensive Suite', () => {
 
       const voltageAxis = screen.getByTestId('y-axis-v-axis');
 
-      // Domain is now rounded to nice symmetric tick values (e.g. [-300,300] for max ~230V)
+      // Domain is now rounded to nice symmetric tick values (e.g. [-300,300] for max ~230 V)
       const domain = JSON.parse(voltageAxis.getAttribute('data-domain')!) as [number, number];
       expect(voltageAxis).toHaveAttribute('data-orientation', 'left');
       expect(domain[0]).toBeLessThan(0);
@@ -288,7 +288,7 @@ describe('WaveformChart - Comprehensive Suite', () => {
       const currentAxis = screen.getByTestId('y-axis-i-axis');
       expect(currentAxis).toHaveAttribute('data-orientation', 'right');
 
-      // Domain is now rounded to nice symmetric tick values (e.g. [-20,20] for max ~15A)
+      // Domain is now rounded to nice symmetric tick values (e.g. [-20,20] for max ~15 A)
       const domain = JSON.parse(currentAxis.getAttribute('data-domain')!) as [number, number];
       expect(domain[0]).toBeLessThan(0);
       expect(domain[1]).toBeGreaterThan(0);

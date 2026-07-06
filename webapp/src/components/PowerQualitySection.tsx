@@ -11,8 +11,8 @@ interface PowerQualitySectionProps {
  * Component displaying PN-EN 50160 power quality indicators.
  *
  * Shows standardized power quality metrics:
- * - Group 1: Voltage deviation from 230V (±10% limit)
- * - Group 2: Frequency deviation from 50Hz (±0.5Hz limit)
+ * - Group 1: Voltage deviation from 230 V (±10% limit)
+ * - Group 2: Frequency deviation from 50 Hz (±0.5 Hz limit)
  * - Group 4: THD voltage (8% limit, partial measurement warning)
  *
  * Each indicator shows:
@@ -107,8 +107,8 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
               Ograniczenia pomiarowe
             </h4>
             <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
-              THD obliczane tylko z harmonicznych H2-H25 (ograniczenie Nyquista
-              przy 3000Hz). Wartość reprezentuje{" "}
+              THD obliczane tylko z harmonicznych H2-H25 (zakres raportowany
+              przez firmware przy próbkowaniu 10 kHz). Wartość reprezentuje{" "}
               <strong>dolne ograniczenie</strong> rzeczywistego THD. Pełna norma
               IEC 61000-4-7 wymaga harmonicznych H2-H40.
             </p>
@@ -149,11 +149,11 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Limit: 230V ±10%</span>
+                <span className="text-muted-foreground">Limit: 230 V ±10%</span>
                 {getComplianceBadge(data.voltage_within_limits)}
               </div>
               <div className="text-xs text-muted-foreground">
-                Zakres: 207V - 253V
+                Zakres: 207 V - 253 V
               </div>
             </div>
           </div>
@@ -192,12 +192,12 @@ export function PowerQualitySection({ data }: PowerQualitySectionProps) {
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">
-                  Limit: 50Hz ±0.5Hz
+                  Limit: 50 Hz ±0.5 Hz
                 </span>
                 {getComplianceBadge(data.frequency_within_limits)}
               </div>
               <div className="text-xs text-muted-foreground">
-                Zakres: 49.5Hz - 50.5Hz
+                Zakres: 49.5 Hz - 50.5 Hz
               </div>
             </div>
           </div>

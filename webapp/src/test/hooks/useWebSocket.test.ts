@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { createMockRealtimeDashboard } from '@/test/utils';
 import { createTestQueryClient } from '@/test/utils/test-utils';
@@ -107,12 +107,14 @@ describe('useWebSocket Hook', () => {
 
     const callback = subscriptions.get('/topic/dashboard');
     expect(callback).toBeDefined();
-    callback?.({ body: JSON.stringify(mockData) });
+    act(() => {
+      callback?.({ body: JSON.stringify(mockData) });
+    });
 
     await waitFor(() => {
       expect(result.current.data).toEqual(mockData);
       const cached = queryClient.getQueryData(['dashboard']);
-      expect(cached).toEqual(mockData);
+      expect(cached).toEqual({ ...mockData, recent_history: [] });
     });
   });
 

@@ -44,21 +44,21 @@ public class MeasurementValidator {
         double apparentPowerFromUI = voltageRms * currentRms;
 
         if (voltageRms > 360.0) {
-            errors.add("Błąd krytyczny: Napięcie " + voltageRms + "V przekracza próg bezpieczeństwa (360V).");
+            errors.add("Błąd krytyczny: Napięcie " + voltageRms + " V przekracza próg bezpieczeństwa (360 V).");
         } else if (voltageRms < Constants.NOMINAL_VOLTAGE * (1 - Constants.VOLTAGE_TOLERANCE) ||
                 voltageRms > Constants.NOMINAL_VOLTAGE * (1 + Constants.VOLTAGE_TOLERANCE)) {
-            warnings.add("Ostrzeżenie: Napięcie " + voltageRms + "V poza normą PN-EN 50160.");
+            warnings.add("Ostrzeżenie: Napięcie " + voltageRms + " V poza normą PN-EN 50160.");
         }
 
         if (currentRms > 40.0) {
-            errors.add("Błąd krytyczny: Prąd " + currentRms + "A przekracza próg bezpieczeństwa (40A).");
+            errors.add("Błąd krytyczny: Prąd " + currentRms + " A przekracza próg bezpieczeństwa (40 A).");
         }
         
         if (frequency < 45.0 || frequency > 55.0) {
-            errors.add("Błąd krytyczny: Częstotliwość " + frequency + "Hz poza bezpiecznym zakresem (45-55Hz).");
+            errors.add("Błąd krytyczny: Częstotliwość " + frequency + " Hz poza bezpiecznym zakresem (45-55 Hz).");
         } else if (frequency < Constants.FREQUENCY_MIN || 
                    frequency > Constants.FREQUENCY_MAX) {
-            warnings.add("Ostrzeżenie: Częstotliwość " + frequency + "Hz poza normą PN-EN 50160.");
+            warnings.add("Ostrzeżenie: Częstotliwość " + frequency + " Hz poza normą PN-EN 50160.");
         }
         
         if (powerFactor < Constants.MIN_POWER_FACTOR) {

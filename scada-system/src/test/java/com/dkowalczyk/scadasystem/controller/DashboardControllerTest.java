@@ -317,7 +317,7 @@ class DashboardControllerTest extends BaseControllerTest {
         @Test
         @DisplayName("should handle edge case: voltage at exact -10% limit")
         void shouldHandleVoltageAtExactNegativeLimit() throws Exception {
-            // Given: Voltage exactly at -10% limit (207V)
+            // Given: Voltage exactly at -10% limit (207 V)
             PowerQualityIndicatorsDTO atLimit = PowerQualityIndicatorsDTO.builder()
                     .timestamp(Instant.now())
                     .voltageRms(207.0)
@@ -344,7 +344,7 @@ class DashboardControllerTest extends BaseControllerTest {
         @Test
         @DisplayName("should handle edge case: frequency at exact +0.5Hz limit")
         void shouldHandleFrequencyAtExactPositiveLimit() throws Exception {
-            // Given: Frequency exactly at +0.5Hz limit (50.5Hz)
+            // Given: Frequency exactly at +0.5 Hz limit (50.5 Hz)
             PowerQualityIndicatorsDTO atLimit = PowerQualityIndicatorsDTO.builder()
                     .timestamp(Instant.now())
                     .voltageRms(230.0)

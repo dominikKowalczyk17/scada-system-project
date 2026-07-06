@@ -48,8 +48,8 @@ export const HarmonicsChart = forwardRef<
   // Transform harmonics arrays into Recharts format with memoization
   // Memoized to prevent unnecessary recalculations on every render
   // harmonicsVoltage = [H1, H2, H3, ..., H25]
-  // H1 = fundamental (50Hz), H2 = 2nd harmonic (100Hz), etc.
-  // Limited to H1-H25 (50Hz-1250Hz) due to Nyquist constraint at 3000Hz sampling rate
+  // H1 = fundamental (50 Hz), H2 = 2nd harmonic (100 Hz), etc.
+  // Firmware reports H1-H25 (50 Hz-1250 Hz); Nyquist at 10 kHz sampling is 5 kHz.
   const chartData = useMemo(() => {
     return harmonicsVoltage.map((vHarmonic, index) => {
       const currentValue = harmonicsCurrent[index];
@@ -133,12 +133,12 @@ export const HarmonicsChart = forwardRef<
           <div className="flex items-start gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md p-2">
             <Info className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
             <p className="text-xs text-yellow-700 dark:text-yellow-400">
-              <strong>Ograniczenie Nyquista:</strong> System próbkuje przy
-              3000Hz (512 próbek), co pozwala na pomiar harmonicznych H1-H25
-              (50Hz-1250Hz). THD jest obliczane z H2-H25 zamiast pełnego zakresu
-              H2-H40 wymaganego przez IEC 61000-4-7. Wyświetlana wartość
-              reprezentuje <strong>dolne ograniczenie</strong> rzeczywistego THD
-              (brakuje H26-H40).
+              <strong>Ograniczenie zakresu harmonicznych:</strong> System
+              próbkuje przy 10 kHz i raportuje harmoniczne H1-H25 (50 Hz-1250
+              Hz). THD jest obliczane z H2-H25 zamiast pełnego zakresu H2-H40
+              wymaganego przez IEC 61000-4-7. Wyświetlana wartość reprezentuje{" "}
+              <strong>dolne ograniczenie</strong> rzeczywistego THD (brakuje
+              H26-H40).
             </p>
           </div>
         </div>

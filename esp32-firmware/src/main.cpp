@@ -3,20 +3,29 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <arduinoFFT.h>
+#include <driver/adc.h>
+#include <hal/adc_ll.h>
 #include "config.h"
 
 // --- PARAMETRY POMIAROWE ---
-#define SAMPLES 512
-#define SAMPLING_FREQ 3000 
+#define SAMPLES 1024
+#define SAMPLING_FREQ 10000
+#define WAVEFORM_EXPORT_PERIODS 2
 #define MAX_CALC_HARMONIC 25
 #define PIN_U 33
 #define PIN_I 35
+#define ADC_CHANNEL_U ADC1_CHANNEL_5
+#define ADC_CHANNEL_I ADC1_CHANNEL_7
+#define ADC_PATTERN_LEN 2
+#define ADC_TOTAL_SAMPLE_FREQ (SAMPLING_FREQ * ADC_PATTERN_LEN)
+#define ADC_DMA_FRAME_BYTES 1024
 
 const float vCoeff = 0.550;
 const float iCoeff = 0.0283;
 const float NOISE_GATE_RMS = 0.15;  // Dostosowane do iCoeff=0.0283 (szum ADC ~0.10A wymaga wyższego progu)
 const float ADC_DEAD_ZONE = 4.0;
 const float THD_I_THRESHOLD = NOISE_GATE_RMS * 1.414 * 0.15;  // ~0.0106A - synchronized with NOISE_GATE (15% margin)
+const bool SMOOTH_WAVEFORM_CURRENT = true;
 
 // Zero-crossing detection parameters
 const float ZERO_CROSSING_THRESHOLD = 8.0;  // LSB units (optymalna histereza ~4.4V - kompromis między czułością a odpornością na szum)
@@ -26,37 +35,128 @@ const int MIN_ZERO_CROSSINGS = 2;           // Min 2 przejścia = 1 pełny okres
 volatile int rawBufferU[SAMPLES];
 volatile int rawBufferI[SAMPLES];
 volatile bool dataReady = false;
-volatile int sampleIdx = 0;
 
 double vReal[SAMPLES], vImag[SAMPLES];
 double iReal[SAMPLES], iImag[SAMPLES];
+double waveformV_out[SAMPLES];
+double waveformI_out[SAMPLES];
 ArduinoFFT<double> FFT = ArduinoFFT<double>();
 
 WiFiClient espClient;
 PubSubClient client(espClient);
-hw_timer_t * timer = NULL;
 unsigned long lastPublishTime = 0;
 double lastValidFreqZC = 50.0;  // Ostatnia prawidłowa częstotliwość z zero-crossing (fallback)
-
-void IRAM_ATTR onTimer() {
-  if (!dataReady) {
-    // Szybki, pojedynczy odczyt dla zachowania precyzji bazy czasu
-    rawBufferU[sampleIdx] = analogRead(PIN_U);
-    rawBufferI[sampleIdx] = analogRead(PIN_I);
-    
-    sampleIdx++;
-    if (sampleIdx >= SAMPLES) {
-      sampleIdx = 0;
-      dataReady = true;
-    }
-  }
-}
 
 void setup_wifi() {
     Serial.printf("\nConnecting to %s...", WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
     Serial.println("\nWiFi Connected.");
+}
+
+void setup_adc_dma() {
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(ADC_CHANNEL_U, ADC_ATTEN_DB_12);
+    adc1_config_channel_atten(ADC_CHANNEL_I, ADC_ATTEN_DB_12);
+
+    adc_digi_init_config_t initConfig = {
+        .max_store_buf_size = ADC_DMA_FRAME_BYTES * 4,
+        .conv_num_each_intr = ADC_DMA_FRAME_BYTES,
+        .adc1_chan_mask = BIT(ADC_CHANNEL_U) | BIT(ADC_CHANNEL_I),
+        .adc2_chan_mask = 0,
+    };
+
+    esp_err_t err = adc_digi_initialize(&initConfig);
+    if (err != ESP_OK) {
+        Serial.printf("[ADC-DMA] initialize failed: %d\n", err);
+        while (true) delay(1000);
+    }
+
+    static adc_digi_pattern_config_t adcPattern[ADC_PATTERN_LEN] = {};
+    adcPattern[0].atten = ADC_ATTEN_DB_12;
+    adcPattern[0].channel = ADC_CHANNEL_U;
+    adcPattern[0].unit = ADC_NUM_1;
+    adcPattern[0].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+    adcPattern[1].atten = ADC_ATTEN_DB_12;
+    adcPattern[1].channel = ADC_CHANNEL_I;
+    adcPattern[1].unit = ADC_NUM_1;
+    adcPattern[1].bit_width = SOC_ADC_DIGI_MAX_BITWIDTH;
+
+    adc_digi_configuration_t digConfig = {
+        .conv_limit_en = true,
+        .conv_limit_num = 255,
+        .pattern_num = ADC_PATTERN_LEN,
+        .adc_pattern = adcPattern,
+        .sample_freq_hz = ADC_TOTAL_SAMPLE_FREQ,
+        .conv_mode = ADC_CONV_SINGLE_UNIT_1,
+        .format = ADC_DIGI_OUTPUT_FORMAT_TYPE1,
+    };
+
+    err = adc_digi_controller_configure(&digConfig);
+    if (err != ESP_OK) {
+        Serial.printf("[ADC-DMA] controller config failed: %d\n", err);
+        while (true) delay(1000);
+    }
+
+    err = adc_digi_start();
+    if (err != ESP_OK) {
+        Serial.printf("[ADC-DMA] start failed: %d\n", err);
+        while (true) delay(1000);
+    }
+
+    Serial.printf("[ADC-DMA] started: %d Hz per channel, %d Hz total scan rate\n",
+                  SAMPLING_FREQ, ADC_TOTAL_SAMPLE_FREQ);
+}
+
+void adcSamplingTask(void * pvParameters) {
+    static uint8_t dmaBuffer[ADC_DMA_FRAME_BYTES];
+    static int frameU[SAMPLES];
+    static int frameI[SAMPLES];
+    int idxU = 0;
+    int idxI = 0;
+
+    for (;;) {
+        uint32_t bytesRead = 0;
+        esp_err_t err = adc_digi_read_bytes(dmaBuffer, sizeof(dmaBuffer), &bytesRead, 1000);
+        if (err == ESP_ERR_TIMEOUT) {
+            continue;
+        }
+        if (err == ESP_ERR_INVALID_STATE) {
+            Serial.println("[ADC-DMA] overflow: sampling faster than processing");
+            vTaskDelay(pdMS_TO_TICKS(10));
+            continue;
+        }
+        if (err != ESP_OK) {
+            Serial.printf("[ADC-DMA] read failed: %d\n", err);
+            vTaskDelay(pdMS_TO_TICKS(100));
+            continue;
+        }
+
+        int sampleCount = bytesRead / sizeof(adc_digi_output_data_t);
+        adc_digi_output_data_t *samples = (adc_digi_output_data_t *)dmaBuffer;
+        for (int i = 0; i < sampleCount; i++) {
+            uint8_t channel = samples[i].type1.channel;
+            uint16_t value = samples[i].type1.data;
+
+            if (channel == ADC_CHANNEL_U && idxU < SAMPLES) {
+                frameU[idxU++] = value;
+            } else if (channel == ADC_CHANNEL_I && idxI < SAMPLES) {
+                frameI[idxI++] = value;
+            }
+
+            if (idxU >= SAMPLES && idxI >= SAMPLES) {
+                if (!dataReady) {
+                    for (int j = 0; j < SAMPLES; j++) {
+                        rawBufferU[j] = frameU[j];
+                        rawBufferI[j] = frameI[j];
+                    }
+                    dataReady = true;
+                }
+                idxU = 0;
+                idxI = 0;
+            }
+        }
+    }
 }
 
 /**
@@ -72,14 +172,17 @@ float calculateFrequencyFromZeroCrossing(volatile int* rawBuffer, int numSamples
     int zeroCrossingSamples[MAX_ZERO_CROSSINGS];  // Indeksy próbek, nie czasy
     int crossingCount = 0;
 
-    // Wykryj rising edge zero-crossings (bez interpolacji, stała histereza)
-    for (int i = 1; i < numSamples && crossingCount < MAX_ZERO_CROSSINGS; i++) {
-        float v_prev = (rawBuffer[i-1] - dcOffset);  // Raw ADC units
-        float v_curr = (rawBuffer[i] - dcOffset);
+    // Stateful hysteresis: at higher sample rates the signal may spend several
+    // samples inside the deadband, so consecutive-sample crossing is unreliable.
+    bool armedForRising = false;
+    for (int i = 0; i < numSamples && crossingCount < MAX_ZERO_CROSSINGS; i++) {
+        float v_curr = (rawBuffer[i] - dcOffset);  // Raw ADC units
 
-        // Rising edge: negative → positive (z histerezą)
-        if (v_prev < -ZERO_CROSSING_THRESHOLD && v_curr > ZERO_CROSSING_THRESHOLD) {
+        if (v_curr < -ZERO_CROSSING_THRESHOLD) {
+            armedForRising = true;
+        } else if (armedForRising && v_curr > ZERO_CROSSING_THRESHOLD) {
             zeroCrossingSamples[crossingCount++] = i;  // Zapisz tylko indeks próbki
+            armedForRising = false;
         }
     }
 
@@ -93,8 +196,7 @@ float calculateFrequencyFromZeroCrossing(volatile int* rawBuffer, int numSamples
         return 0.0;
     }
 
-    // Oblicz średni okres z kolejnych przejść z filtracją outlierów
-    // Okres = różnica indeksów × 333 μs na próbkę
+    // Oblicz średni okres z kolejnych przejść z filtracją outlierów.
 
     // Krok 1: Oblicz wstępną średnią do określenia zakresu outlierów
     int totalSamples = 0;
@@ -124,7 +226,7 @@ float calculateFrequencyFromZeroCrossing(volatile int* rawBuffer, int numSamples
     }
 
     float avgSamples = (float)validSamples / (float)validCount;
-    float avgPeriodUs = avgSamples * 333.0;  // 333 μs = okres próbkowania
+    float avgPeriodUs = avgSamples * (1000000.0 / SAMPLING_FREQ);
     float frequency = 1000000.0 / avgPeriodUs;  // Konwersja μs na Hz
 
     // Serial.printf("[ZC-DEBUG] avgSamples=%.1f, frequency=%.2f Hz\n", avgSamples, frequency);
@@ -157,26 +259,35 @@ void processingTask(void * pvParameters) {
         // 2. Przygotowanie danych i RMS
         double sumU2 = 0, sumI2 = 0, sumP = 0;
 
-        // Store raw waveform samples for frontend (BEFORE FFT modifies vReal/iReal arrays)
-        double waveformV_out[SAMPLES];
-        double waveformI_out[SAMPLES];
-
         for (int i = 0; i < SAMPLES; i++) {
             float uScaled = (rawBufferU[i] - offsetU) * vCoeff;
             float iRaw = (float)rawBufferI[i] - offsetI;
-            if (abs(iRaw) < ADC_DEAD_ZONE) iRaw = 0;
-            float iScaled = iRaw * iCoeff;
+            float iDisplayScaled = iRaw * iCoeff;
+            float iCalcRaw = iRaw;
+            if (abs(iCalcRaw) < ADC_DEAD_ZONE) iCalcRaw = 0;
+            float iScaled = iCalcRaw * iCoeff;
 
             vReal[i] = (double)uScaled; vImag[i] = 0;
             iReal[i] = (double)iScaled; iImag[i] = 0;
 
             // Save raw samples for waveform display
             waveformV_out[i] = uScaled;
-            waveformI_out[i] = iScaled;
+            waveformI_out[i] = iDisplayScaled;
 
             sumU2 += uScaled * uScaled;
             sumI2 += iScaled * iScaled;
             sumP += uScaled * iScaled;
+        }
+
+        if (SMOOTH_WAVEFORM_CURRENT && SAMPLES > 2) {
+            double prev = waveformI_out[0];
+            double curr = waveformI_out[1];
+            for (int i = 1; i < SAMPLES - 1; i++) {
+                double next = waveformI_out[i + 1];
+                waveformI_out[i] = (prev + 2.0 * curr + next) / 4.0;
+                prev = curr;
+                curr = next;
+            }
         }
 
         float vRMS = sqrt(sumU2 / SAMPLES);
@@ -280,6 +391,7 @@ void processingTask(void * pvParameters) {
             // NOTE: hI_base and harmonics are NOT zeroed here - they're needed for THD calculation
             // THD threshold check will determine if THD should be calculated
             for(int i=1; i<=MAX_CALC_HARMONIC; i++) harmonicsI_out[i] = 0;
+            for(int i=0; i<SAMPLES; i++) waveformI_out[i] = 0;
         }
 
         float roundedFreq = round(freq * 10) / 10.0;
@@ -297,7 +409,7 @@ void processingTask(void * pvParameters) {
         doc["power_apparent"] = round(sApparent * 10) / 10.0;
         doc["power_reactive"] = round(abs(qReactive_H1) * 10) / 10.0;  // Q1 - reactive power of fundamental only
         doc["power_distortion"] = round(powerDistortion * 10) / 10.0;  // D - distortion power from harmonics
-        doc["power_factor"] = round(powerFactor * 100) / 100.0;        // λ = P/S (NOT cos(φ)!)
+        doc["power_factor"] = powerFactor;                            // λ = P/S (NOT cos(φ)!)
         if (!powerFactorDefined) {
             doc["power_factor"] = nullptr;  // Undefined when S = 0
         }
@@ -314,20 +426,21 @@ void processingTask(void * pvParameters) {
             hI_arr.add(round(harmonicsI_out[h] * 1000) / 1000.0);
         }
 
-        // Add raw waveform data (3 cycles ~181 samples for frontend zero-crossing trimming)
+        // Add raw waveform data at the full sampling rate. Export only two periods
+        // to keep MQTT payload bounded while improving chart detail.
         JsonArray waveV_arr = doc["waveform_v"].to<JsonArray>();
         JsonArray waveI_arr = doc["waveform_i"].to<JsonArray>();
-        int samplesPerCycle = round(SAMPLING_FREQ / freq);  // Use detected frequency, not hardcoded 50Hz
-        // Send 1 full cycle + 1 extra sample to complete the period visually
-        int samplesToSend = 3 * samplesPerCycle + 1;
-        if (samplesToSend > SAMPLES) samplesToSend = SAMPLES;
+        int samplesPerCycle = round(SAMPLING_FREQ / freq);  // Use detected frequency, not hardcoded 50 Hz
+        int samplesToSend = WAVEFORM_EXPORT_PERIODS * samplesPerCycle + 1;
+        int maxSamplesToSend = SAMPLES;
+        if (samplesToSend > maxSamplesToSend) samplesToSend = maxSamplesToSend;
 
         for (int i = 0; i < samplesToSend; i++) {
             waveV_arr.add(round(waveformV_out[i] * 100) / 100.0);  // 2 decimals for voltage
             waveI_arr.add(round(waveformI_out[i] * 1000) / 1000.0);  // 3 decimals for current
         }
 
-        static char buffer[8192];  // Static (BSS) to avoid stack overflow; 3 cycles ≈ 3.5KB JSON
+        static char buffer[8192];  // Static (BSS) to avoid stack overflow with waveform arrays.
         size_t len = serializeJson(doc, buffer, sizeof(buffer));
         if (len >= sizeof(buffer)) {
             Serial.printf("[ERROR] JSON buffer overflow! Size: %d, Capacity: %d\n", len, sizeof(buffer));
@@ -355,16 +468,11 @@ void setup() {
   Serial.begin(115200);
   setup_wifi();
   client.setServer(MQTT_SERVER, 1883);
-  client.setBufferSize(8192);  // Increased to handle waveform arrays (128 samples × 2 × ~30 bytes)
+  client.setBufferSize(8192);  // Increased to handle waveform arrays.
 
-  analogReadResolution(12);
-  analogSetAttenuation(ADC_11db);
+  setup_adc_dma();
 
-  timer = timerBegin(0, 80, true);
-  timerAttachInterrupt(timer, &onTimer, true);
-  timerAlarmWrite(timer, 333, true);
-  timerAlarmEnable(timer);
-
+  xTaskCreatePinnedToCore(adcSamplingTask, "ADCSampling", 4096, NULL, 2, NULL, 0);
   xTaskCreatePinnedToCore(processingTask, "Proc", 15000, NULL, 1, NULL, 1);
 }
 

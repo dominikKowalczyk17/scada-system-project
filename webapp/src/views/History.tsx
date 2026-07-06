@@ -50,7 +50,7 @@ export default function History() {
       "Prąd (A)",
       "Moc czynna (W)",
       "Moc pozorna (VA)",
-      "Moc bierna (VAR)",
+      "Moc bierna (VAr)",
       "Współczynnik mocy",
       "Częstotliwość (Hz)",
       "THD napięcia (%)",

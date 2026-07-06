@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import type { RealtimeDashboardDTO } from '@/types/api';
+import type { DashboardDTO, RealtimeDashboardDTO } from '@/types/api';
 
 interface UseWebSocketOptions {
   url: string;
@@ -26,8 +26,7 @@ interface UseWebSocketOptions {
  *
  * Backend sends RealtimeDashboardDTO every 3 seconds with:
  * - latest_measurement (voltage, current, power, THD, harmonics)
- * - waveforms (200 samples of voltage/current sinusoid)
- * - recent_history (last N measurements)
+ * - waveforms (two periods of voltage/current samples)
  */
 export function useWebSocket({
   url,
@@ -65,8 +64,15 @@ export function useWebSocket({
             // Update local state for streaming components
             setLatestData(data);
 
-            // Update React Query cache automatically
-            queryClient.setQueryData(['dashboard'], data);
+            // Update React Query cache while preserving the full DashboardDTO shape.
+            queryClient.setQueryData<DashboardDTO | undefined>(
+              ['dashboard'],
+              (previous) => ({
+                latest_measurement: data.latest_measurement,
+                waveforms: data.waveforms,
+                recent_history: previous?.recent_history ?? [],
+              }),
+            );
 
             // Call custom handler if provided
             onMessageRef.current?.(data);

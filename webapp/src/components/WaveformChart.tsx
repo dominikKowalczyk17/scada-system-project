@@ -87,6 +87,21 @@ function trimToExactPeriods(
   };
 }
 
+function useRawPeriodsFallback(
+  voltage: number[],
+  current: number[],
+  frequency: number,
+  numPeriods: number
+): { voltage: number[]; current: number[]; samplingRate: number } | null {
+  if (voltage.length < 2 || voltage.length !== current.length) return null;
+
+  return {
+    voltage,
+    current,
+    samplingRate: ((voltage.length - 1) * frequency) / numPeriods,
+  };
+}
+
 export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
   const [numPeriods, setNumPeriods] = useState<1 | 2>(1);
 
@@ -103,15 +118,26 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
     );
   }
 
-  // Try to trim to exact periods; fallback to 1 period, then raw data
+  // Try to trim to exact periods. If 2T cannot be trimmed because the ESP32
+  // buffer starts mid-period, show the raw two-period payload instead.
   const trimmedRequested = trimToExactPeriods(
     waveforms.voltage,
     waveforms.current,
     frequency,
     numPeriods,
   );
+  const rawPeriodsFallback =
+    numPeriods === 2
+      ? useRawPeriodsFallback(
+          waveforms.voltage,
+          waveforms.current,
+          frequency,
+          numPeriods,
+        )
+      : null;
   const trimmedFallback =
     trimmedRequested ??
+    rawPeriodsFallback ??
     trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, 1);
   const trimmed = trimmedFallback;
 

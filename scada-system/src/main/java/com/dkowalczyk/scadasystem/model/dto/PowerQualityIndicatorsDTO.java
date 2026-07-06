@@ -37,7 +37,7 @@ public class PowerQualityIndicatorsDTO {
     private Double voltageRms;
 
     /**
-     * Voltage deviation from declared value (230V) in percent.
+     * Voltage deviation from declared value (230 V) in percent.
      * Formula: (U_measured - 230) / 230 * 100%
      * PN-EN 50160 limit: ±10% for 95% of week.
      */
@@ -72,7 +72,7 @@ public class PowerQualityIndicatorsDTO {
     /**
      * Total Harmonic Distortion of voltage in percent.
      * <p>
-     * IMPORTANT: Calculated from harmonics 2-8 only (partial measurement).
+     * IMPORTANT: Calculated from harmonics 2-25 only (partial measurement).
      * IEC 61000-4-7 requires harmonics 2-40 for full compliance.
      * This value represents a LOWER BOUND of actual THD.
      * <p>
@@ -82,14 +82,14 @@ public class PowerQualityIndicatorsDTO {
 
     /**
      * Flag indicating if THD is within PN-EN 50160 limit (<8%).
-     * Note: Based on partial THD (harmonics 2-8 only).
+     * Note: Based on partial THD (harmonics 2-25 only).
      */
     private Boolean thdWithinLimits;
 
     /**
      * Voltage harmonics array [H1, H2, H3, H4, H5, H6, H7,... H25].
      * <p>
-     * Limited to 8 harmonics due to Nyquist constraint at 800-1000 Hz sampling.
+     * Limited to H1-H25 by the current firmware payload.
      * IEC 61000-4-7 specifies measurement up to H40 for full compliance.
      */
     private Double[] harmonicsVoltage;
