@@ -179,36 +179,29 @@ public class StatsService {
         double dataCompleteness = (double) measurementCount / expectedMeasurements;
 
         // === Persist Calculated Stats ===
-        DailyStats dailyStats = DailyStats.builder()
-                .date(date)
-                // Voltage
-                .avgVoltage(avgVoltage)
-                .minVoltage(minVoltage)
-                .maxVoltage(maxVoltage)
-                .stdDevVoltage(stdDevVoltage)
-                // Power
-                .avgPowerActive(avgPowerActive)
-                .minPower(minPowerActive)
-                .peakPower(maxPowerActive)
-                .totalEnergyKwh(totalEnergyKwh)
-                // Power factor
-                .avgPowerFactor(avgPowerFactor)
-                .minPowerFactor(minPowerFactor)
-                // Frequency
-                .avgFrequency(avgFrequency)
-                .minFrequency(minFrequency)
-                .maxFrequency(maxFrequency)
-                // Event counters
-                .voltageSagCount(voltageSagCount)
-                .voltageSwellCount(voltageSwellCount)
-                .interruptionCount(interruptionCount)
-                .thdViolationsCount(thdViolationsCount)
-                .frequencyDevCount(frequencyDevCount)
-                .powerFactorPenaltyCount(powerFactorPenaltyCount)
-                // Data quality
-                .measurementCount(measurementCount)
-                .dataCompleteness(dataCompleteness)
-                .build();
+        DailyStats dailyStats = repository.findByDate(date).orElseGet(DailyStats::new);
+        dailyStats.setDate(date);
+        dailyStats.setAvgVoltage(avgVoltage);
+        dailyStats.setMinVoltage(minVoltage);
+        dailyStats.setMaxVoltage(maxVoltage);
+        dailyStats.setStdDevVoltage(stdDevVoltage);
+        dailyStats.setAvgPowerActive(avgPowerActive);
+        dailyStats.setMinPower(minPowerActive);
+        dailyStats.setPeakPower(maxPowerActive);
+        dailyStats.setTotalEnergyKwh(totalEnergyKwh);
+        dailyStats.setAvgPowerFactor(avgPowerFactor);
+        dailyStats.setMinPowerFactor(minPowerFactor);
+        dailyStats.setAvgFrequency(avgFrequency);
+        dailyStats.setMinFrequency(minFrequency);
+        dailyStats.setMaxFrequency(maxFrequency);
+        dailyStats.setVoltageSagCount(voltageSagCount);
+        dailyStats.setVoltageSwellCount(voltageSwellCount);
+        dailyStats.setInterruptionCount(interruptionCount);
+        dailyStats.setThdViolationsCount(thdViolationsCount);
+        dailyStats.setFrequencyDevCount(frequencyDevCount);
+        dailyStats.setPowerFactorPenaltyCount(powerFactorPenaltyCount);
+        dailyStats.setMeasurementCount(measurementCount);
+        dailyStats.setDataCompleteness(dataCompleteness);
 
         repository.save(dailyStats);
 
