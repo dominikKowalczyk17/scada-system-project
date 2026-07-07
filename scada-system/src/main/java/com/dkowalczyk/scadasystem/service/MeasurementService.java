@@ -338,14 +338,14 @@ public class MeasurementService {
     }
 
     /**
-     * Check if THD is within PN-EN 50160 limit (<8%).
+     * Check if THD is within PN-EN 50160 limit (<=8%).
      * Note: Our THD is partial (harmonics 2-25 only), representing lower bound.
      */
     private Boolean checkThdCompliance(Double thdVoltage) {
         if (thdVoltage == null) {
             return null;
         }
-        return thdVoltage < Constants.VOLTAGE_THD_LIMIT;
+        return thdVoltage <= Constants.VOLTAGE_THD_LIMIT;
     }
 
     private PowerQualityIndicatorsDTO buildPowerQualityIndicatorsDTO(Measurement measurement) {

@@ -7,6 +7,7 @@ import com.dkowalczyk.scadasystem.model.dto.PowerQualityIndicatorsDTO;
 import com.dkowalczyk.scadasystem.model.dto.ValidationResult;
 import com.dkowalczyk.scadasystem.model.entity.Measurement;
 import com.dkowalczyk.scadasystem.repository.MeasurementRepository;
+import com.dkowalczyk.scadasystem.util.Constants;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -59,6 +60,28 @@ class MeasurementServiceTest extends BaseServiceTest {
         assertThat(dto.getThdVoltage()).isEqualTo(5.0);
         assertThat(dto.getVoltageWithinLimits()).isTrue();
         assertThat(dto.getFrequencyWithinLimits()).isTrue();
+        assertThat(dto.getThdWithinLimits()).isTrue();
+        assertThat(dto.getOverallCompliant()).isTrue();
+        assertThat(dto.getStatusMessage()).contains("within PN-EN 50160");
+    }
+
+    @Test
+    void getLatestPowerQualityIndicators_treatsExactThdLimitAsCompliant() {
+        Measurement measurement = Measurement.builder()
+            .time(Instant.now())
+            .voltageRms(230.0)
+            .frequency(50.0)
+            .thdVoltage(Constants.VOLTAGE_THD_LIMIT)
+            .harmonicsV(new Double[]{1.0, 2.0, 3.0})
+            .voltageDeviationPercent(0.0)
+            .frequencyDeviationHz(0.0)
+            .build();
+        when(repository.findTopByIsValidTrueOrderByTimeDesc()).thenReturn(Optional.of(measurement));
+
+        Optional<PowerQualityIndicatorsDTO> result = measurementService.getLatestPowerQualityIndicators();
+
+        assertThat(result).isPresent();
+        PowerQualityIndicatorsDTO dto = result.get();
         assertThat(dto.getThdWithinLimits()).isTrue();
         assertThat(dto.getOverallCompliant()).isTrue();
         assertThat(dto.getStatusMessage()).contains("within PN-EN 50160");
