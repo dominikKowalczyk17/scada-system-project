@@ -32,7 +32,7 @@ public class MeasurementValidatorTest {
 
         // THEN
         assertFalse(result.isValid());
-        assertTrue(result.getErrors().stream().anyMatch(e -> e.contains("360V")));
+        assertTrue(result.getErrors().stream().anyMatch(e -> e.contains("360 V")));
     }
 
     @Test

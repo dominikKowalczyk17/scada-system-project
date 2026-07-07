@@ -5,20 +5,17 @@ import type { HarmonicsChartHandle } from "@/components/HarmonicsChart";
 import { PowerQualitySection } from "@/components/PowerQualitySection";
 import { StreamingChart } from "@/components/StreamingChart";
 import { Activity, Loader2, AlertCircle, Camera } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { captureAllSections } from "@/hooks/useScreenshotAll";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { usePowerQualityIndicators } from "@/hooks/usePowerQualityIndicators";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { formatTime, formatDate } from "@/lib/dateUtils";
 import { POWER_QUALITY_LIMITS } from "@/lib/constants";
-import type { MeasurementDTO } from "@/types/api";
+import type { MeasurementDTO, PowerQualityIndicatorsDTO } from "@/types/api";
 
 const Dashboard = () => {
   const [time, setTime] = useState(new Date());
   const { data: dashboardData, isLoading, isError } = useDashboardData();
-  const { data: powerQualityData, isLoading: isPqLoading } =
-    usePowerQualityIndicators();
 
   // WebSocket connection for real-time updates
   const { isConnected, data: websocket_data } = useWebSocket({
@@ -126,6 +123,71 @@ const Dashboard = () => {
     return diff > 0 ? "rising" : "falling";
   };
 
+  const powerQualityData = useMemo<PowerQualityIndicatorsDTO | null>(() => {
+    const measurement = dashboardData?.latest_measurement;
+    if (!measurement) return null;
+
+    const voltageDeviation =
+      measurement.voltage_deviation_percent ??
+      (measurement.voltage_rms !== undefined
+        ? ((measurement.voltage_rms - POWER_QUALITY_LIMITS.NOMINAL_VOLTAGE) /
+            POWER_QUALITY_LIMITS.NOMINAL_VOLTAGE) *
+          100
+        : null);
+
+    const frequencyDeviation =
+      measurement.frequency_deviation_hz ??
+      (measurement.frequency !== undefined
+        ? measurement.frequency - POWER_QUALITY_LIMITS.NOMINAL_FREQUENCY
+        : null);
+
+    const voltageWithinLimits =
+      measurement.voltage_rms === undefined
+        ? null
+        : measurement.voltage_rms >= POWER_QUALITY_LIMITS.VOLTAGE_MIN &&
+          measurement.voltage_rms <= POWER_QUALITY_LIMITS.VOLTAGE_MAX;
+
+    const frequencyWithinLimits =
+      measurement.frequency === undefined
+        ? null
+        : measurement.frequency >= POWER_QUALITY_LIMITS.FREQUENCY_MIN &&
+          measurement.frequency <= POWER_QUALITY_LIMITS.FREQUENCY_MAX;
+
+    const thdWithinLimits =
+      measurement.thd_voltage === undefined
+        ? null
+        : measurement.thd_voltage <= POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT;
+
+    const complianceValues = [
+      voltageWithinLimits,
+      frequencyWithinLimits,
+      thdWithinLimits,
+    ];
+    const overallCompliant = complianceValues.some((value) => value === null)
+      ? null
+      : complianceValues.every(Boolean);
+
+    return {
+      timestamp: measurement.time ?? new Date().toISOString(),
+      voltage_rms: measurement.voltage_rms ?? 0,
+      voltage_deviation_percent: voltageDeviation,
+      voltage_within_limits: voltageWithinLimits,
+      frequency: measurement.frequency ?? 0,
+      frequency_deviation_hz: frequencyDeviation,
+      frequency_within_limits: frequencyWithinLimits,
+      thd_voltage: measurement.thd_voltage ?? 0,
+      thd_within_limits: thdWithinLimits,
+      harmonics_voltage: measurement.harmonics_v ?? [],
+      overall_compliant: overallCompliant,
+      status_message:
+        overallCompliant === null
+          ? "Brak pełnych danych"
+          : overallCompliant
+            ? "Wszystkie wskaźniki w normie"
+            : "Wykryto odchylenia",
+    };
+  }, [dashboardData?.latest_measurement]);
+
   return (
     <div className="bg-background grid-pattern">
       {/* Status Bar */}
@@ -199,18 +261,7 @@ const Dashboard = () => {
         {/* PN-EN 50160 Power Quality Indicators */}
         {!isLoading && !isError && (
           <>
-            {isPqLoading && (
-              <section className="mb-6 sm:mb-8">
-                <div className="flex items-center gap-3 bg-card/50 border border-border rounded-lg p-6">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">
-                    Ładowanie wskaźników jakości energii...
-                  </span>
-                </div>
-              </section>
-            )}
-
-            {powerQualityData && !isPqLoading && (
+            {powerQualityData && (
               <div ref={powerQualityRef}>
                 <PowerQualitySection data={powerQualityData} />
               </div>
@@ -284,7 +335,7 @@ const Dashboard = () => {
                 value={(
                   dashboardData.latest_measurement.power_distortion ?? 0
                 ).toFixed(1)}
-                unit="var"
+                unit="VAr"
                 status="normal"
                 statusLabel="Diagnostyczny"
                 min="0"
@@ -321,7 +372,7 @@ const Dashboard = () => {
               <ParameterCard
                 title="Moc bierna"
                 value={(dashboardData.latest_measurement.power_reactive ?? 0).toFixed(1)}
-                unit="VAR"
+                unit="VAr"
                 status="normal"
                 statusLabel="Normalny"
                 min="0"

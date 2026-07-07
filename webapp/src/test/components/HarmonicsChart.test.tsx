@@ -78,7 +78,7 @@ vi.mock('recharts', () => ({
 }));
 
 describe('HarmonicsChart Component - Comprehensive Suite', () => {
-  // H1-H25 (25 harmonics measured at 3000Hz sampling rate)
+  // H1-H25 (25 harmonics reported by firmware at 10 kHz sampling rate)
   const harmonicsVoltage = [
     230.0, 8.5, 6.2, 4.1, 2.3, 1.1, 0.5, 0.2, // H1-H25
     0.15, 0.12, 0.09, 0.07, 0.06, 0.05, 0.04, 0.03, // H9-H16
@@ -103,10 +103,10 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
       expect(screen.getByTestId('responsive-container')).toBeInTheDocument();
     });
 
-    it('renders the technical Info box explaining Nyquist limit', () => {
+    it('renders the technical Info box explaining harmonic range limit', () => {
       render(React.createElement(HarmonicsChart, defaultProps));
-      expect(screen.getByText(/Ograniczenie Nyquista/i)).toBeInTheDocument();
-      expect(screen.getByText(/3000Hz/i)).toBeInTheDocument();
+      expect(screen.getByText(/Ograniczenie zakresu harmonicznych/i)).toBeInTheDocument();
+      expect(screen.getByText(/10 kHz/i)).toBeInTheDocument();
     });
 
     it('renders THD values with exactly 2 decimal places', () => {
@@ -118,7 +118,7 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
   });
 
   describe('Data Mapping & Logic', () => {
-    it('correctly maps frequency values (50Hz steps) to chart data', () => {
+    it('correctly maps frequency values (50 Hz steps) to chart data', () => {
       render(React.createElement(HarmonicsChart, defaultProps));
       const chart = screen.getByTestId('bar-chart');
       const data = JSON.parse(chart.getAttribute('data-raw') || '[]');

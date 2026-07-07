@@ -24,13 +24,13 @@ public class MeasurementRequest {
 
     @NotNull(message = "voltageRms is required")
     @DecimalMin(value = "0.0", message = "voltageRms must be non-negative")
-    @DecimalMax(value = "500.0", message = "voltageRms must not exceed 500V")
+    @DecimalMax(value = "500.0", message = "voltageRms must not exceed 500 V")
     @JsonProperty("v_rms")
     private Double voltageRms;
 
     @NotNull(message = "currentRms is required")
     @DecimalMin(value = "0.0", message = "currentRms must be non-negative")
-    @DecimalMax(value = "100.0", message = "currentRms must not exceed 100A")
+    @DecimalMax(value = "100.0", message = "currentRms must not exceed 100 A")
     @JsonProperty("i_rms")
     private Double currentRms;
 
@@ -63,8 +63,8 @@ public class MeasurementRequest {
     private Double powerFactor;
 
     @NotNull(message = "frequency is required")
-    @DecimalMin(value = "45.0", message = "frequency must be at least 45Hz")
-    @DecimalMax(value = "65.0", message = "frequency must not exceed 65Hz")
+    @DecimalMin(value = "45.0", message = "frequency must be at least 45 Hz")
+    @DecimalMax(value = "65.0", message = "frequency must not exceed 65 Hz")
     @JsonProperty("freq")
     private Double frequency;
 
@@ -85,14 +85,14 @@ public class MeasurementRequest {
     private Double[] harmonicsI;
 
     /**
-     * Raw voltage waveform samples (2 cycles, ~120 samples).
+     * Raw voltage waveform samples (2 cycles, about 400 samples at 50 Hz).
      * Optional - if not provided, frontend will reconstruct from harmonics.
      */
     @JsonProperty("waveform_v")
     private Double[] waveformV;
 
     /**
-     * Raw current waveform samples (2 cycles, ~120 samples).
+     * Raw current waveform samples (2 cycles, about 400 samples at 50 Hz).
      * Optional - if not provided, frontend will reconstruct from harmonics.
      */
     @JsonProperty("waveform_i")

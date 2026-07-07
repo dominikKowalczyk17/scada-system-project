@@ -213,7 +213,7 @@ class GlobalExceptionHandlerTest extends BaseIntegrationTest {
         @Test
         @DisplayName("should return 400 when field violates constraint")
         void shouldReturn400_whenConstraintViolated() throws Exception {
-            // Given: Voltage exceeds max (500V)
+            // Given: Voltage exceeds max (500 V)
             MeasurementRequest request = createValidRequest();
             request.setVoltageRms(600.0);
 

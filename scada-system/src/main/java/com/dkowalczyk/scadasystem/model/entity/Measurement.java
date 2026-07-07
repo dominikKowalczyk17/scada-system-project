@@ -14,17 +14,17 @@ import org.hibernate.type.SqlTypes;
  * <p>
  * This entity stores both raw measurement values and calculated PN-EN 50160 power quality indicators.
  * The system is capable of measuring a subset of power quality parameters defined in PN-EN 50160
- * due to hardware limitations (12-bit ADC, 800-1000 Hz sampling rate).
+ * due to hardware limitations (ESP32 12-bit ADC and non-certified sensors).
  * <p>
  * Measurement capabilities:
  * - PN-EN 50160 Group 1: Supply voltage magnitude (voltage deviation)
  * - PN-EN 50160 Group 2: Supply frequency (frequency deviation)
- * - PN-EN 50160 Group 4: Voltage waveform distortions (THD and harmonics 2-8, partial)
+ * - PN-EN 50160 Group 4: Voltage waveform distortions (THD and harmonics 2-25, partial)
  * - Additional diagnostic parameters: power, power factor, current harmonics
  * <p>
  * Limitations:
- * - Harmonics limited to H1-H25 (50-400 Hz) due to Nyquist constraint at 800-1000 Hz sampling
- * - THD calculation is partial (excludes harmonics 9-40), representing lower bound of actual distortion
+ * - Harmonics reported as H1-H25 (50 Hz-1250 Hz)
+ * - THD calculation is partial (excludes harmonics 26-40), representing lower bound of actual distortion
  * - No flicker measurement (P_st/P_lt) - requires IEC 61000-4-15 compliant equipment
  * - Event detection (voltage dips, interruptions) implemented separately
  */
@@ -78,7 +78,7 @@ public class Measurement {
     private Double powerApparent;
 
     /**
-     * Reactive power of fundamental Q₁ in var (Budeanu theory, not a PN-EN 50160 indicator).
+     * Reactive power of fundamental Q₁ in VAr (Budeanu theory, not a PN-EN 50160 indicator).
      * <p>
      * Formula: Q₁ = U₁ * I₁ * sin(φ₁)
      * where φ₁ is the phase shift of fundamental (H1) only, extracted from FFT.
@@ -91,7 +91,7 @@ public class Measurement {
     private Double powerReactive;
 
     /**
-     * Distortion power D in var (Budeanu theory, not a PN-EN 50160 indicator).
+     * Distortion power D in VAr (Budeanu theory, not a PN-EN 50160 indicator).
      * <p>
      * Formula: D = sqrt(S² - P² - Q₁²)
      * <p>
@@ -132,12 +132,12 @@ public class Measurement {
     /**
      * Total Harmonic Distortion of voltage (PN-EN 50160 Group 4 indicator, partial).
      * <p>
-     * Formula: THD = sqrt(sum(U_h^2 for h=2..8)) / U_1 * 100%
+     * Formula: THD = sqrt(sum(U_h^2 for h=2..25)) / U_1 * 100%
      * <p>
      * IMPORTANT LIMITATIONS:
      * - IEC 61000-4-7 requires harmonics 2-40 for full compliance
-     * - Our system measures only harmonics 2-8 due to Nyquist limitation at 800-1000 Hz sampling
-     * - This represents a LOWER BOUND of actual THD (real THD may be higher due to unmeasured harmonics 9-40)
+     * - Our system reports harmonics 2-25
+     * - This represents a LOWER BOUND of actual THD (real THD may be higher due to unmeasured harmonics 26-40)
      * <p>
      * PN-EN 50160 limit: THD < 8% (for full spectrum 2-40)
      * <p>
@@ -148,9 +148,9 @@ public class Measurement {
     /**
      * Total Harmonic Distortion of current (diagnostic parameter, not PN-EN 50160 indicator).
      * <p>
-     * Formula: THD = sqrt(sum(I_h^2 for h=2..8)) / I_1 * 100%
+     * Formula: THD = sqrt(sum(I_h^2 for h=2..25)) / I_1 * 100%
      * <p>
-     * Note: Partial calculation, harmonics 2-8 only (same limitation as THD voltage).
+     * Note: Partial calculation, harmonics 2-25 only (same limitation as THD voltage).
      * Related to IEC 61000-3-2 (emission limits for equipment).
      * Used for diagnostics of non-linear loads.
      * <p>
@@ -159,7 +159,7 @@ public class Measurement {
     private Double thdCurrent;
 
     /**
-     * Voltage harmonics array containing 8 values (PN-EN 50160 Group 4 indicator, partial).
+     * Voltage harmonics array containing 25 values (PN-EN 50160 Group 4 indicator, partial).
      * <p>
      * Array structure:
      * - harmonicsV[0] = H1 (50 Hz fundamental component)
@@ -175,12 +175,13 @@ public class Measurement {
      * .
      * - harmonicsV[24] = H25 (1250 Hz, 25th harmonic)
      * <p>
-     * NYQUIST LIMITATION:
-     * At 800-1000 Hz sampling rate, Nyquist frequency is 400-500 Hz.
-     * Harmonics above 25th order cannot be reliably measured (aliasing).
+     * RANGE LIMITATION:
+     * Firmware reports harmonics up to the 25th order. At 10 kHz per channel,
+     * Nyquist frequency is 5 kHz, so H25 is an implementation/reporting limit,
+     * not the ADC Nyquist limit.
      * <p>
      * IEC 61000-4-7 specifies measurement up to 40th harmonic (2000 Hz) for full compliance.
-     * Our system measures only up to 25th harmonic due to hardware sampling constraints.
+     * Our system reports up to 25th harmonic in the current firmware payload.
      * <p>
      * Calculated by ESP32 from FFT/DFT with Hann window and zero-crossing synchronization.
      */
@@ -189,14 +190,14 @@ public class Measurement {
     private Double[] harmonicsV;
 
     /**
-     * Current harmonics array containing 8 values (diagnostic parameter, not PN-EN 50160 indicator).
+     * Current harmonics array containing 25 values (diagnostic parameter, not PN-EN 50160 indicator).
      * <p>
      * Array structure: Same as harmonicsV (H1-H25).
      * <p>
      * Related to IEC 61000-3-2 (emission limits for equipment).
      * Used for diagnostics of non-linear loads (switch-mode power supplies, inverters, LED drivers).
      * <p>
-     * Note: Limited to 8 harmonics due to same Nyquist constraint as voltage harmonics.
+     * Note: Limited to the same H1-H25 reporting range as voltage harmonics.
      * <p>
      * Calculated by ESP32 from FFT/DFT.
      */
@@ -205,7 +206,7 @@ public class Measurement {
     private Double[] harmonicsI;
 
     /**
-     * Raw voltage waveform samples from ESP32 (2 cycles, ~120 samples at 50Hz).
+     * Raw voltage waveform samples from ESP32 (2 cycles, about 400 samples at 50 Hz).
      * <p>
      * Contains actual sampled voltage values BEFORE FFT processing.
      * Used for accurate waveform visualization showing real distortions, clipping, asymmetry.
@@ -217,7 +218,7 @@ public class Measurement {
     private Double[] waveformV;
 
     /**
-     * Raw current waveform samples from ESP32 (2 cycles, ~120 samples at 50Hz).
+     * Raw current waveform samples from ESP32 (2 cycles, about 400 samples at 50 Hz).
      * <p>
      * Contains actual sampled current values BEFORE FFT processing.
      * Used for accurate waveform visualization showing real distortions, clipping, asymmetry.
@@ -232,10 +233,10 @@ public class Measurement {
      * PN-EN 50160 Group 1 indicator: Voltage deviation from declared value.
      * <p>
      * Formula: (U_measured - U_nominal) / U_nominal * 100%
-     * where U_nominal = 230V for single-phase EU grid.
+     * where U_nominal = 230 V for single-phase EU grid.
      * <p>
      * PN-EN 50160 limit: ±10% for 95% of week.
-     * Acceptable range: 207-253 V for 230V nominal.
+     * Acceptable range: 207-253 V for 230 V nominal.
      * <p>
      * Calculated by backend from voltageRms.
      */

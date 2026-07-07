@@ -53,8 +53,8 @@ export interface PowerQualityIndicatorsDTO {
 }
 
 export interface WaveformDTO {
-  voltage: number[];  // 200 samples (one 50Hz cycle = 20ms)
-  current: number[];  // 200 samples
+  voltage: number[];  // two cycles, about 400 samples at 50 Hz
+  current: number[];  // two cycles, about 400 samples at 50 Hz
 }
 
 export interface RealtimeDashboardDTO {

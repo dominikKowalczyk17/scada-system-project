@@ -3,18 +3,18 @@
  * Must match backend Constants.java for consistency.
  */
 export const POWER_QUALITY_LIMITS = Object.freeze({
-  // Voltage limits (PN-EN 50160: 230V ±10%)
+  // Voltage limits (PN-EN 50160: 230 V ±10%)
   NOMINAL_VOLTAGE: 230.0,
-  VOLTAGE_MIN: 207.0,  // 230V - 10%
-  VOLTAGE_MAX: 253.0,  // 230V + 10%
+  VOLTAGE_MIN: 207.0,  // 230 V - 10%
+  VOLTAGE_MAX: 253.0,  // 230 V + 10%
 
-  // Frequency limits (PN-EN 50160: 50Hz ±1%)
+  // Frequency limits (PN-EN 50160: 50 Hz ±1%)
   NOMINAL_FREQUENCY: 50.0,
-  FREQUENCY_MIN: 49.5,  // 50Hz - 1%
-  FREQUENCY_MAX: 50.5,  // 50Hz + 1%
+  FREQUENCY_MIN: 49.5,  // 50 Hz - 1%
+  FREQUENCY_MAX: 50.5,  // 50 Hz + 1%
 
-  // Current limits (typical household 16A circuit)
-  CURRENT_WARNING: 13.0,   // 80% of 16A rated
+  // Current limits (typical household 16 A circuit)
+  CURRENT_WARNING: 13.0,   // 80% of 16 A rated
   CURRENT_CRITICAL: 16.0,  // Circuit breaker rating
 
   // THD limits (IEC 61000-4-7 and IEC 61000-3-2)
@@ -22,5 +22,5 @@ export const POWER_QUALITY_LIMITS = Object.freeze({
   CURRENT_THD_LIMIT: 5.0,  // IEC 61000-3-2 emission limit
 
   // Power factor (typical contractual requirement)
-  MIN_POWER_FACTOR: 0.85,  // Minimum acceptable cos φ
+  MIN_POWER_FACTOR: 0.85,  // Minimum acceptable λ = P/S
 });

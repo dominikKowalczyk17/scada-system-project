@@ -103,23 +103,23 @@ public class MathUtils {
      * <p>
      * Mathematical formula: V(t) = Σ[Hₙ · sin(ωₙ · t)] where ωₙ = 2π · f · n
      * <p>
-     * WHY: ESP32 sends harmonic amplitudes (8 numbers) to save bandwidth.
-     * This function reconstructs the full waveform (200 samples) for visualization.
+     * WHY: ESP32 sends harmonic amplitudes to save bandwidth.
+     * This function reconstructs a waveform for visualization.
      *
      * @param harmonics       Array of harmonic amplitudes [H1, H2, ..., H25]
      *                        H1 = fundamental frequency, H2 = 2nd harmonic, etc.
-     * @param frequency       Fundamental frequency in Hz (50Hz for EU, 60Hz for
+     * @param frequency       Fundamental frequency in Hz (50 Hz for EU, 60 Hz for
      *                        USA)
      * @param samplesPerCycle Number of samples to generate per complete cycle
      * @return Array of waveform samples representing one complete cycle, or zeros
      *         if harmonics is null/empty
      *         <p>
      *         EXAMPLE:
-     *         harmonics = [230.0, 4.8, 2.3, 1.1, 0.8, 0.5, 0.3, 0.2]
+     *         harmonics = [230.0, 4.8, 2.3, 1.1, 0.8, 0.5, 0.3, 0.2, ...]
      *         frequency = 50.0
      *         samplesPerCycle = 200
-     *         → returns 200-element array representing voltage waveform over 20ms
-     *         (one 50Hz cycle)
+     *         -> returns samples representing voltage waveform over one cycle
+     *         (20 ms at 50 Hz)
      */
     public static double[] reconstructWaveform(Double[] harmonics, double frequency, int samplesPerCycle,
             double phaseShift) {
@@ -129,10 +129,10 @@ public class MathUtils {
 
         double[] waveform = new double[samplesPerCycle];
 
-        // t_step = 1.0 / (frequency * samplesPerCycle);
+        double secondsPerSample = 1.0 / (frequency * samplesPerCycle);
 
         for (int i = 0; i < samplesPerCycle; i++) {
-            double t = (double) i / samplesPerCycle;
+            double t = i * secondsPerSample;
             double sum = 0;
 
             for (int h = 0; h < harmonics.length; h++) {
@@ -143,7 +143,8 @@ public class MathUtils {
                 double amplitude = harmonics[h] * Math.sqrt(2);
 
                 // Fourier Synthesis:
-                double angle = 2.0 * Math.PI * harmonicOrder * t - (harmonicOrder == 1 ? phaseShift : 0);
+                double angle = 2.0 * Math.PI * frequency * harmonicOrder * t
+                        - (harmonicOrder == 1 ? phaseShift : 0);
                 sum += amplitude * Math.sin(angle);
             }
             waveform[i] = sum;
@@ -154,7 +155,7 @@ public class MathUtils {
 
     /**
      * Calculate apparent power S (in VA) from active power P (in W) and reactive
-     * power Q (in VAR).
+     * power Q (in VAr).
      * Formula: S = √(P² + Q²)
      */
     public static double calculateApparentPower(double activePower, double reactivePower) {

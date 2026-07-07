@@ -87,7 +87,7 @@ describe('constants', () => {
         );
       });
 
-      it('nominal voltage (230V) is within acceptable range', () => {
+      it('nominal voltage (230 V) is within acceptable range', () => {
         expect(POWER_QUALITY_LIMITS.NOMINAL_VOLTAGE).toBeGreaterThanOrEqual(
           POWER_QUALITY_LIMITS.VOLTAGE_MIN
         );
@@ -113,7 +113,7 @@ describe('constants', () => {
         );
       });
 
-      it('nominal frequency (50Hz) is within acceptable range', () => {
+      it('nominal frequency (50 Hz) is within acceptable range', () => {
         expect(POWER_QUALITY_LIMITS.NOMINAL_FREQUENCY).toBeGreaterThanOrEqual(
           POWER_QUALITY_LIMITS.FREQUENCY_MIN
         );
@@ -144,9 +144,9 @@ describe('constants', () => {
         expect(POWER_QUALITY_LIMITS.CURRENT_CRITICAL).toBeGreaterThan(0);
       });
 
-      it('warning is approximately 80% of critical (16A)', () => {
+      it('warning is approximately 80% of critical (16 A)', () => {
         const expected_warning = POWER_QUALITY_LIMITS.CURRENT_CRITICAL * 0.8;
-        // 13A is close to 12.8A (80% of 16A), using 0 decimal places tolerance
+        // 13 A is close to 12.8 A (80% of 16 A), using 0 decimal places tolerance
         expect(POWER_QUALITY_LIMITS.CURRENT_WARNING).toBeCloseTo(expected_warning, 0);
       });
     });
@@ -183,7 +183,7 @@ describe('constants', () => {
     });
 
     describe('PN-EN 50160 Standard Compliance', () => {
-      it('voltage range covers ±10% of 230V nominal (207V to 253V)', () => {
+      it('voltage range covers ±10% of 230 V nominal (207 V to 253 V)', () => {
         const nominal = 230;
         const tolerance = 0.1;
 
@@ -194,7 +194,7 @@ describe('constants', () => {
         expect(POWER_QUALITY_LIMITS.VOLTAGE_MAX).toBeCloseTo(expected_max, 5);
       });
 
-      it('frequency range covers ±1% of 50Hz nominal (49.5Hz to 50.5Hz)', () => {
+      it('frequency range covers ±1% of 50 Hz nominal (49.5 Hz to 50.5 Hz)', () => {
         const nominal = 50;
         const tolerance = 0.01;
 

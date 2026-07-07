@@ -12,7 +12,7 @@ package com.dkowalczyk.scadasystem.util;
  * - Power factor thresholds
  * <p>
  * Note: Some limits reference full harmonic spectrum (2-40) per IEC standards,
- * but our system measures only harmonics 2-8 due to hardware sampling constraints.
+ * but our system currently reports harmonics 2-25.
  */
 public final class Constants {
 
@@ -69,9 +69,9 @@ public final class Constants {
      * THD voltage limit per PN-EN 50160 and IEC 61000-4-7.
      * Applies to full harmonic spectrum (harmonics 2-40).
      * <p>
-     * IMPORTANT: Our system measures only harmonics 2-8 due to Nyquist limitation
-     * at 800-1000 Hz sampling rate. Calculated THD represents a LOWER BOUND of
-     * actual distortion (real THD may be higher due to unmeasured harmonics 9-40).
+     * IMPORTANT: Our system reports harmonics 2-25. Calculated THD represents a
+     * LOWER BOUND of actual distortion (real THD may be higher due to unmeasured
+     * harmonics 26-40).
      */
     public static final double VOLTAGE_THD_LIMIT = 8.0;
 
@@ -81,7 +81,7 @@ public final class Constants {
      * <p>
      * Note: This is a diagnostic parameter, not a PN-EN 50160 indicator.
      * PN-EN 50160 focuses on voltage quality, not current.
-     * Our system measures only harmonics 2-8 (partial THD).
+     * Our system reports harmonics 2-25 (partial THD).
      */
     public static final double CURRENT_THD_LIMIT = 5.0;
     /**
@@ -143,17 +143,16 @@ public final class Constants {
     // === Power Factor (Not a PN-EN 50160 indicator) ===
     /**
      * Number of harmonics measured by the system.
-     * Limited by Nyquist constraint at 800-1000 Hz sampling rate.
-     * Includes fundamental (H1) + harmonics 2-8.
+     * Includes fundamental (H1) + harmonics 2-25.
      */
     public static final int HARMONICS_COUNT = 25;
 
     // === Measurement System Specifications ===
     /**
-     * Sampling rate of ESP32 ADC (Hz).
-     * Conservative value with WiFi enabled.
+     * Sampling rate of ESP32 ADC per channel (Hz).
+     * Firmware uses ADC continuous DMA mode.
      */
-    public static final int SAMPLING_RATE_HZ = 3000;
+    public static final int SAMPLING_RATE_HZ = 10000;
     /**
      * Nyquist frequency: maximum measurable frequency (Hz).
      * Nyquist = sampling_rate / 2.
@@ -161,7 +160,7 @@ public final class Constants {
     public static final int NYQUIST_FREQUENCY_HZ = SAMPLING_RATE_HZ / 2;
     /**
      * Maximum measurable harmonic order at current sampling rate.
-     * 1500 Hz / 50 Hz = 30th harmonic.
+     * 5000 Hz / 50 Hz = 100th harmonic.
      */
     public static final int MAX_HARMONIC_ORDER = NYQUIST_FREQUENCY_HZ / (int) NOMINAL_FREQUENCY;
 

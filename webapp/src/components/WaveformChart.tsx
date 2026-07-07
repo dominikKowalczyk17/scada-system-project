@@ -56,6 +56,24 @@ function findPositiveZeroCrossings(data: number[]): number[] {
   return crossings;
 }
 
+function estimateRawPeriods(voltage: number[]): number {
+  if (voltage.length < 2) return 1;
+
+  let zeroCrossings = 0;
+  if (voltage[0] === 0 || voltage[0] * voltage[1] < 0) {
+    zeroCrossings++;
+  }
+
+  for (let i = 1; i < voltage.length; i++) {
+    if (voltage[i - 1] === 0) continue;
+    if (voltage[i] === 0 || voltage[i - 1] * voltage[i] < 0) {
+      zeroCrossings++;
+    }
+  }
+
+  return Math.max(1, Math.round(zeroCrossings / 2));
+}
+
 /**
  * Trim waveform data to exact periods starting from a voltage zero-crossing.
  * Returns { voltage, current, samplingRate } or null if insufficient data.
@@ -87,6 +105,21 @@ function trimToExactPeriods(
   };
 }
 
+function getRawPeriodsFallback(
+  voltage: number[],
+  current: number[],
+  frequency: number,
+  numPeriods: number
+): { voltage: number[]; current: number[]; samplingRate: number } | null {
+  if (voltage.length < 2 || voltage.length !== current.length) return null;
+
+  return {
+    voltage,
+    current,
+    samplingRate: ((voltage.length - 1) * frequency) / numPeriods,
+  };
+}
+
 export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
   const [numPeriods, setNumPeriods] = useState<1 | 2>(1);
 
@@ -103,16 +136,26 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
     );
   }
 
-  // Try to trim to exact periods; fallback to 1 period, then raw data
+  // Try to trim to exact periods. If 2T cannot be trimmed because the ESP32
+  // buffer starts mid-period, show the raw two-period payload instead.
   const trimmedRequested = trimToExactPeriods(
     waveforms.voltage,
     waveforms.current,
     frequency,
     numPeriods,
   );
+  const rawPeriodsFallback = getRawPeriodsFallback(
+    waveforms.voltage,
+    waveforms.current,
+    frequency,
+    estimateRawPeriods(waveforms.voltage),
+  );
   const trimmedFallback =
     trimmedRequested ??
-    trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, 1);
+    rawPeriodsFallback ??
+    (numPeriods === 1
+      ? null
+      : trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, 1));
   const trimmed = trimmedFallback;
 
   const displayVoltage = trimmed ? trimmed.voltage : waveforms.voltage;

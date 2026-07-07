@@ -67,11 +67,11 @@ describe('PowerQualitySection Component', () => {
       expect(screen.getByText(/0\.22%/)).toBeInTheDocument();
     });
 
-    it('displays voltage limits (207V - 253V)', () => {
+    it('displays voltage limits (207 V - 253 V)', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
-      expect(screen.getByText(/207V/)).toBeInTheDocument();
-      expect(screen.getByText(/253V/)).toBeInTheDocument();
+      expect(screen.getByText(/207 V/)).toBeInTheDocument();
+      expect(screen.getByText(/253 V/)).toBeInTheDocument();
     });
 
     it('shows compliance badge for voltage', () => {
@@ -96,11 +96,11 @@ describe('PowerQualitySection Component', () => {
       expect(elements.length).toBeGreaterThan(0);
     });
 
-    it('displays frequency limits (49.5Hz - 50.5Hz)', () => {
+    it('displays frequency limits (49.5 Hz - 50.5 Hz)', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
-      expect(screen.getByText(/49\.5Hz/)).toBeInTheDocument();
-      expect(screen.getByText(/50\.5Hz/)).toBeInTheDocument();
+      expect(screen.getByText(/49\.5 Hz/)).toBeInTheDocument();
+      expect(screen.getByText(/50\.5 Hz/)).toBeInTheDocument();
     });
   });
 
@@ -122,13 +122,13 @@ describe('PowerQualitySection Component', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
       expect(screen.getByText(/Ograniczenia pomiarowe/i)).toBeInTheDocument();
-      expect(screen.getByText(/Ograniczenie Nyquista/i)).toBeInTheDocument();
+      expect(screen.getByText(/zakres raportowany/i)).toBeInTheDocument();
     });
 
     it('explains the measurement limitation', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
-      expect(screen.getByText(/3000Hz/)).toBeInTheDocument();
+      expect(screen.getByText(/10 kHz/)).toBeInTheDocument();
       expect(screen.getByText(/dolne ograniczenie/i)).toBeInTheDocument();
     });
   });
@@ -215,10 +215,10 @@ describe('PowerQualitySection Component', () => {
       expect(screen.getByText(/Parametry napięcia zasilającego/i)).toBeInTheDocument();
     });
 
-    it('shows Nyquist limitation explanation', () => {
+    it('shows harmonic range limitation explanation', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
-      expect(screen.getByText(/Ograniczenie Nyquista/i)).toBeInTheDocument();
+      expect(screen.getByText(/zakres raportowany/i)).toBeInTheDocument();
       expect(screen.getByText(/IEC 61000-4-7/i)).toBeInTheDocument();
     });
   });
@@ -268,7 +268,7 @@ describe('PowerQualitySection Component', () => {
       expect(elements.length).toBeGreaterThan(0);
     });
 
-    it('shows Nyquist limitation info box', () => {
+    it('shows reported range limitation info box', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
       const infoBox = screen.getByText(/Ograniczenia pomiarowe/i);

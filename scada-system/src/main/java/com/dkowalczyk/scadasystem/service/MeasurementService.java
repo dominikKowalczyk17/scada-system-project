@@ -82,7 +82,7 @@ public class MeasurementService {
      * Calculates PN-EN 50160 power quality indicators from raw measurement data.
      * <p>
      * This method computes voltage and frequency deviations according to PN-EN 50160 standard:
-     * - Group 1: Voltage deviation from declared value (230V nominal)
+     * - Group 1: Voltage deviation from declared value (230 V nominal)
      * - Group 2: Frequency deviation from nominal (50 Hz)
      * <p>
      * WHY IN SERVICE LAYER:
@@ -100,7 +100,7 @@ public class MeasurementService {
             double deviation = ((measurement.getVoltageRms() - Constants.NOMINAL_VOLTAGE)
                     / Constants.NOMINAL_VOLTAGE) * 100.0;
             measurement.setVoltageDeviationPercent(deviation);
-            log.debug("Calculated voltage deviation: {}% (U_rms={}V)",
+            log.debug("Calculated voltage deviation: {}% (U_rms={} V)",
                     String.format("%.2f", deviation), measurement.getVoltageRms());
         }
 
@@ -109,7 +109,7 @@ public class MeasurementService {
         if (measurement.getFrequency() != null) {
             double deviation = measurement.getFrequency() - Constants.NOMINAL_FREQUENCY;
             measurement.setFrequencyDeviationHz(deviation);
-            log.debug("Calculated frequency deviation: {} Hz (f={}Hz)",
+            log.debug("Calculated frequency deviation: {} Hz (f={} Hz)",
                     String.format("%.3f", deviation), measurement.getFrequency());
         }
 
@@ -339,7 +339,7 @@ public class MeasurementService {
 
     /**
      * Check if THD is within PN-EN 50160 limit (<8%).
-     * Note: Our THD is partial (harmonics 2-8 only), representing lower bound.
+     * Note: Our THD is partial (harmonics 2-25 only), representing lower bound.
      */
     private Boolean checkThdCompliance(Double thdVoltage) {
         if (thdVoltage == null) {

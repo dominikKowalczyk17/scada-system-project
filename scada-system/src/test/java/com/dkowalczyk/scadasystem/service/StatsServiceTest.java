@@ -298,7 +298,7 @@ class StatsServiceTest {
     @Test
     @DisplayName("calculateDailyStats() should count voltage swell events correctly with duration")
     void calculateDailyStats_shouldCountVoltageSwells_correctly() {
-        // Given: One continuous voltage swell event (> 253V = 110% of 230V)
+        // Given: One continuous voltage swell event (> 253 V = 110% of 230 V)
         // Event: swell at t=3s, 6s (duration = 3s) -> counts as 1 event
         List<Measurement> measurements = List.of(
                 createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.95, 5.0),  // Normal
@@ -320,7 +320,7 @@ class StatsServiceTest {
     @Test
     @DisplayName("calculateDailyStats() should count interruption events correctly with duration")
     void calculateDailyStats_shouldCountInterruptions_correctly() {
-        // Given: One continuous interruption event (< 23V = 10% of 230V, duration > 0.01s)
+        // Given: One continuous interruption event (< 23 V = 10% of 230 V, duration > 0.01 s)
         // Event: interruption at t=3s, 6s (duration = 3s) -> counts as 1 event
         List<Measurement> measurements = List.of(
                 createMeasurement(testDate, 0, 230.0, 1000.0, 50.0, 0.95, 5.0),  // Normal
