@@ -227,7 +227,7 @@ export const HarmonicsChart = forwardRef<
                   fill="#3b82f6"
                   name="Napięcie (V)"
                   radius={[4, 4, 0, 0]}
-                  isAnimationActive={true}
+                  isAnimationActive={false}
                 />
               )}
               {selectedHarmonic === "current" && (
@@ -236,7 +236,7 @@ export const HarmonicsChart = forwardRef<
                   fill="#f59e0b"
                   name={useMilliamps ? "Prąd (mA)" : "Prąd (A)"}
                   radius={[4, 4, 0, 0]}
-                  isAnimationActive={true}
+                  isAnimationActive={false}
                 />
               )}
             </BarChart>

@@ -283,16 +283,33 @@ describe('WaveformChart - Comprehensive Suite', () => {
       expect(domain[0]).toBe(-domain[1]); // symmetric around zero
     });
 
-    it('configures right Y-Axis for current with auto-scaled domain', () => {
+    it('configures right Y-Axis for current with a fixed -10 A to 10 A domain', () => {
       render(React.createElement(WaveformChart, defaultProps));
       const currentAxis = screen.getByTestId('y-axis-i-axis');
       expect(currentAxis).toHaveAttribute('data-orientation', 'right');
 
-      // Domain is now rounded to nice symmetric tick values (e.g. [-20,20] for max ~15 A)
       const domain = JSON.parse(currentAxis.getAttribute('data-domain')!) as [number, number];
-      expect(domain[0]).toBeLessThan(0);
-      expect(domain[1]).toBeGreaterThan(0);
-      expect(domain[0]).toBe(-domain[1]); // symmetric around zero
+      expect(domain).toEqual([-10, 10]);
+    });
+
+    it('zooms current Y-Axis in by 0.5 A when mouse wheel scrolls up', () => {
+      render(React.createElement(WaveformChart, defaultProps));
+
+      fireEvent.wheel(screen.getByTestId('waveform-chart-container'), { deltaY: -100 });
+
+      const currentAxis = screen.getByTestId('y-axis-i-axis');
+      const domain = JSON.parse(currentAxis.getAttribute('data-domain')!) as [number, number];
+      expect(domain).toEqual([-9.5, 9.5]);
+    });
+
+    it('zooms current Y-Axis out by 0.5 A when mouse wheel scrolls down', () => {
+      render(React.createElement(WaveformChart, defaultProps));
+
+      fireEvent.wheel(screen.getByTestId('waveform-chart-container'), { deltaY: 100 });
+
+      const currentAxis = screen.getByTestId('y-axis-i-axis');
+      const domain = JSON.parse(currentAxis.getAttribute('data-domain')!) as [number, number];
+      expect(domain).toEqual([-10.5, 10.5]);
     });
   });
 
