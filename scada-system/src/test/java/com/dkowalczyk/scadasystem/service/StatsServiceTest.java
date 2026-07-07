@@ -465,6 +465,34 @@ class StatsServiceTest {
     }
 
     @Test
+    @DisplayName("calculateDailyStats() should update existing daily stats for date")
+    void calculateDailyStats_shouldUpdateExistingDailyStats_forDate() {
+        // Given: Existing stale stats for the same date and fresh measurements
+        List<Measurement> measurements = createNormalMeasurements();
+        DailyStats existingStats = createMockDailyStats(testDate);
+        existingStats.setId(42L);
+        existingStats.setAvgVoltage(1.0);
+        existingStats.setMeasurementCount(0);
+        mockRepositoryCalls(measurements);
+        when(dailyStatsRepository.findByDate(testDate)).thenReturn(Optional.of(existingStats));
+
+        // When: Recalculate daily stats
+        statsService.calculateDailyStats(testDate);
+
+        // Then: Should update and save the existing row instead of inserting a new one
+        ArgumentCaptor<DailyStats> captor = ArgumentCaptor.forClass(DailyStats.class);
+        verify(dailyStatsRepository).findByDate(testDate);
+        verify(dailyStatsRepository).save(captor.capture());
+
+        DailyStats saved = captor.getValue();
+        assertThat(saved).isSameAs(existingStats);
+        assertThat(saved.getId()).isEqualTo(42L);
+        assertThat(saved.getDate()).isEqualTo(testDate);
+        assertThat(saved.getAvgVoltage()).isEqualTo(230.0);
+        assertThat(saved.getMeasurementCount()).isEqualTo(3);
+    }
+
+    @Test
     @DisplayName("calculateDailyStats() should calculate data completeness correctly")
     void calculateDailyStats_shouldCalculateDataCompleteness_correctly() {
         // Given: Expected measurements = 24 * 60 * 60 / 3 = 28,800
