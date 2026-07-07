@@ -18,8 +18,6 @@ interface WaveformChartProps {
   frequency: number;
 }
 
-const RAW_WAVEFORM_PERIODS = 2;
-
 /**
  * Generate symmetric tick values around zero.
  * Picks a "nice" step (1, 2, 2.5, 5 × 10^n) and returns ticks from -max to +max.
@@ -56,6 +54,24 @@ function findPositiveZeroCrossings(data: number[]): number[] {
     }
   }
   return crossings;
+}
+
+function estimateRawPeriods(voltage: number[]): number {
+  if (voltage.length < 2) return 1;
+
+  let zeroCrossings = 0;
+  if (voltage[0] === 0 || voltage[0] * voltage[1] < 0) {
+    zeroCrossings++;
+  }
+
+  for (let i = 1; i < voltage.length; i++) {
+    if (voltage[i - 1] === 0) continue;
+    if (voltage[i] === 0 || voltage[i - 1] * voltage[i] < 0) {
+      zeroCrossings++;
+    }
+  }
+
+  return Math.max(1, Math.round(zeroCrossings / 2));
 }
 
 /**
@@ -132,7 +148,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
     waveforms.voltage,
     waveforms.current,
     frequency,
-    RAW_WAVEFORM_PERIODS,
+    estimateRawPeriods(waveforms.voltage),
   );
   const trimmedFallback =
     trimmedRequested ??
