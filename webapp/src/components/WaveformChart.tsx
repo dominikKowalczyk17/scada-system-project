@@ -18,6 +18,8 @@ interface WaveformChartProps {
   frequency: number;
 }
 
+const RAW_WAVEFORM_PERIODS = 2;
+
 /**
  * Generate symmetric tick values around zero.
  * Picks a "nice" step (1, 2, 2.5, 5 × 10^n) and returns ticks from -max to +max.
@@ -126,15 +128,12 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
     frequency,
     numPeriods,
   );
-  const rawPeriodsFallback =
-    numPeriods === 2
-      ? getRawPeriodsFallback(
-          waveforms.voltage,
-          waveforms.current,
-          frequency,
-          numPeriods,
-        )
-      : null;
+  const rawPeriodsFallback = getRawPeriodsFallback(
+    waveforms.voltage,
+    waveforms.current,
+    frequency,
+    RAW_WAVEFORM_PERIODS,
+  );
   const trimmedFallback =
     trimmedRequested ??
     rawPeriodsFallback ??

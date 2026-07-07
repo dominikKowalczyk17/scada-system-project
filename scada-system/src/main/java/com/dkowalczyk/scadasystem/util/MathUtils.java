@@ -129,10 +129,10 @@ public class MathUtils {
 
         double[] waveform = new double[samplesPerCycle];
 
-        // t_step = 1.0 / (frequency * samplesPerCycle);
+        double secondsPerSample = 1.0 / (frequency * samplesPerCycle);
 
         for (int i = 0; i < samplesPerCycle; i++) {
-            double t = (double) i / samplesPerCycle;
+            double t = i * secondsPerSample;
             double sum = 0;
 
             for (int h = 0; h < harmonics.length; h++) {
@@ -143,7 +143,8 @@ public class MathUtils {
                 double amplitude = harmonics[h] * Math.sqrt(2);
 
                 // Fourier Synthesis:
-                double angle = 2.0 * Math.PI * harmonicOrder * t - (harmonicOrder == 1 ? phaseShift : 0);
+                double angle = 2.0 * Math.PI * frequency * harmonicOrder * t
+                        - (harmonicOrder == 1 ? phaseShift : 0);
                 sum += amplitude * Math.sin(angle);
             }
             waveform[i] = sum;

@@ -474,10 +474,18 @@ void processingTask(void * pvParameters) {
         }
 
         static char buffer[8192];  // Static (BSS) to avoid stack overflow with waveform arrays.
-        size_t len = serializeJson(doc, buffer, sizeof(buffer));
-        if (len >= sizeof(buffer)) {
-            Serial.printf("[ERROR] JSON buffer overflow! Size: %d, Capacity: %d\n", len, sizeof(buffer));
+        size_t measuredLen = measureJson(doc);
+        if (measuredLen >= sizeof(buffer)) {
+            waveV_arr.clear();
+            waveI_arr.clear();
+            samplesToSend = 0;
+            measuredLen = measureJson(doc);
+        }
+
+        if (measuredLen >= sizeof(buffer)) {
+            Serial.printf("[ERROR] JSON payload too large! Size: %d, Capacity: %d\n", measuredLen, sizeof(buffer));
         } else {
+            size_t len = serializeJson(doc, buffer, sizeof(buffer));
             if (client.connected()) client.publish(MQTT_TOPIC, buffer);
             // Serial.println(buffer);  // Commented to reduce serial clutter - JSON sent via MQTT
             Serial.printf("[DATA] v=%.1fV i=%.3fA p=%.1fW f=%.1fHz%s (samples: %d, json: %d bytes)\n",
