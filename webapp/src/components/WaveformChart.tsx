@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/ui/Card";
 import {
   LineChart,
@@ -17,6 +17,10 @@ interface WaveformChartProps {
   waveforms: WaveformDTO;
   frequency: number;
 }
+
+const CURRENT_SCALE_STEP_A = 0.5;
+const MIN_CURRENT_AXIS_A = 0.5;
+const MAX_CURRENT_AXIS_A = 50;
 
 /**
  * Generate symmetric tick values around zero.
@@ -122,6 +126,31 @@ function getRawPeriodsFallback(
 
 export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
   const [numPeriods, setNumPeriods] = useState<1 | 2>(1);
+  const [currentAxisMax, setCurrentAxisMax] = useState(10);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleWheel = useCallback((event: WheelEvent) => {
+    event.preventDefault();
+    const direction = event.deltaY < 0 ? -1 : 1;
+    setCurrentAxisMax((previous) => {
+      const next = previous + direction * CURRENT_SCALE_STEP_A;
+      return Math.min(MAX_CURRENT_AXIS_A, Math.max(MIN_CURRENT_AXIS_A, next));
+    });
+  }, []);
+
+  useEffect(() => {
+    const container = chartContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener("wheel", handleWheel, {
+      passive: false,
+      capture: true,
+    });
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel, { capture: true });
+    };
+  }, [handleWheel]);
 
   if (waveforms.voltage.length !== waveforms.current.length) {
     return (
@@ -170,33 +199,21 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
   const voltageTickMax = voltageTicks[voltageTicks.length - 1];
   const voltageDomain = [-voltageTickMax, voltageTickMax];
 
-  // Auto-scale current axis with symmetric ticks
-  const maxCurrent = Math.max(...displayCurrent.map(Math.abs));
-  // Use at least 0.01A margin for very small currents (phone chargers ~0.02-0.05A)
-  const currentWithMargin = Math.max(maxCurrent * 1.2, 0.01);
-  const currentTicks = generateSymmetricTicks(currentWithMargin, 7);
-  const currentTickMax = currentTicks[currentTicks.length - 1];
-  const currentDomain = [-currentTickMax, currentTickMax];
-
-  // Determine if current should be displayed in mA (for better readability at low currents)
-  const useMilliamps = maxCurrent < 0.5; // Below 0.5A, show in mA
-  const currentMultiplier = useMilliamps ? 1000 : 1;
-  const currentUnit = useMilliamps ? "mA" : "A";
-
   // Transform data for display
   const chartData = displayVoltage.map((v, index) => ({
     sample: index,
     time: (index / samplingRate) * 1000,
     voltage: v,
-    current: displayCurrent[index] * currentMultiplier,
+    current: displayCurrent[index],
   }));
-
-  // Adjust current domain and ticks for display units
-  const displayCurrentDomain = [
-    currentDomain[0] * currentMultiplier,
-    currentDomain[1] * currentMultiplier,
+  const currentDomain: [number, number] = [-currentAxisMax, currentAxisMax];
+  const currentTicks = [
+    -currentAxisMax,
+    -currentAxisMax / 2,
+    0,
+    currentAxisMax / 2,
+    currentAxisMax,
   ];
-  const displayCurrentTicks = currentTicks.map((t) => t * currentMultiplier);
 
   return (
     <Card>
@@ -234,12 +251,17 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
           </div>
         </div>
         <p className="text-xs sm:text-sm text-muted-foreground mt-2 sm:mt-0">
-          Napięcie (niebieski, V) i Prąd (pomarańczowy, {currentUnit}) na
-          niezależnych osiach ({frequency.toFixed(1)} Hz)
+          Napięcie (niebieski, V) i Prąd (pomarańczowy, A) na
+          niezależnych osiach ({frequency.toFixed(1)} Hz, prąd ±
+          {currentAxisMax.toFixed(1)} A)
         </p>
       </CardHeader>
       <CardContent className="pt-2 pb-2 px-2 sm:px-4">
-        <div className="h-[300px] sm:h-[400px] lg:h-[500px] w-full">
+        <div
+          ref={chartContainerRef}
+          className="h-[300px] sm:h-[400px] lg:h-[500px] w-full"
+          data-testid="waveform-chart-container"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -280,23 +302,21 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 }}
               />
 
-              {/* PRAWA OŚ DLA PRĄDU - AUTO-SCALED */}
+              {/* PRAWA OŚ DLA PRĄDU - STAŁA SKALA */}
               <YAxis
                 yAxisId="i-axis"
                 orientation="right"
                 stroke="#f59e0b"
                 tick={{ fill: "#e5e7eb", fontSize: 11 }}
-                domain={displayCurrentDomain}
-                ticks={displayCurrentTicks}
+                domain={currentDomain}
+                ticks={currentTicks}
                 width={60}
-                tickFormatter={
-                  (value) =>
-                    useMilliamps
-                      ? value.toFixed(0) // mA - no decimals
-                      : value.toFixed(2) // A - 2 decimals
+                allowDataOverflow
+                tickFormatter={(value) =>
+                  Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2)
                 }
                 label={{
-                  value: `Prąd (${currentUnit})`,
+                  value: "Prąd (A)",
                   angle: 90,
                   position: "insideRight",
                   offset: 10,
@@ -336,11 +356,8 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                     return ["---", String(name ?? "Nieznany")];
                   }
 
-                  if (name === "Prąd (A)" || name === `Prąd (${currentUnit})`) {
-                    return [
-                      useMilliamps ? `${v.toFixed(0)} mA` : `${v.toFixed(3)} A`,
-                      `Prąd (${currentUnit})`,
-                    ];
+                  if (name === "Prąd (A)") {
+                    return [`${v.toFixed(3)} A`, "Prąd (A)"];
                   }
 
                   return [`${v.toFixed(1)} V`, "Napięcie (V)"];
@@ -365,7 +382,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
                 stroke="#f59e0b"
                 strokeWidth={2}
                 dot={false}
-                name={`Prąd (${currentUnit})`}
+                name="Prąd (A)"
                 isAnimationActive={false}
               />
             </LineChart>

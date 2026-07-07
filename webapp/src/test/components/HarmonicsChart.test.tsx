@@ -36,6 +36,7 @@ interface MockBarProps {
   fill?: string;
   name?: string;
   radius?: number[];
+  isAnimationActive?: boolean;
 }
 
 vi.mock('recharts', () => ({
@@ -67,12 +68,13 @@ vi.mock('recharts', () => ({
       )}
     </div>
   ),
-  Bar: ({ dataKey, fill, name, radius }: MockBarProps) => (
+  Bar: ({ dataKey, fill, name, radius, isAnimationActive }: MockBarProps) => (
     <div
       data-testid={`bar-${dataKey}`}
       data-fill={fill}
       data-name={name}
       data-radius={JSON.stringify(radius)}
+      data-animation-active={String(isAnimationActive)}
     />
   ),
 }));
@@ -181,6 +183,14 @@ describe('HarmonicsChart Component - Comprehensive Suite', () => {
       const bar = screen.getByTestId('bar-voltage');
       expect(bar).toHaveAttribute('data-fill', '#3b82f6');
       expect(bar).toHaveAttribute('data-radius', JSON.stringify([4, 4, 0, 0]));
+    });
+
+    it('disables bar animations when switching harmonic views', () => {
+      render(React.createElement(HarmonicsChart, defaultProps));
+      expect(screen.getByTestId('bar-voltage')).toHaveAttribute('data-animation-active', 'false');
+
+      fireEvent.click(screen.getByRole('button', { name: /Prąd/i }));
+      expect(screen.getByTestId('bar-current')).toHaveAttribute('data-animation-active', 'false');
     });
   });
 
