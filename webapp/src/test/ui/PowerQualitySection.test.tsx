@@ -268,7 +268,7 @@ describe('PowerQualitySection Component', () => {
       expect(elements.length).toBeGreaterThan(0);
     });
 
-    it('shows Nyquist limitation info box', () => {
+    it('shows reported range limitation info box', () => {
       render(<PowerQualitySection data={mockPowerQualityData} />);
 
       const infoBox = screen.getByText(/Ograniczenia pomiarowe/i);

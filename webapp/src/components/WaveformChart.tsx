@@ -87,7 +87,7 @@ function trimToExactPeriods(
   };
 }
 
-function useRawPeriodsFallback(
+function getRawPeriodsFallback(
   voltage: number[],
   current: number[],
   frequency: number,
@@ -128,7 +128,7 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
   );
   const rawPeriodsFallback =
     numPeriods === 2
-      ? useRawPeriodsFallback(
+      ? getRawPeriodsFallback(
           waveforms.voltage,
           waveforms.current,
           frequency,
@@ -138,7 +138,9 @@ export function WaveformChart({ waveforms, frequency }: WaveformChartProps) {
   const trimmedFallback =
     trimmedRequested ??
     rawPeriodsFallback ??
-    trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, 1);
+    (numPeriods === 1
+      ? null
+      : trimToExactPeriods(waveforms.voltage, waveforms.current, frequency, 1));
   const trimmed = trimmedFallback;
 
   const displayVoltage = trimmed ? trimmed.voltage : waveforms.voltage;

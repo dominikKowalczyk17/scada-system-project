@@ -156,7 +156,7 @@ const Dashboard = () => {
     const thdWithinLimits =
       measurement.thd_voltage === undefined
         ? null
-        : measurement.thd_voltage < POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT;
+        : measurement.thd_voltage <= POWER_QUALITY_LIMITS.VOLTAGE_THD_LIMIT;
 
     const complianceValues = [
       voltageWithinLimits,

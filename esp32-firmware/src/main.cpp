@@ -35,6 +35,7 @@ const int MIN_ZERO_CROSSINGS = 2;           // Min 2 przejścia = 1 pełny okres
 volatile int rawBufferU[SAMPLES];
 volatile int rawBufferI[SAMPLES];
 volatile bool dataReady = false;
+portMUX_TYPE frameMux = portMUX_INITIALIZER_UNLOCKED;
 
 double vReal[SAMPLES], vImag[SAMPLES];
 double iReal[SAMPLES], iImag[SAMPLES];
@@ -114,19 +115,26 @@ void adcSamplingTask(void * pvParameters) {
     static int frameI[SAMPLES];
     int idxU = 0;
     int idxI = 0;
+    auto resetPartialFrame = [&]() {
+        idxU = 0;
+        idxI = 0;
+    };
 
     for (;;) {
         uint32_t bytesRead = 0;
         esp_err_t err = adc_digi_read_bytes(dmaBuffer, sizeof(dmaBuffer), &bytesRead, 1000);
         if (err == ESP_ERR_TIMEOUT) {
+            resetPartialFrame();
             continue;
         }
         if (err == ESP_ERR_INVALID_STATE) {
+            resetPartialFrame();
             Serial.println("[ADC-DMA] overflow: sampling faster than processing");
             vTaskDelay(pdMS_TO_TICKS(10));
             continue;
         }
         if (err != ESP_OK) {
+            resetPartialFrame();
             Serial.printf("[ADC-DMA] read failed: %d\n", err);
             vTaskDelay(pdMS_TO_TICKS(100));
             continue;
@@ -145,6 +153,7 @@ void adcSamplingTask(void * pvParameters) {
             }
 
             if (idxU >= SAMPLES && idxI >= SAMPLES) {
+                portENTER_CRITICAL(&frameMux);
                 if (!dataReady) {
                     for (int j = 0; j < SAMPLES; j++) {
                         rawBufferU[j] = frameU[j];
@@ -152,6 +161,7 @@ void adcSamplingTask(void * pvParameters) {
                     }
                     dataReady = true;
                 }
+                portEXIT_CRITICAL(&frameMux);
                 idxU = 0;
                 idxI = 0;
             }
@@ -241,17 +251,36 @@ float calculateFrequencyFromZeroCrossing(volatile int* rawBuffer, int numSamples
 }
 
 void processingTask(void * pvParameters) {
+  int *processingBufferU = (int *)malloc(SAMPLES * sizeof(int));
+  int *processingBufferI = (int *)malloc(SAMPLES * sizeof(int));
+  if (processingBufferU == nullptr || processingBufferI == nullptr) {
+    Serial.println("[ERROR] failed to allocate processing frame buffers");
+    while (true) vTaskDelay(pdMS_TO_TICKS(1000));
+  }
+
   for(;;) {
-    if (dataReady) {
-      unsigned long currentTime = millis();
-      if (currentTime - lastPublishTime >= 3000) {
+    unsigned long currentTime = millis();
+    if (currentTime - lastPublishTime >= 3000) {
+      bool frameReady = false;
+      portENTER_CRITICAL(&frameMux);
+      if (dataReady) {
+        for (int i = 0; i < SAMPLES; i++) {
+          processingBufferU[i] = rawBufferU[i];
+          processingBufferI[i] = rawBufferI[i];
+        }
+        dataReady = false;
+        frameReady = true;
+      }
+      portEXIT_CRITICAL(&frameMux);
+
+      if (frameReady) {
         lastPublishTime = currentTime;
 
         // 1. DC Offset i Wygładzanie (Oversampling programowy)
         double sumU = 0, sumI = 0;
-        for (int i = 0; i < SAMPLES; i++) { 
-            sumU += rawBufferU[i]; 
-            sumI += rawBufferI[i]; 
+        for (int i = 0; i < SAMPLES; i++) {
+            sumU += processingBufferU[i];
+            sumI += processingBufferI[i];
         }
         float offsetU = sumU / SAMPLES;
         float offsetI = sumI / SAMPLES;
@@ -260,8 +289,8 @@ void processingTask(void * pvParameters) {
         double sumU2 = 0, sumI2 = 0, sumP = 0;
 
         for (int i = 0; i < SAMPLES; i++) {
-            float uScaled = (rawBufferU[i] - offsetU) * vCoeff;
-            float iRaw = (float)rawBufferI[i] - offsetI;
+            float uScaled = (processingBufferU[i] - offsetU) * vCoeff;
+            float iRaw = (float)processingBufferI[i] - offsetI;
             float iDisplayScaled = iRaw * iCoeff;
             float iCalcRaw = iRaw;
             if (abs(iCalcRaw) < ADC_DEAD_ZONE) iCalcRaw = 0;
@@ -295,7 +324,7 @@ void processingTask(void * pvParameters) {
         float pActive = sumP / SAMPLES;
 
         // 3. Pomiar częstotliwości: Zero-crossing (primary) z FFT fallback
-        double freq = calculateFrequencyFromZeroCrossing((volatile int*)rawBufferU, SAMPLES, offsetU);
+        double freq = calculateFrequencyFromZeroCrossing(processingBufferU, SAMPLES, offsetU);
         bool freqFromZeroCrossing = (freq > 0.0);
 
         // Fallback na FFT jeśli zero-crossing zawiódł
@@ -313,8 +342,12 @@ void processingTask(void * pvParameters) {
         FFT.compute(vReal, vImag, SAMPLES, FFT_FORWARD);
         vReal[0] = 0;
 
-        int baseBin = round(freq / (SAMPLING_FREQ / (double)SAMPLES));
-        if (baseBin < 1) baseBin = 1;
+        double binWidth = SAMPLING_FREQ / (double)SAMPLES;
+        auto harmonicBin = [&](int h) {
+            int bin = round((freq * h) / binWidth);
+            return (bin < 1) ? 1 : bin;
+        };
+        int baseBin = harmonicBin(1);
 
         // Phase of fundamental H1 for voltage (before magnitude conversion)
         double phaseV_H1 = atan2(vImag[baseBin], vReal[baseBin]);
@@ -326,7 +359,7 @@ void processingTask(void * pvParameters) {
         double harmonicsV_out[MAX_CALC_HARMONIC + 1] = {0};
 
         for (int h = 1; h <= MAX_CALC_HARMONIC; h++) {
-            int bin = baseBin * h;
+            int bin = harmonicBin(h);
             double amp = (bin < SAMPLES/2) ? (vReal[bin] / SAMPLES) * 2.0 : 0;
             harmonicsV_out[h] = amp;
             if (h > 1) sumSqHarmonicsV += pow(amp, 2);
@@ -347,7 +380,7 @@ void processingTask(void * pvParameters) {
         double harmonicsI_out[MAX_CALC_HARMONIC + 1] = {0};
 
         for (int h = 1; h <= MAX_CALC_HARMONIC; h++) {
-            int bin = baseBin * h;
+            int bin = harmonicBin(h);
             double amp = (bin < SAMPLES/2) ? (iReal[bin] / SAMPLES) * 2.0 : 0;
             harmonicsI_out[h] = amp;
             if (h > 1) sumSqHarmonicsI += pow(amp, 2);
@@ -457,7 +490,6 @@ void processingTask(void * pvParameters) {
                           len);
         }
       }
-      dataReady = false; 
     }
     client.loop();
     vTaskDelay(pdMS_TO_TICKS(10)); 
@@ -468,7 +500,10 @@ void setup() {
   Serial.begin(115200);
   setup_wifi();
   client.setServer(MQTT_SERVER, 1883);
-  client.setBufferSize(8192);  // Increased to handle waveform arrays.
+  if (!client.setBufferSize(8192)) {  // Increased to handle waveform arrays.
+    Serial.println("[MQTT] failed to allocate 8192-byte packet buffer");
+    while (true) delay(1000);
+  }
 
   setup_adc_dma();
 
